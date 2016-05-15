@@ -1,6 +1,9 @@
 Angry Metal Guy Player
 ======================
 
+[![Tests Status](https://img.shields.io/travis/desbma/amg-player/master.svg?label=tests&style=flat)](https://travis-ci.org/desbma/amg-player)
+[![Coverage](https://img.shields.io/coveralls/desbma/amg-player/master.svg?style=flat)](https://coveralls.io/github/desbma/amg-player?branch=master)
+
 Angry Metal Guy Player (amg) is a Python command line tool to automatically play tracks from [Angry Metal Guy](http://www.angrymetalguy.com/) reviews.
 
 I created this because:  
