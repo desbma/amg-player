@@ -12,11 +12,14 @@ import datetime
 import itertools
 import locale
 import logging
+import os
+import pickle
 import signal
 import subprocess
 
 from amg import colored_logging
 
+import appdirs
 import lxml.cssselect
 import lxml.etree
 import requests
@@ -91,6 +94,31 @@ def get_embedded_track(page):
   return yt_url
 
 
+def set_read(url):
+  """ Memorize a review's track has been read, return new deque of read URLs. """
+  data = get_read_urls()
+  data.append(url)
+  data_dir = appdirs.user_data_dir("amg-player")
+  if not os.path.isdir(data_dir):
+    os.makedirs(data_dir, exist_ok=True)
+  filepath = os.path.join(data_dir, "read.dat")
+  with open(filepath, "wb") as f:
+    data =  pickle.dump(data, f)
+  return data
+
+
+def get_read_urls():
+  """ Get deque of URLs of reviews URLs whose tracks have already been read. """
+  data_dir = appdirs.user_data_dir("amg-player")
+  filepath = os.path.join(data_dir, "read.dat")
+  try:
+    with open(filepath, "rb") as f:
+      data =  pickle.load(f)
+  except (FileNotFoundError, EOFError):
+    data = collections.deque((), 1000)
+  return data
+
+
 def terminal_choice(items):
   """ Ask user to choose an item in the terminal. """
   c = 0
@@ -141,26 +169,27 @@ def cl_main():
   locale.setlocale(locale.LC_ALL, "")
 
   # iterate over reviews
+  already_read = get_read_urls()
   reviews = []
   for i, review in zip(range(1, args.count + 1), get_reviews()):
     reviews.append(review)
     indent = " " * 5
-    print("% 3u. %s - %s\n%s\n%s" % (i,
-                                     review.artist,
-                                     review.album,
-                                     indent + ", ".join(review.tags),
-                                     indent + review.date_published.strftime("%x")))
+    print("% 3u. %s - %s" % (i, review.artist, review.album))
+    print("%sTags: %s" % (indent, ", ".join(review.tags)))
+    print("%sPublished: %s" % (indent, review.date_published.strftime("%x")))
+    if review.url not in already_read:
+      print("%s** Not yet played **" % (indent))
 
-  # play the choosen one
+  # play the choosen track
   review = terminal_choice(reviews)
   review_page = fetch(review.url)
   track_url = get_embedded_track(review_page)
-  # TODO be more flexible with the player
+  # TODO support other players (vlc, avplay, ffplay...)
   # TODO use cover url as video image if track is not a video
-  # TODO memorized tracks played
   print("Playing track from album '%s' from '%s'...\nReview URL: %s" % (review.album,
                                                                         review.artist,
                                                                         review.url))
+  set_read(review.url)
   subprocess.check_call(("mpv", track_url))
 
 
