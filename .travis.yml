@@ -1,0 +1,33 @@
+language: python
+python:
+  - "3.3"
+  - "3.4"
+  - "3.5"
+before_install:
+  - "pip install -U pip"
+install:
+  - "pip install -r requirements.txt"
+  - "pip install coveralls"
+script:
+  - "coverage run --source=amg setup.py test"
+after_success:
+  - "coveralls"
+before_deploy:
+  - "sudo add-apt-repository -y ppa:marutter/c2d4u"  # to get newer pandoc
+  - "sudo apt-get -q update"
+  - "sudo apt-get -V install pandoc"
+  - "pip install pypandoc"
+deploy:
+  provider: pypi
+  user: desbma
+  password:
+    secure: "lg0QFDZYapb3ymzV4eX7cE28Rna9J5OZOkfDTLI816oRWLOUyFMFtLRgwte0J8CbGju/fBIGEtHS+ete7Y4GKCjFiXIfTWe059vzaoByWlT7SigCs41DfWVbgovwp+8ECdjqA+rfzzBZqJxMMf5ol8ajWorV6fkVatkHGQC8BP/ykgpCC8fOwd9ok6zVZkDJ5ZLNU1TUIywuz3ENnrvdnxuKm59xZH/fZWHr5eWb1t8tGrce8rwfdOqJbTWW2+OiqCyh1a/iHUIuRhPOFIcZWcVmAs/+O7yuXee+3pbkRXZd/Wp+BLLgTvJKYKT+BV4m798VgL7iLJPqQhvyCibqHHx+whsY5xSyFKMAn5hDUOLyw9Yn/WDekqj5lg2qr8xfMtS7+6SmCCJ9QkRufU13vgzFdZXMSh1V72mNb1qYiWn87E0EUzSgdPU0alOaddCuQIwbbewoIXvK33PMkxUilk3yUnImzNRMXw9VyNR/QsCWysAKbkAt4A8me6qi4fMId1Fkrhq0Wk4ftw1eWAQaqWhHH5m2xgUo05v1OyL9QGblb2y3/QpCVPlDCygILJDbqtAvdKJJDHdtvCabTzllTvr+J6FS4tbxzydMi0L/zY0q9n2H8f1QpeoXDK6sMymIMtRtUw2EyYj/Ec+x+fr/5VCxIz0YTwDGd8mM05RaCOE="
+  on:
+    tags: true
+    branch: master
+notifications:
+  email:
+    recipients:
+      - secure: "UpOIgHxqo6pWbx2WJEpOYCo9Meel2E5NgdffXe0L2cYHH0kOsEtIUrjKE+2OOQ0H7L1QK84jwctAdKfuNc8Q6uY0LbbcB0lKUb100ZyXeyt7G75b0pqFTJ8DAMI0oH7K6Ek+cTGH0mC7WVVLnHsMF4EwHs3yEnyE6x3smniM+UwgOxboE870eFQ7g56wc7YkVJJlhQGjHAvZ5tMeCSt5gHGjGwg/32lHL3GVrB9opDq9bkRKbKpcOwL7krjICTxAkA1N0O20dqBWSNL4gJ09v4ngWUUibbkBvpxlrgWVXYrPLidPJ9xP8dwgheHxDUO0ZitYDyzjJQ/J1KG0AOhmBbQTNtAoGtsY5c9TMwE1VRFxQFx2gAzlLMZOxdITpECt7UPcLImUgTa/nOz1f7KIYTOdiVD3tj/skzLsCoXQtgnr3H/JIt3ZP0EgMzTC0Qqq18B3adae0cFTt9S3W3sqJtKq0O6yOnGdloWyBB8IVcHiNQ8T4gkraFjBPE5LEDifFEwXKUqPieiQNeATE/aezIN1+RWuPwvijU1Iqt2cfYT8sIV66J9pMjiP5UxKAEc57pS/WPZQXlwCwwctGDfYd7vkqCtFa5OvKEh3A33se+6fBpkhPbBkx2NawtKPuu/rb2VLG6LEZgQiT1g0MFNEoQvnKYL8wgL+nG+cGvo5JYg="
+    on_success: always
+    on_failure: always
