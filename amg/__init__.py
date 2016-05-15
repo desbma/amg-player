@@ -31,7 +31,7 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                          "date_published",
                                          "tags"))
 
-ROOT_URL = "http://www.angrymetalguy.com/"
+ROOT_URL = "https://www.angrymetalguy.com/"
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.tag-review")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
@@ -84,7 +84,7 @@ def get_embedded_track(page):
   """ Parse page and extract embedded track. """
   # TODO handle soundcloud
   iframe_url = PLAYER_SELECTOR(page)[0].get("src")
-  yt_prefix = "http://www.youtube.com/embed/"
+  yt_prefix = "https://www.youtube.com/embed/"
   assert(iframe_url.startswith(yt_prefix))
   yt_id = iframe_url[len(yt_prefix):]
   yt_url = "https://www.youtube.com/watch?v=%s" % (yt_id)
