@@ -103,7 +103,7 @@ def set_read(url):
     os.makedirs(data_dir, exist_ok=True)
   filepath = os.path.join(data_dir, "read.dat")
   with open(filepath, "wb") as f:
-    data =  pickle.dump(data, f)
+    pickle.dump(data, f)
   return data
 
 
@@ -132,6 +132,26 @@ def terminal_choice(items):
   return items[c - 1]
 
 
+def play(review, track_url):
+  """ Play it fucking loud! """
+  # TODO support other players (vlc, avplay, ffplay...)
+  # TODO use cover url as video image if track is not a video
+  print("Playing track from album '%s' from '%s'...\nReview URL: %s" % (review.album,
+                                                                        review.artist,
+                                                                        review.url))
+  subprocess.check_call(("mpv", track_url))
+
+
+def print_review_entry(i, review, already_read):
+  """ Print review metadata for interactive selection. """
+  indent = " " * 5
+  print("% 3u. %s - %s" % (i, review.artist, review.album))
+  print("%sTags: %s" % (indent, ", ".join(review.tags)))
+  print("%sPublished: %s" % (indent, review.date_published.strftime("%x")))
+  if not already_read:
+    print("%s** Not yet played **" % (indent))
+
+
 def cl_main():
   # parse args
   arg_parser = argparse.ArgumentParser(description=__doc__,
@@ -142,6 +162,15 @@ def cl_main():
                           default=20,
                           dest="count",
                           help="Amount of recent reviews to fetch")
+  arg_parser.add_argument("-m",
+                          "--mode",
+                          choices=("manual", "radio", "discover"),
+                          default="manual",
+                          dest="mode",
+                          help="""Playing mode.
+                                  "manual" let you select tracks to play one by one.
+                                  "radio" let you select the first one, and then plays all tracks by chronological order.
+                                  "discover" automatically plays all tracks by chronological order from the first non played one.""")
   arg_parser.add_argument("-v",
                           "--verbosity",
                           choices=("warning", "normal", "debug"),
@@ -149,8 +178,6 @@ def cl_main():
                           dest="verbosity",
                           help="Level of logging output")
   args = arg_parser.parse_args()
-  # TODO option to play all not played tracks in chronological order
-  # TODO option to auto play (non interactive) from first non played track (in chronological order)
 
   # setup logger
   logger = logging.getLogger()
@@ -165,32 +192,50 @@ def cl_main():
   logging_handler.setFormatter(logging_formatter)
   logger.addHandler(logging_handler)
 
-  # locale
+  # locale (for date display)
   locale.setlocale(locale.LC_ALL, "")
 
-  # iterate over reviews
-  already_read = get_read_urls()
-  reviews = []
-  for i, review in zip(range(1, args.count + 1), get_reviews()):
-    reviews.append(review)
-    indent = " " * 5
-    print("% 3u. %s - %s" % (i, review.artist, review.album))
-    print("%sTags: %s" % (indent, ", ".join(review.tags)))
-    print("%sPublished: %s" % (indent, review.date_published.strftime("%x")))
-    if review.url not in already_read:
-      print("%s** Not yet played **" % (indent))
+  # initial menu
+  already_read_urls = get_read_urls()
+  if args.mode in ("manual", "radio"):
+    reviews = []
+    for i, review in zip(range(1, args.count + 1), get_reviews()):
+      reviews.append(review)
+      print_review_entry(i, review, review.url in already_read_urls)
 
-  # play the choosen track
-  review = terminal_choice(reviews)
-  review_page = fetch(review.url)
-  track_url = get_embedded_track(review_page)
-  # TODO support other players (vlc, avplay, ffplay...)
-  # TODO use cover url as video image if track is not a video
-  print("Playing track from album '%s' from '%s'...\nReview URL: %s" % (review.album,
-                                                                        review.artist,
-                                                                        review.url))
-  set_read(review.url)
-  subprocess.check_call(("mpv", track_url))
+  if args.mode == "manual":
+    # fully interactive mode
+    while True:
+      review = terminal_choice(reviews)
+      review_page = fetch(review.url)
+      track_url = get_embedded_track(review_page)
+      already_read_urls = set_read(review.url)
+      play(review, track_url)
+
+      for i, review in enumerate(reviews, 1):
+        print_review_entry(i, review, review.url in already_read_urls)
+
+  elif args.mode == "radio":
+    # select first track interactively, then auto play
+    review = terminal_choice(reviews)
+    to_play = reviews[0:reviews.index(review) + 1]
+    to_play.reverse()
+    for review in to_play:
+      review_page = fetch(review.url)
+      track_url = get_embedded_track(review_page)
+      already_read_urls = set_read(review.url)
+      play(review, track_url)
+
+  elif args.mode == "discover":
+    # auto play all non played tracks
+    reviews = list(itertools.islice(get_reviews(), args.count))
+    for review in reversed(reviews):
+      if review.url in already_read_urls:
+        continue
+      review_page = fetch(review.url)
+      track_url = get_embedded_track(review_page)
+      already_read_urls = set_read(review.url)
+      play(review, track_url)
 
 
 if __name__ == "__main__":
