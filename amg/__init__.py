@@ -10,11 +10,14 @@ import argparse
 import collections
 import datetime
 import itertools
+import json
 import locale
 import logging
+import operator
 import os
 import pickle
 import signal
+import string
 import subprocess
 
 from amg import colored_logging
@@ -40,7 +43,8 @@ REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.tag-review")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
-PLAYER_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
+PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
+BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 
 
 def fetch(url):
@@ -86,12 +90,26 @@ def get_reviews():
 def get_embedded_track(page):
   """ Parse page and extract embedded track. """
   # TODO handle soundcloud
-  iframe_url = PLAYER_SELECTOR(page)[0].get("src")
-  yt_prefix = "https://www.youtube.com/embed/"
-  assert(iframe_url.startswith(yt_prefix))
-  yt_id = iframe_url[len(yt_prefix):]
-  yt_url = "https://www.youtube.com/watch?v=%s" % (yt_id)
-  return yt_url
+  try:
+    iframe = PLAYER_IFRAME_SELECTOR(page)[0]
+    iframe_url = iframe.get("src")
+    if iframe_url is not None:
+      yt_prefix = "https://www.youtube.com/embed/"
+      bc_prefix = "https://bandcamp.com/EmbeddedPlayer/"
+      if iframe_url.startswith(yt_prefix):
+        yt_id = iframe_url[len(yt_prefix):]
+        return "https://www.youtube.com/watch?v=%s" % (yt_id)
+      elif iframe_url.startswith(bc_prefix):
+        iframe_page = fetch(iframe_url)
+        js = BANDCAMP_JS_SELECTOR(iframe_page)[-1].text
+        js = next(filter(operator.methodcaller("__contains__",
+                                               "var playerdata ="),
+                         js.split("\n")))
+        js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
+        js = json.loads(js)
+        return js["linkback"]
+  except Exception as e:
+    logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
 
 
 def set_read(url):
@@ -209,6 +227,9 @@ def cl_main():
       review = terminal_choice(reviews)
       review_page = fetch(review.url)
       track_url = get_embedded_track(review_page)
+      if track_url is None:
+        logging.getLogger().warning("Unable to extract embedded track")
+        continue
       already_read_urls = set_read(review.url)
       play(review, track_url)
 
@@ -223,6 +244,9 @@ def cl_main():
     for review in to_play:
       review_page = fetch(review.url)
       track_url = get_embedded_track(review_page)
+      if track_url is None:
+        logging.getLogger().warning("Unable to extract embedded track")
+        continue
       already_read_urls = set_read(review.url)
       play(review, track_url)
 
@@ -234,6 +258,9 @@ def cl_main():
         continue
       review_page = fetch(review.url)
       track_url = get_embedded_track(review_page)
+      if track_url is None:
+        logging.getLogger().warning("Unable to extract embedded track")
+        continue
       already_read_urls = set_read(review.url)
       play(review, track_url)
 
