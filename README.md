@@ -20,8 +20,9 @@ I created this because:
 
 ## Features
 
-*TODO*
+* Supports embedded tracks from: YouTube, Bandcamp *(more to come)*
 
+*TODO*
 
 ## Installation
 
@@ -30,11 +31,21 @@ I created this because:
 
 ## Command line usage
 
-*TODO*
+Run `amg -h` to get full command line reference.
 
 ### Examples
 
-*TODO*
+* Browse and play interactively last 50 reviews:
+
+    `amg -c 50`
+
+* Choose the first track to play, then play all tracks in chronological order:
+
+    `amg -m radio`
+
+* Play last 20 tracks in chronological order, skipping those already played:
+
+    `amg -c 20 -m discover`
 
 
 ## License
