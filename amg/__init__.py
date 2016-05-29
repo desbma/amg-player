@@ -115,7 +115,7 @@ def get_embedded_track(page):
 def set_read(url):
   """ Memorize a review's track has been read, return new deque of read URLs. """
   data = get_read_urls()
-  data.append(url)
+  data.append((url, datetime.datetime.now()))
   data_dir = appdirs.user_data_dir("amg-player")
   if not os.path.isdir(data_dir):
     os.makedirs(data_dir, exist_ok=True)
@@ -160,14 +160,20 @@ def play(review, track_url):
   subprocess.check_call(("mpv", track_url))
 
 
-def print_review_entry(i, review, already_read):
+def print_review_entry(i, review, already_read_urls):
   """ Print review metadata for interactive selection. """
   indent = " " * 5
   print("% 3u. %s - %s" % (i, review.artist, review.album))
   print("%sTags: %s" % (indent, ", ".join(review.tags)))
   print("%sPublished: %s" % (indent, review.date_published.strftime("%x")))
-  if not already_read:
+  try:
+    idx = tuple(map(operator.itemgetter(0),
+                    already_read_urls)).index(review.url)
+  except ValueError:
     print("%s** Not yet played **" % (indent))
+  else:
+    last_played = already_read_urls[idx][1]
+    print("%sLast played: %s" % (indent, last_played.strftime("%x %X")))
 
 
 def cl_main():
@@ -219,7 +225,7 @@ def cl_main():
     reviews = []
     for i, review in zip(range(1, args.count + 1), get_reviews()):
       reviews.append(review)
-      print_review_entry(i, review, review.url in already_read_urls)
+      print_review_entry(i, review, already_read_urls)
 
   if args.mode == "manual":
     # fully interactive mode
@@ -234,7 +240,7 @@ def cl_main():
       play(review, track_url)
 
       for i, review in enumerate(reviews, 1):
-        print_review_entry(i, review, review.url in already_read_urls)
+        print_review_entry(i, review, already_read_urls)
 
   elif args.mode == "radio":
     # select first track interactively, then auto play
@@ -254,7 +260,8 @@ def cl_main():
     # auto play all non played tracks
     reviews = list(itertools.islice(get_reviews(), args.count))
     for review in reversed(reviews):
-      if review.url in already_read_urls:
+      if review.url in map(operator.itemgetter(0),
+                           already_read_urls):
         continue
       review_page = fetch(review.url)
       track_url = get_embedded_track(review_page)
