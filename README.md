@@ -20,7 +20,7 @@ I created this because:
 
 ## Features
 
-* Supports embedded tracks from: YouTube, Bandcamp *(more to come)*
+* Supports embedded tracks from: YouTube, Bandcamp, SoundCloud
 
 *TODO*
 

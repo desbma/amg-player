@@ -89,13 +89,13 @@ def get_reviews():
 
 def get_embedded_track(page):
   """ Parse page and extract embedded track. """
-  # TODO handle soundcloud
   try:
     iframe = PLAYER_IFRAME_SELECTOR(page)[0]
     iframe_url = iframe.get("src")
     if iframe_url is not None:
       yt_prefix = "https://www.youtube.com/embed/"
       bc_prefix = "https://bandcamp.com/EmbeddedPlayer/"
+      sc_prefix = "https://w.soundcloud.com/player/"
       if iframe_url.startswith(yt_prefix):
         yt_id = iframe_url[len(yt_prefix):]
         return "https://www.youtube.com/watch?v=%s" % (yt_id)
@@ -108,6 +108,8 @@ def get_embedded_track(page):
         js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
         js = json.loads(js)
         return js["linkback"]
+      elif iframe_url.startswith(sc_prefix):
+        return iframe_url.split("&", 1)[0]
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
 

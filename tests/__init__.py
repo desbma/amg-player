@@ -33,7 +33,8 @@ class TestAmg(unittest.TestCase):
 
   def test_get_embedded_track(self):
     urls = {"https://www.angrymetalguy.com/vredehammer-violator-review/": "https://www.youtube.com/watch?v=9Z34GAEO8hU",
-            "https://www.angrymetalguy.com/cadaveric-fumes-dimensions-obscure-review/": "http://bloodharvestrecords.bandcamp.com/album/dimensions-obscure-12mlp"}
+            "https://www.angrymetalguy.com/cadaveric-fumes-dimensions-obscure-review/": "http://bloodharvestrecords.bandcamp.com/album/dimensions-obscure-12mlp",
+            "https://www.angrymetalguy.com/sinnery-feast-fools-review/": "https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/257383834"}
     for review_url, expected_track_url in urls.items():
       review_page = amg.fetch(review_url)
       track_url = amg.get_embedded_track(review_page)
