@@ -8,6 +8,7 @@ __license__ = "GPLv3"
 
 import argparse
 import collections
+import contextlib
 import datetime
 import itertools
 import json
@@ -16,9 +17,12 @@ import logging
 import operator
 import os
 import pickle
+import shutil
 import signal
 import string
 import subprocess
+import tempfile
+import threading
 
 from amg import colored_logging
 
@@ -26,6 +30,7 @@ import appdirs
 import lxml.cssselect
 import lxml.etree
 import requests
+import youtube_dl
 
 
 ReviewMetadata = collections.namedtuple("ReviewMetadata",
@@ -47,13 +52,38 @@ PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 
 
-def fetch(url):
+class YDLThread(threading.Thread):
+
+  def __init__(self, url, opts):
+    super().__init__(target=self.download,
+                     args=(url, opts),
+                     daemon=True)
+
+  def download(self, url, opts):
+    try:
+      with youtube_dl.YoutubeDL(opts) as ydl:
+        ydl.download((url,))
+    except Exception as e:
+      logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
+
+
+def fetch_page(url):
   """ Fetch page & parse it with LXML. """
   logging.getLogger().debug("Fetching '%s'..." % (url))
   response = requests.get(url, timeout=9.1)
   response.raise_for_status()
   page = response.content.decode("utf-8")
   return lxml.etree.XML(page, HTML_PARSER)
+
+
+def fetch_ressource(url, dest_filepath):
+  """ Fetch ressource, and write it to file. """
+  logging.getLogger().debug("Fetching '%s'..." % (url))
+  with contextlib.closing(requests.get(url, timeout=9.1, stream=True)) as response:
+    response.raise_for_status()
+    with open(dest_filepath, "wb") as dest_file:
+      for chunk in response.iter_content(2 ** 14):
+        dest_file.write(chunk)
 
 
 def parse_review_block(review):
@@ -82,13 +112,15 @@ def get_reviews():
   """ Parse site and yield ReviewMetadata objects. """
   for i in itertools.count():
     url = ROOT_URL if (i == 0) else "%spage/%u" % (ROOT_URL, i + 1)
-    page = fetch(url)
+    page = fetch_page(url)
     for review in REVIEW_BLOCK_SELECTOR(page):
       yield parse_review_block(review)
 
 
 def get_embedded_track(page):
   """ Parse page and extract embedded track. """
+  url = None
+  audio_only = False
   try:
     iframe = PLAYER_IFRAME_SELECTOR(page)[0]
     iframe_url = iframe.get("src")
@@ -98,20 +130,23 @@ def get_embedded_track(page):
       sc_prefix = "https://w.soundcloud.com/player/"
       if iframe_url.startswith(yt_prefix):
         yt_id = iframe_url[len(yt_prefix):]
-        return "https://www.youtube.com/watch?v=%s" % (yt_id)
+        url = "https://www.youtube.com/watch?v=%s" % (yt_id)
       elif iframe_url.startswith(bc_prefix):
-        iframe_page = fetch(iframe_url)
+        iframe_page = fetch_page(iframe_url)
         js = BANDCAMP_JS_SELECTOR(iframe_page)[-1].text
         js = next(filter(operator.methodcaller("__contains__",
                                                "var playerdata ="),
                          js.split("\n")))
         js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
         js = json.loads(js)
-        return js["linkback"]
+        url = js["linkback"]
+        audio_only = True
       elif iframe_url.startswith(sc_prefix):
-        return iframe_url.split("&", 1)[0]
+        url = iframe_url.split("&", 1)[0]
+        audio_only = True
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
+  return url, audio_only
 
 
 def set_read(url):
@@ -152,14 +187,63 @@ def terminal_choice(items):
   return items[c - 1]
 
 
-def play(review, track_url):
+def play(review, track_url, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
-  # TODO use cover url as video image if track is not a video
   print("Playing track from album '%s' from '%s'...\nReview URL: %s" % (review.album,
                                                                         review.artist,
                                                                         review.url))
-  subprocess.check_call(("mpv", track_url))
+  if (merge_with_picture and
+      ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+      tmp_img_filepath = os.path.join(tmp_dir, "cover.jpg")
+      dl_pipe_filepath = os.path.join(tmp_dir, "dl.pipe")
+      os.mkfifo(dl_pipe_filepath)
+      fetch_ressource(review.cover_url, tmp_img_filepath)
+      ydl_opts = {"outtmpl": dl_pipe_filepath}
+      ydl_thread = YDLThread(track_url, ydl_opts)
+      cmd_conv = (shutil.which("avconv") or shutil.which("ffmpeg"),
+                  "-loglevel", "quiet",
+                  "-loop", "1", "-i", tmp_img_filepath,
+                  "-i", dl_pipe_filepath,
+                  "-c:a", "copy",
+                  "-c:v", "copy",
+                  "-f", "matroska", "-")
+      cmd_play = ("mpv", "-")
+      ydl_thread.start()
+      processes = [subprocess.Popen(cmd_conv,
+                                    stdin=subprocess.DEVNULL,
+                                    stdout=subprocess.PIPE)]
+      processes.append(subprocess.Popen(cmd_play,
+                                        stdin=processes[-1].stdout))
+      # wait for process exit
+      done = False
+      while not done:
+        for process in processes:
+          if process.returncode is not None:
+            done = True
+            break
+          else:
+            try:
+              process.wait(timeout=0.5)
+            except subprocess.TimeoutExpired:
+              pass
+            else:
+              done = True
+              break
+      # wait for exit or terminate
+      for process in processes:
+        try:
+          process.wait(timeout=0.5)
+        except subprocess.TimeoutExpired:
+          process.terminate()
+      #ydl_thread.join()
+      # check return codes
+      # for process in processes:
+      #   if process.returncode != 0:
+      #     raise RuntimeError()
+  else:
+    subprocess.check_call(("mpv", track_url))
 
 
 def print_review_entry(i, review, already_read_urls):
@@ -233,13 +317,13 @@ def cl_main():
     # fully interactive mode
     while True:
       review = terminal_choice(reviews)
-      review_page = fetch(review.url)
-      track_url = get_embedded_track(review_page)
+      review_page = fetch_page(review.url)
+      track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
         continue
       already_read_urls = set_read(review.url)
-      play(review, track_url)
+      play(review, track_url, merge_with_picture=audio_only)
 
       for i, review in enumerate(reviews, 1):
         print_review_entry(i, review, already_read_urls)
@@ -250,13 +334,13 @@ def cl_main():
     to_play = reviews[0:reviews.index(review) + 1]
     to_play.reverse()
     for review in to_play:
-      review_page = fetch(review.url)
-      track_url = get_embedded_track(review_page)
+      review_page = fetch_page(review.url)
+      track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
         continue
       already_read_urls = set_read(review.url)
-      play(review, track_url)
+      play(review, track_url, merge_with_picture=audio_only)
 
   elif args.mode == "discover":
     # auto play all non played tracks
@@ -265,13 +349,13 @@ def cl_main():
       if review.url in map(operator.itemgetter(0),
                            already_read_urls):
         continue
-      review_page = fetch(review.url)
-      track_url = get_embedded_track(review_page)
+      review_page = fetch_page(review.url)
+      track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
         continue
       already_read_urls = set_read(review.url)
-      play(review, track_url)
+      play(review, track_url, merge_with_picture=audio_only)
 
 
 if __name__ == "__main__":

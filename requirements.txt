@@ -2,3 +2,4 @@ appdirs>=1.4.0
 cssselect>=0.9.1
 lxml>=3.4.0,<4.0.0
 requests>=2.6.0
+youtube-dl>=2016.5.30.2
