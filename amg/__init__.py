@@ -102,7 +102,11 @@ def parse_review_block(review):
   artist, album = map(str.strip, title.split("–", 1))
   review_img = REVIEW_COVER_SELECTOR(review)[0]
   cover_thumbnail_url = "http:%s" % (review_img.get("src"))
-  cover_url = "http:%s" % (review_img.get("srcset").split(" ")[-2])
+  srcset = review_img.get("srcset")
+  if srcset is not None:
+    cover_url = "http:%s" % (srcset.split(" ")[-2])
+  else:
+    cover_url = None
   published = REVIEW_DATE_SELECTOR(review)[0].get("datetime")
   published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S+00:00").date()
   return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, published, tags)
@@ -199,7 +203,10 @@ def play(review, track_url, *, merge_with_picture):
       tmp_img_filepath = os.path.join(tmp_dir, "cover.jpg")
       dl_pipe_filepath = os.path.join(tmp_dir, "dl.pipe")
       os.mkfifo(dl_pipe_filepath)
-      fetch_ressource(review.cover_url, tmp_img_filepath)
+      if review.cover_url is not None:
+        fetch_ressource(review.cover_url, tmp_img_filepath)
+      else:
+        fetch_ressource(review.cover_thumbnail_url, tmp_img_filepath)
       ydl_opts = {"outtmpl": dl_pipe_filepath}
       ydl_thread = YDLThread(track_url, ydl_opts)
       cmd_conv = (shutil.which("avconv") or shutil.which("ffmpeg"),
