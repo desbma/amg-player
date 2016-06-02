@@ -23,7 +23,7 @@ class TestAmg(unittest.TestCase):
       self.assertIsInstance(review.album, str)
       self.assertTrue(review.album)
       self.assertTrue(review.cover_thumbnail_url.startswith("http"))
-      self.assertTrue(review.cover_url.startswith("http"))
+      self.assertTrue((review.cover_url is None) or review.cover_url.startswith("http"))
       self.assertIsInstance(review.date_published, datetime.date)
       self.assertIsInstance(review.tags, tuple)
       self.assertTrue(review.tags)
