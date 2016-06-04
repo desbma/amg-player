@@ -10,6 +10,7 @@ import argparse
 import collections
 import contextlib
 import datetime
+import functools
 import itertools
 import json
 import locale
@@ -22,7 +23,6 @@ import signal
 import string
 import subprocess
 import tempfile
-import threading
 
 from amg import colored_logging
 
@@ -50,21 +50,6 @@ REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
-
-
-class YDLThread(threading.Thread):
-
-  def __init__(self, url, opts):
-    super().__init__(target=self.download,
-                     args=(url, opts),
-                     daemon=True)
-
-  def download(self, url, opts):
-    try:
-      with youtube_dl.YoutubeDL(opts) as ydl:
-        ydl.download((url,))
-    except Exception as e:
-      logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
 
 
 def fetch_page(url):
@@ -150,6 +135,8 @@ def get_embedded_track(page):
         audio_only = True
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
+  if url is not None:
+    logging.getLogger().debug("Track URL: %s" % (url))
   return url, audio_only
 
 
@@ -172,7 +159,7 @@ def get_read_urls():
   filepath = os.path.join(data_dir, "read.dat")
   try:
     with open(filepath, "rb") as f:
-      data =  pickle.load(f)
+      data = pickle.load(f)
   except (FileNotFoundError, EOFError):
     data = collections.deque((), 1000)
   return data
@@ -191,6 +178,39 @@ def terminal_choice(items):
   return items[c - 1]
 
 
+def download_and_merge(review, track_url, tmp_dir):
+  # fetch audio
+  # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
+  ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
+  with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+    ydl.download((track_url,))
+  audio_filepaths = tuple(map(functools.partial(os.path.join,
+                                                tmp_dir),
+                              os.listdir(tmp_dir)))
+  concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
+  with open(concat_filepath, "wt") as concat_file:
+    for audio_filepath in audio_filepaths:
+      concat_file.write("file %s\n" % (audio_filepath))
+
+  # fetch cover
+  img_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".jpg")
+  if review.cover_url is not None:
+    fetch_ressource(review.cover_url, img_filepath)
+  else:
+    fetch_ressource(review.cover_thumbnail_url, img_filepath)
+
+  # merge
+  cmd = (shutil.which("ffmpeg") or shutil.which("avconv"),
+         "-loglevel", "quiet",
+         "-loop", "1", "-framerate", "1", "-i", img_filepath,
+         "-f", "concat", "-i", concat_filepath,
+         "-c:a", "copy",
+         "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
+         "-shortest",
+         "-f", "matroska", "-")
+  return subprocess.Popen(cmd, stdout=subprocess.PIPE)
+
+
 def play(review, track_url, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
@@ -198,59 +218,17 @@ def play(review, track_url, *, merge_with_picture):
                                                                         review.artist,
                                                                         review.url))
   if (merge_with_picture and
-      ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
-    with tempfile.TemporaryDirectory() as tmp_dir:
-      tmp_img_filepath = os.path.join(tmp_dir, "cover.jpg")
-      dl_pipe_filepath = os.path.join(tmp_dir, "dl.pipe")
-      os.mkfifo(dl_pipe_filepath)
-      if review.cover_url is not None:
-        fetch_ressource(review.cover_url, tmp_img_filepath)
-      else:
-        fetch_ressource(review.cover_thumbnail_url, tmp_img_filepath)
-      ydl_opts = {"outtmpl": dl_pipe_filepath}
-      ydl_thread = YDLThread(track_url, ydl_opts)
-      cmd_conv = (shutil.which("avconv") or shutil.which("ffmpeg"),
-                  "-loglevel", "quiet",
-                  "-loop", "1", "-i", tmp_img_filepath,
-                  "-i", dl_pipe_filepath,
-                  "-c:a", "copy",
-                  "-c:v", "copy",
-                  "-f", "matroska", "-")
-      cmd_play = ("mpv", "-")
-      ydl_thread.start()
-      processes = [subprocess.Popen(cmd_conv,
-                                    stdin=subprocess.DEVNULL,
-                                    stdout=subprocess.PIPE)]
-      processes.append(subprocess.Popen(cmd_play,
-                                        stdin=processes[-1].stdout))
-      # wait for process exit
-      done = False
-      while not done:
-        for process in processes:
-          if process.returncode is not None:
-            done = True
-            break
-          else:
-            try:
-              process.wait(timeout=0.5)
-            except subprocess.TimeoutExpired:
-              pass
-            else:
-              done = True
-              break
-      # wait for exit or terminate
-      for process in processes:
-        try:
-          process.wait(timeout=0.5)
-        except subprocess.TimeoutExpired:
-          process.terminate()
-      #ydl_thread.join()
-      # check return codes
-      # for process in processes:
-      #   if process.returncode != 0:
-      #     raise RuntimeError()
+          ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
+    with tempfile.TemporaryDirectory() as tmp_dir,\
+            download_and_merge(review, track_url, tmp_dir) as merge_process:
+      cmd = ("mpv", "-")
+      logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+      subprocess.check_call(cmd, stdin=merge_process.stdout)
+      merge_process.terminate()
   else:
-    subprocess.check_call(("mpv", track_url))
+    cmd = ("mpv", track_url)
+    logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+    subprocess.check_call(cmd)
 
 
 def print_review_entry(i, review, already_read_urls):
