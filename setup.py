@@ -29,7 +29,7 @@ except ImportError:
   with open("README.md", "rt") as f:
     readme = f.read()
 
-setup(name="amg",
+setup(name="amg-player",
       version=version,
       author="desbma",
       packages=find_packages(),
