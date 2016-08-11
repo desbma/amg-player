@@ -184,9 +184,7 @@ def download_and_merge(review, track_url, tmp_dir):
   ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
   with youtube_dl.YoutubeDL(ydl_opts) as ydl:
     ydl.download((track_url,))
-  audio_filepaths = tuple(map(functools.partial(os.path.join,
-                                                tmp_dir),
-                              os.listdir(tmp_dir)))
+  audio_filepaths = os.listdir(tmp_dir)
   concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
   with open(concat_filepath, "wt") as concat_file:
     for audio_filepath in audio_filepaths:
@@ -209,7 +207,8 @@ def download_and_merge(review, track_url, tmp_dir):
          "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
          "-shortest",
          "-f", "matroska", "-")
-  return subprocess.Popen(cmd, stdout=subprocess.PIPE)
+  logging.getLogger().debug("Merging Audio and image with command: %s" % (subprocess.list2cmdline(cmd)))
+  return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
 def play(review, track_url, *, merge_with_picture):
