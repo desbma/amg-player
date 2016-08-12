@@ -10,7 +10,6 @@ import argparse
 import collections
 import contextlib
 import datetime
-import functools
 import itertools
 import json
 import locale
