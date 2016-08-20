@@ -220,27 +220,35 @@ def play(review, track_url, *, merge_with_picture):
     subprocess.check_call(cmd)
 
 
-def review_to_string(review, already_played_urls):
-  """ Generate a string representation of review. """
-  try:
-    last_played = already_played_urls[review.url][0].strftime("%x %X")
-  except KeyError:
-    last_played = "never"
-  # TODO auto justify/align
-  # TODO display tags
-  return ("%s - %s | "
-          "Published: %s | "
-          "Last played: %s" % (review.artist,
-                               review.album,
-                               review.date_published.strftime("%x"),
-                               last_played))
+def reviews_to_strings(reviews, already_played_urls):
+  """ Generate a list of string representations of reviews. """
+  lines = []
+  for i, review in enumerate(reviews):
+    try:
+      last_played = already_played_urls[review.url][0].strftime("%x %X")
+    except KeyError:
+      last_played = "never"
+    lines.append(("%s - %s" % (review.artist, review.album),
+                  "Published: %s" % (review.date_published.strftime("%x")),
+                  "Last played: %s" % (last_played)))
+  # auto align/justify
+  max_lens = [0] * len(lines[0])
+  for line in lines:
+    for i, s in enumerate(line):
+      if len(s) > max_lens[i]:
+        max_lens[i] = len(s)
+  sep = "\t"
+  for i, line in enumerate(lines):
+    lines[i] = "%s%s" % (" " if i < 9 else "",
+                         sep.join(s.ljust(max_len) for s, max_len in zip(line, max_lens)))
+  return lines
 
 
 def setup_and_show_menu(mode, reviews, already_played_urls):
   """ Setup and display interactive menu, return selected review index or None if exist requested. """
   menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
                    PlayerMode.RADIO: "Select track to start playing from"}
-  menu = cursesmenu.SelectionMenu(tuple(review_to_string(r, already_played_urls) for r in reviews),
+  menu = cursesmenu.SelectionMenu(reviews_to_strings(reviews, already_played_urls),
                                   "AMG Player",
                                   "%s mode: %s" % (mode.name.capitalize(),
                                                    menu_subtitle[mode]))
