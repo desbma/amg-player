@@ -10,6 +10,7 @@ import argparse
 import collections
 import contextlib
 import datetime
+import enum
 import itertools
 import json
 import locale
@@ -26,12 +27,15 @@ import tempfile
 from amg import colored_logging
 
 import appdirs
+import cursesmenu
 import lxml.cssselect
 import lxml.etree
 import requests
 import youtube_dl
 
 
+PlayerMode = enum.Enum("PlayerMode",
+                       ("MANUAL", "RADIO", "DISCOVER"))
 ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                         ("url",
                                          "artist",
@@ -164,19 +168,6 @@ def get_read_urls():
   return data
 
 
-def terminal_choice(items):
-  """ Ask user to choose an item in the terminal. """
-  c = 0
-  while c not in range(1, len(items) + 1):
-    try:
-      c = int(input("? "))
-    except ValueError:
-      continue
-    except KeyboardInterrupt:
-      exit(128 + signal.SIGINT)
-  return items[c - 1]
-
-
 def download_and_merge(review, track_url, tmp_dir):
   # fetch audio
   # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
@@ -230,20 +221,35 @@ def play(review, track_url, *, merge_with_picture):
     subprocess.check_call(cmd)
 
 
-def print_review_entry(i, review, already_read_urls):
-  """ Print review metadata for interactive selection. """
-  indent = " " * 5
-  print("% 3u. %s - %s" % (i, review.artist, review.album))
-  print("%sTags: %s" % (indent, ", ".join(review.tags)))
-  print("%sPublished: %s" % (indent, review.date_published.strftime("%x")))
+def review_to_string(review, already_read_urls):
+  """ Generate a string representation of review. """
   try:
     idx = tuple(map(operator.itemgetter(0),
                     already_read_urls)).index(review.url)
+    last_played = already_read_urls[idx][1].strftime("%x %X")
   except ValueError:
-    print("%s** Not yet played **" % (indent))
-  else:
-    last_played = already_read_urls[idx][1]
-    print("%sLast played: %s" % (indent, last_played.strftime("%x %X")))
+    last_played = "never"
+  # TODO auto justify/align
+  # TODO display tags
+  return ("%s - %s | "
+          "Published: %s | "
+          "Last played: %s" % (review.artist,
+                               review.album,
+                               review.date_published.strftime("%x"),
+                               last_played))
+
+
+def setup_and_show_menu(mode, reviews, already_read_urls):
+  """ Setup and display interactive menu, return selected review index or None if exist requested. """
+  menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
+                   PlayerMode.RADIO: "Select track to start playing from"}
+  menu = cursesmenu.SelectionMenu(tuple(review_to_string(r, already_read_urls) for r in reviews),
+                                  "AMG Player",
+                                  "%s mode: %s" % (mode.name.capitalize(),
+                                                   menu_subtitle[mode]))
+  menu.show()
+  idx = menu.selected_option
+  return None if (idx == len(reviews)) else idx
 
 
 def cl_main():
@@ -258,13 +264,15 @@ def cl_main():
                           help="Amount of recent reviews to fetch")
   arg_parser.add_argument("-m",
                           "--mode",
-                          choices=("manual", "radio", "discover"),
-                          default="manual",
+                          choices=tuple(m.name.lower() for m in PlayerMode),
+                          default=PlayerMode.MANUAL.name.lower(),
                           dest="mode",
                           help="""Playing mode.
                                   "manual" let you select tracks to play one by one.
-                                  "radio" let you select the first one, and then plays all tracks by chronological order.
-                                  "discover" automatically plays all tracks by chronological order from the first non played one.""")
+                                  "radio" let you select the first one, and then plays all tracks by chronological
+                                  order.
+                                  "discover" automatically plays all tracks by chronological order from the first non
+                                  played one.""")
   arg_parser.add_argument("-v",
                           "--verbosity",
                           choices=("warning", "normal", "debug"),
@@ -272,6 +280,7 @@ def cl_main():
                           dest="verbosity",
                           help="Level of logging output")
   args = arg_parser.parse_args()
+  args.mode = PlayerMode[args.mode.upper()]
 
   # setup logger
   logger = logging.getLogger()
@@ -289,32 +298,32 @@ def cl_main():
   # locale (for date display)
   locale.setlocale(locale.LC_ALL, "")
 
-  # initial menu
+  # get reviews
   already_read_urls = get_read_urls()
-  if args.mode in ("manual", "radio"):
-    reviews = []
-    for i, review in zip(range(1, args.count + 1), get_reviews()):
-      reviews.append(review)
-      print_review_entry(i, review, already_read_urls)
+  reviews = list(itertools.islice(get_reviews(), args.count))
 
-  if args.mode == "manual":
+  # initial menu
+  if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
+    selected_idx = setup_and_show_menu(args.mode, reviews, already_read_urls)
+
+  if args.mode is PlayerMode.MANUAL:
     # fully interactive mode
-    while True:
-      review = terminal_choice(reviews)
+    while selected_idx is not None:
+      review = reviews[selected_idx]
       review_page = fetch_page(review.url)
       track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
-        continue
-      already_read_urls = set_read(review.url)
-      play(review, track_url, merge_with_picture=audio_only)
+      else:
+        already_read_urls = set_read(review.url)
+        play(review, track_url, merge_with_picture=audio_only)
 
-      for i, review in enumerate(reviews, 1):
-        print_review_entry(i, review, already_read_urls)
+      # update menu and display it
+      selected_idx = setup_and_show_menu(args.mode, reviews, already_read_urls)
 
-  elif args.mode == "radio":
+  elif (args.mode is PlayerMode.RADIO) and (selected_idx is not None):
     # select first track interactively, then auto play
-    review = terminal_choice(reviews)
+    review = reviews[selected_idx]
     to_play = reviews[0:reviews.index(review) + 1]
     to_play.reverse()
     for review in to_play:
@@ -322,13 +331,12 @@ def cl_main():
       track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
-        continue
-      already_read_urls = set_read(review.url)
-      play(review, track_url, merge_with_picture=audio_only)
+      else:
+        already_read_urls = set_read(review.url)
+        play(review, track_url, merge_with_picture=audio_only)
 
-  elif args.mode == "discover":
+  elif args.mode is PlayerMode.DISCOVER:
     # auto play all non played tracks
-    reviews = list(itertools.islice(get_reviews(), args.count))
     for review in reversed(reviews):
       if review.url in map(operator.itemgetter(0),
                            already_read_urls):
@@ -337,9 +345,9 @@ def cl_main():
       track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
-        continue
-      already_read_urls = set_read(review.url)
-      play(review, track_url, merge_with_picture=audio_only)
+      else:
+        already_read_urls = set_read(review.url)
+        play(review, track_url, merge_with_picture=audio_only)
 
 
 if __name__ == "__main__":
