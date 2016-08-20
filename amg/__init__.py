@@ -254,7 +254,7 @@ def setup_and_show_menu(mode, reviews, already_played_urls, selected_idx=None):
   menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
                    PlayerMode.RADIO: "Select track to start playing from"}
   menu = cursesmenu.SelectionMenu(reviews_to_strings(reviews, already_played_urls),
-                                  "AMG Player",
+                                  "AMG Player v%s" % (__version__),
                                   "%s mode: %s" % (mode.name.capitalize(),
                                                    menu_subtitle[mode]))
   if selected_idx is not None:
@@ -266,7 +266,7 @@ def setup_and_show_menu(mode, reviews, already_played_urls, selected_idx=None):
 
 def cl_main():
   # parse args
-  arg_parser = argparse.ArgumentParser(description=__doc__,
+  arg_parser = argparse.ArgumentParser(description="AMG Player v%s. %s" % (__version__, __doc__),
                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   arg_parser.add_argument("-c",
                           "--count",
