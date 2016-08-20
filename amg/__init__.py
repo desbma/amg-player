@@ -244,7 +244,7 @@ def reviews_to_strings(reviews, already_played_urls):
   return lines
 
 
-def setup_and_show_menu(mode, reviews, already_played_urls):
+def setup_and_show_menu(mode, reviews, already_played_urls, selected_idx=None):
   """ Setup and display interactive menu, return selected review index or None if exist requested. """
   menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
                    PlayerMode.RADIO: "Select track to start playing from"}
@@ -252,6 +252,8 @@ def setup_and_show_menu(mode, reviews, already_played_urls):
                                   "AMG Player",
                                   "%s mode: %s" % (mode.name.capitalize(),
                                                    menu_subtitle[mode]))
+  if selected_idx is not None:
+    menu.current_option = selected_idx
   menu.show()
   idx = menu.selected_option
   return None if (idx == len(reviews)) else idx
@@ -324,7 +326,7 @@ def cl_main():
         play(review, track_url, merge_with_picture=audio_only)
 
       # update menu and display it
-      selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
+      selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls, selected_idx=selected_idx)
 
   elif (args.mode is PlayerMode.RADIO) and (selected_idx is not None):
     # select first track interactively, then auto play
