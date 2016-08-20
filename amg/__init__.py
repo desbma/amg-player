@@ -17,9 +17,8 @@ import locale
 import logging
 import operator
 import os
-import pickle
 import shutil
-import signal
+import shelve
 import string
 import subprocess
 import tempfile
@@ -46,6 +45,7 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                          "tags"))
 
 ROOT_URL = "https://www.angrymetalguy.com/"
+LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.tag-review")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
@@ -143,28 +143,27 @@ def get_embedded_track(page):
   return url, audio_only
 
 
-def set_read(url):
-  """ Memorize a review's track has been read, return new deque of read URLs. """
-  data = get_read_urls()
-  data.append((url, datetime.datetime.now()))
-  data_dir = appdirs.user_data_dir("amg-player")
-  if not os.path.isdir(data_dir):
-    os.makedirs(data_dir, exist_ok=True)
-  filepath = os.path.join(data_dir, "read.dat")
-  with open(filepath, "wb") as f:
-    pickle.dump(data, f)
+def set_played(url):
+  """ Memorize a review's track has been read, return new dict of read URLs. """
+  data = get_played_urls()
+  data[url] = (datetime.datetime.now(), )
   return data
 
 
-def get_read_urls():
+def get_played_urls():
   """ Get deque of URLs of reviews URLs whose tracks have already been read. """
   data_dir = appdirs.user_data_dir("amg-player")
-  filepath = os.path.join(data_dir, "read.dat")
-  try:
-    with open(filepath, "rb") as f:
-      data = pickle.load(f)
-  except (FileNotFoundError, EOFError):
-    data = collections.deque((), 1000)
+  filepath = os.path.join(data_dir, "played.dat")
+  data = shelve.open(filepath, protocol=3)
+  # cleanup old entries
+  now = datetime.datetime.now()
+  to_del = []
+  for url, (last_played, *_) in data.items():
+    delta = now - last_played
+    if delta.days > LAST_PLAYED_EXPIRATION_DAYS:
+      to_del.append(url)
+  for url in to_del:
+    del data[url]
   return data
 
 
@@ -221,13 +220,11 @@ def play(review, track_url, *, merge_with_picture):
     subprocess.check_call(cmd)
 
 
-def review_to_string(review, already_read_urls):
+def review_to_string(review, already_played_urls):
   """ Generate a string representation of review. """
   try:
-    idx = tuple(map(operator.itemgetter(0),
-                    already_read_urls)).index(review.url)
-    last_played = already_read_urls[idx][1].strftime("%x %X")
-  except ValueError:
+    last_played = already_played_urls[review.url][0].strftime("%x %X")
+  except KeyError:
     last_played = "never"
   # TODO auto justify/align
   # TODO display tags
@@ -239,11 +236,11 @@ def review_to_string(review, already_read_urls):
                                last_played))
 
 
-def setup_and_show_menu(mode, reviews, already_read_urls):
+def setup_and_show_menu(mode, reviews, already_played_urls):
   """ Setup and display interactive menu, return selected review index or None if exist requested. """
   menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
                    PlayerMode.RADIO: "Select track to start playing from"}
-  menu = cursesmenu.SelectionMenu(tuple(review_to_string(r, already_read_urls) for r in reviews),
+  menu = cursesmenu.SelectionMenu(tuple(review_to_string(r, already_played_urls) for r in reviews),
                                   "AMG Player",
                                   "%s mode: %s" % (mode.name.capitalize(),
                                                    menu_subtitle[mode]))
@@ -299,12 +296,12 @@ def cl_main():
   locale.setlocale(locale.LC_ALL, "")
 
   # get reviews
-  already_read_urls = get_read_urls()
+  already_played_urls = get_played_urls()
   reviews = list(itertools.islice(get_reviews(), args.count))
 
   # initial menu
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
-    selected_idx = setup_and_show_menu(args.mode, reviews, already_read_urls)
+    selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
 
   if args.mode is PlayerMode.MANUAL:
     # fully interactive mode
@@ -315,11 +312,11 @@ def cl_main():
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
       else:
-        already_read_urls = set_read(review.url)
+        already_played_urls = set_played(review.url)
         play(review, track_url, merge_with_picture=audio_only)
 
       # update menu and display it
-      selected_idx = setup_and_show_menu(args.mode, reviews, already_read_urls)
+      selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
 
   elif (args.mode is PlayerMode.RADIO) and (selected_idx is not None):
     # select first track interactively, then auto play
@@ -332,21 +329,20 @@ def cl_main():
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
       else:
-        already_read_urls = set_read(review.url)
+        already_played_urls = set_played(review.url)
         play(review, track_url, merge_with_picture=audio_only)
 
   elif args.mode is PlayerMode.DISCOVER:
     # auto play all non played tracks
     for review in reversed(reviews):
-      if review.url in map(operator.itemgetter(0),
-                           already_read_urls):
+      if review.url in already_played_urls:
         continue
       review_page = fetch_page(review.url)
       track_url, audio_only = get_embedded_track(review_page)
       if track_url is None:
         logging.getLogger().warning("Unable to extract embedded track")
       else:
-        already_read_urls = set_read(review.url)
+        already_played_urls = set_played(review.url)
         play(review, track_url, merge_with_picture=audio_only)
 
 
