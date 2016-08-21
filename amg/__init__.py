@@ -203,14 +203,6 @@ def download_and_merge(review, track_url, tmp_dir):
 def play(review, track_url, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
-  print("Playing track by '%s' from album '%s'...\n"
-        "Review URL: %s\n"
-        "Date published: %s\n"
-        "Tags: %s" % (review.artist,
-                      review.album,
-                      review.url,
-                      review.date_published,
-                      ", ".join(review.tags)))
   if (merge_with_picture and
           ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
     with tempfile.TemporaryDirectory() as tmp_dir,\
@@ -351,6 +343,16 @@ def cl_main():
       logging.getLogger().warning("Unable to extract embedded track")
     else:
       already_played_urls = set_played(review.url)
+      print("-" * (shutil.get_terminal_size()[0] - 1))
+      print("Artist: %s\n"
+            "Album: %s\n"
+            "Review URL: %s\n"
+            "Date published: %s\n"
+            "Tags: %s" % (review.artist,
+                          review.album,
+                          review.url,
+                          review.date_published,
+                          ", ".join(review.tags)))
       play(review, track_url, merge_with_picture=audio_only)
 
     if args.mode is PlayerMode.MANUAL:
