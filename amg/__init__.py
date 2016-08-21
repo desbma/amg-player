@@ -318,47 +318,44 @@ def cl_main():
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
     selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
 
-  if args.mode is PlayerMode.MANUAL:
-    # fully interactive mode
-    while selected_idx is not None:
-      review = reviews[selected_idx]
-      review_page = fetch_page(review.url)
-      track_url, audio_only = get_embedded_track(review_page)
-      if track_url is None:
-        logging.getLogger().warning("Unable to extract embedded track")
-      else:
-        already_played_urls = set_played(review.url)
-        play(review, track_url, merge_with_picture=audio_only)
+  to_play = None
+  while True:
+    if (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and (selected_idx is None):
+      break
 
+    if args.mode is PlayerMode.MANUAL:
+      # fully interactive mode
+      review = reviews[selected_idx]
+    elif args.mode is PlayerMode.RADIO:
+      # select first track interactively, then auto play
+      if to_play is None:
+        review = reviews[selected_idx]
+        to_play = reviews[0:reviews.index(review) + 1]
+        to_play.reverse()
+        to_play = iter(to_play)
+    elif args.mode is PlayerMode.DISCOVER:
+      # auto play all non played tracks
+      if to_play is None:
+        to_play = filter(lambda x: x.url not in already_played_urls,
+                         reversed(reviews))
+    if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER):
+      try:
+        review = next(to_play)
+      except StopIteration:
+        break
+
+    # fetch review & play
+    review_page = fetch_page(review.url)
+    track_url, audio_only = get_embedded_track(review_page)
+    if track_url is None:
+      logging.getLogger().warning("Unable to extract embedded track")
+    else:
+      already_played_urls = set_played(review.url)
+      play(review, track_url, merge_with_picture=audio_only)
+
+    if args.mode is PlayerMode.MANUAL:
       # update menu and display it
       selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls, selected_idx=selected_idx)
-
-  elif (args.mode is PlayerMode.RADIO) and (selected_idx is not None):
-    # select first track interactively, then auto play
-    review = reviews[selected_idx]
-    to_play = reviews[0:reviews.index(review) + 1]
-    to_play.reverse()
-    for review in to_play:
-      review_page = fetch_page(review.url)
-      track_url, audio_only = get_embedded_track(review_page)
-      if track_url is None:
-        logging.getLogger().warning("Unable to extract embedded track")
-      else:
-        already_played_urls = set_played(review.url)
-        play(review, track_url, merge_with_picture=audio_only)
-
-  elif args.mode is PlayerMode.DISCOVER:
-    # auto play all non played tracks
-    for review in reversed(reviews):
-      if review.url in already_played_urls:
-        continue
-      review_page = fetch_page(review.url)
-      track_url, audio_only = get_embedded_track(review_page)
-      if track_url is None:
-        logging.getLogger().warning("Unable to extract embedded track")
-      else:
-        already_played_urls = set_played(review.url)
-        play(review, track_url, merge_with_picture=audio_only)
 
 
 if __name__ == "__main__":
