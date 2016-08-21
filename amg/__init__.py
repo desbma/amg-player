@@ -350,7 +350,6 @@ def cl_main():
     if track_url is None:
       logging.getLogger().warning("Unable to extract embedded track")
     else:
-      already_played_urls = set_played(review.url)
       print("-" * (shutil.get_terminal_size()[0] - 1))
       print("Artist: %s\n"
             "Album: %s\n"
@@ -368,6 +367,7 @@ def cl_main():
           while c not in frozenset("prsq"):
             c = input("Play (p) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
           if c == "p":
+            already_played_urls = set_played(review.url)
             play(review, track_url, merge_with_picture=audio_only)
             input_loop = False
           elif c == "r":
@@ -378,6 +378,7 @@ def cl_main():
             input_loop = False
             track_loop = False
       else:
+        already_played_urls = set_played(review.url)
         play(review, track_url, merge_with_picture=audio_only)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
