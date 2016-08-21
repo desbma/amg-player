@@ -22,6 +22,7 @@ import shelve
 import string
 import subprocess
 import tempfile
+import webbrowser
 
 from amg import colored_logging
 
@@ -277,6 +278,12 @@ def cl_main():
                                   order.
                                   "discover" automatically plays all tracks by chronological order from the first non
                                   played one.""")
+  arg_parser.add_argument("-i",
+                          "--interactive",
+                          action="store_true",
+                          default=False,
+                          dest="interactive",
+                          help="Before playing each track, ask user confirmation, and allow opening review URL.")
   arg_parser.add_argument("-v",
                           "--verbosity",
                           choices=("warning", "normal", "debug"),
@@ -311,7 +318,8 @@ def cl_main():
     selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
 
   to_play = None
-  while True:
+  track_loop = True
+  while track_loop:
     if (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and (selected_idx is None):
       break
 
@@ -353,9 +361,26 @@ def cl_main():
                           review.url,
                           review.date_published,
                           ", ".join(review.tags)))
-      play(review, track_url, merge_with_picture=audio_only)
+      if args.interactive:
+        input_loop = True
+        while input_loop:
+          c = None
+          while c not in frozenset("prsq"):
+            c = input("Play (p) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
+          if c == "p":
+            play(review, track_url, merge_with_picture=audio_only)
+            input_loop = False
+          elif c == "r":
+            webbrowser.open_new_tab(review.url)
+          elif c == "s":
+            input_loop = False
+          elif c == "q":
+            input_loop = False
+            track_loop = False
+      else:
+        play(review, track_url, merge_with_picture=audio_only)
 
-    if args.mode is PlayerMode.MANUAL:
+    if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
       selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls, selected_idx=selected_idx)
 
