@@ -28,7 +28,7 @@ I created this because:
 ## Screenshots
 
 Selection screen:  
-[![Imgur](https://i.imgur.com/me4rzHSm.png)](https://i.imgur.com/me4rzHS.png)
+[![Imgur](https://i.imgur.com/Ijrjd0Am.png)](https://i.imgur.com/Ijrjd0A.png)
 
 Playing a track:  
 [![Imgur](https://i.imgur.com/pXUScj2m.png)](https://i.imgur.com/pXUScj2.png)
