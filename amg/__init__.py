@@ -244,17 +244,71 @@ def reviews_to_strings(reviews, already_played_urls):
 
 def setup_and_show_menu(mode, reviews, already_played_urls, selected_idx=None):
   """ Setup and display interactive menu, return selected review index or None if exist requested. """
-  menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
-                   PlayerMode.RADIO: "Select track to start playing from"}
-  menu = cursesmenu.SelectionMenu(reviews_to_strings(reviews, already_played_urls),
-                                  "AMG Player v%s" % (__version__),
-                                  "%s mode: %s" % (mode.name.capitalize(),
-                                                   menu_subtitle[mode]))
-  if selected_idx is not None:
-    menu.current_option = selected_idx
+  menu = AmgMenu(reviews=reviews,
+                 already_played_urls=already_played_urls,
+                 mode=mode,
+                 selected_idx=selected_idx)
   menu.show()
   idx = menu.selected_option
   return None if (idx == len(reviews)) else idx
+
+
+class AmgMenu(cursesmenu.CursesMenu):
+
+  """ Custom menu to choose review/track. """
+
+  UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW"))
+
+  def __init__(self, *, reviews, already_played_urls, mode, selected_idx):
+    menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
+                     PlayerMode.RADIO: "Select track to start playing from"}
+    super().__init__("AMG Player v%s" % (__version__),
+                     "%s mode: %s "
+                     "(ENTER to play, "
+                     "r to open review, "
+                     "q to exit)" % (mode.name.capitalize(),
+                                     menu_subtitle[mode]),
+                     True)
+    if selected_idx is not None:
+      self.current_option = selected_idx
+    review_strings = reviews_to_strings(reviews, already_played_urls)
+    for index, (review, review_string) in enumerate(zip(reviews, review_strings)):
+      self.append_item(ReviewItem(review, review_string, index, self))
+
+  def process_user_input(self):
+    """ Override key handling to add "open review" and "quick exit" features.
+
+    See cursesmenu.CursesMenu.process_user_input
+    """
+    self.user_action = __class__.UserAction.DEFAULT
+    c = super().process_user_input()
+    if c in frozenset(map(ord, "rR")):
+      self.user_action = __class__.UserAction.OPEN_REVIEW
+      self.select()
+    elif c in frozenset(map(ord, "qQ")):
+      # select last item (exit item)
+      self.current_option = len(self.items) - 1
+      self.select()
+
+  def get_last_user_action(self):
+    """ Return last user action when item was selected. """
+    return self.user_action
+
+
+class ReviewItem(cursesmenu.items.SelectionItem):
+
+  """ Custom menu item (menu line), overriden to support several actions per item. """
+
+  def __init__(self, review, review_string, index, menu):
+    super().__init__(review_string, index, menu)
+    self.review = review
+
+  def action(self):
+    if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
+      webbrowser.open_new_tab(self.review.url)
+      self.should_exit = False
+    else:
+      self.should_exit = True
 
 
 def cl_main():
