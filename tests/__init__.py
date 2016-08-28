@@ -32,12 +32,15 @@ class TestAmg(unittest.TestCase):
     self.assertEqual(i, count - 1)
 
   def test_get_embedded_track(self):
+    http_cache = amg.web_cache.WebCache(":memory:",
+                                        "reviews",
+                                        caching_strategy=amg.web_cache.CachingStrategy.FIFO)
     urls = {"https://www.angrymetalguy.com/vredehammer-violator-review/": ("https://www.youtube.com/watch?v=9Z34GAEO8hU", False),
             "https://www.angrymetalguy.com/cadaveric-fumes-dimensions-obscure-review/": ("https://bloodharvestrecords.bandcamp.com/album/dimensions-obscure-12mlp", True),
             "https://www.angrymetalguy.com/sinnery-feast-fools-review/": ("https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/257383834", True)}
     for review_url, (expected_track_url, expected_audio_only) in urls.items():
       review_page = amg.fetch_page(review_url)
-      track_url, audio_only = amg.get_embedded_track(review_page)
+      track_url, audio_only = amg.get_embedded_track(review_page, http_cache)
       self.assertEqual(track_url, expected_track_url)
       self.assertEqual(audio_only, expected_audio_only)
 
