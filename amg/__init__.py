@@ -157,6 +157,11 @@ def get_embedded_track(page, http_cache):
 
 class KnownReviews:
 
+  class DataIndex(enum.IntEnum):
+    LAST_PLAYED = 0
+    PLAY_COUNT = 1
+    DATA_INDEX_COUNT = 2
+
   def __init__(self):
     data_dir = appdirs.user_data_dir("amg-player")
     filepath = os.path.join(data_dir, "played.dat")
@@ -178,13 +183,30 @@ class KnownReviews:
   def setLastPlayed(self, url):
     """ Memorize a review's track has been read. """
     try:
-      self.data[url] = (datetime.datetime.now(), ) + self.data[url][1:]
+      e = list(self.data[url])
     except KeyError:
-      self.data[url] = (datetime.datetime.now(), )
+      e = []
+    if len(e) < __class__.DataIndex.DATA_INDEX_COUNT:
+      e.extend(None for _ in range(__class__.DataIndex.DATA_INDEX_COUNT - len(e)))
+    try:
+      e[__class__.DataIndex.PLAY_COUNT] += 1
+    except TypeError:
+      # be compatible with when play count was not stored
+      e[__class__.DataIndex.PLAY_COUNT] = 2 if e[__class__.DataIndex.LAST_PLAYED] is not None else 1
+    e[__class__.DataIndex.LAST_PLAYED] = datetime.datetime.now()
+    self.data[url] = tuple(e)
 
   def getLastPlayed(self, url):
     """ Return datetime of last review track playback. """
-    return self.data[url][0]
+    return self.data[url][__class__.DataIndex.LAST_PLAYED]
+
+  def getPlayCount(self, url):
+    """ Return number of time a track has been played. """
+    try:
+      return self.data[url][__class__.DataIndex.PLAY_COUNT]
+    except IndexError:
+      # be compatible with when play count was not stored
+      return 1
 
 
 def download_and_merge(review, track_url, tmp_dir):
@@ -284,7 +306,10 @@ class AmgMenu(cursesmenu.CursesMenu):
     lines = []
     for i, review in enumerate(reviews):
       try:
-        played = "Last played: %s" % (known_reviews.getLastPlayed(review.url).strftime("%x %X"))
+        play_count = known_reviews.getPlayCount(review.url)
+        played = "Last played: %s (%u time%s)" % (known_reviews.getLastPlayed(review.url).strftime("%x %X"),
+                                                  play_count,
+                                                  "s" if play_count > 1 else "")
       except KeyError:
         if review.url in http_cache:
           review_page = fetch_page(review.url, http_cache=http_cache)
