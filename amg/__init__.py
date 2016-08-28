@@ -144,28 +144,36 @@ def get_embedded_track(page):
   return url, audio_only
 
 
-def set_played(url):
-  """ Memorize a review's track has been read, return new dict of read URLs. """
-  data = get_played_urls()
-  data[url] = (datetime.datetime.now(), )
-  return data
+class KnownReviews:
 
+  def __init__(self):
+    data_dir = appdirs.user_data_dir("amg-player")
+    filepath = os.path.join(data_dir, "played.dat")
+    self.data = shelve.open(filepath, protocol=3)
+    # cleanup old entries
+    now = datetime.datetime.now()
+    to_del = []
+    for url, (last_played, *_) in self.data.items():
+      delta = now - last_played
+      if delta.days > LAST_PLAYED_EXPIRATION_DAYS:
+        to_del.append(url)
+    for url in to_del:
+      del self.data[url]
 
-def get_played_urls():
-  """ Get deque of URLs of reviews URLs whose tracks have already been read. """
-  data_dir = appdirs.user_data_dir("amg-player")
-  filepath = os.path.join(data_dir, "played.dat")
-  data = shelve.open(filepath, protocol=3)
-  # cleanup old entries
-  now = datetime.datetime.now()
-  to_del = []
-  for url, (last_played, *_) in data.items():
-    delta = now - last_played
-    if delta.days > LAST_PLAYED_EXPIRATION_DAYS:
-      to_del.append(url)
-  for url in to_del:
-    del data[url]
-  return data
+  def isKnownUrl(self, url):
+    """ Return True if url if from a known review, False instead. """
+    return url in self.data
+
+  def setLastPlayed(self, url):
+    """ Memorize a review's track has been read. """
+    try:
+      self.data[url] = (datetime.datetime.now(), ) + self.data[url][1:]
+    except KeyError:
+      self.data[url] = (datetime.datetime.now(), )
+
+  def getLastPlayed(self, url):
+    """ Return datetime of last review track playback. """
+    return self.data[url][0]
 
 
 def download_and_merge(review, track_url, tmp_dir):
@@ -218,12 +226,12 @@ def play(review, track_url, *, merge_with_picture):
     subprocess.check_call(cmd)
 
 
-def reviews_to_strings(reviews, already_played_urls):
+def reviews_to_strings(reviews, known_reviews):
   """ Generate a list of string representations of reviews. """
   lines = []
   for i, review in enumerate(reviews):
     try:
-      last_played = already_played_urls[review.url][0].strftime("%x %X")
+      last_played = known_reviews.getLastPlayed(review.url).strftime("%x %X")
     except KeyError:
       last_played = "never"
     lines.append(("%s - %s" % (review.artist, review.album),
@@ -242,10 +250,10 @@ def reviews_to_strings(reviews, already_played_urls):
   return lines
 
 
-def setup_and_show_menu(mode, reviews, already_played_urls, selected_idx=None):
+def setup_and_show_menu(mode, reviews, known_reviews, selected_idx=None):
   """ Setup and display interactive menu, return selected review index or None if exist requested. """
   menu = AmgMenu(reviews=reviews,
-                 already_played_urls=already_played_urls,
+                 known_reviews=known_reviews,
                  mode=mode,
                  selected_idx=selected_idx)
   menu.show()
@@ -259,7 +267,7 @@ class AmgMenu(cursesmenu.CursesMenu):
 
   UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW"))
 
-  def __init__(self, *, reviews, already_played_urls, mode, selected_idx):
+  def __init__(self, *, reviews, known_reviews, mode, selected_idx):
     menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
                      PlayerMode.RADIO: "Select track to start playing from"}
     super().__init__("AMG Player v%s" % (__version__),
@@ -271,7 +279,7 @@ class AmgMenu(cursesmenu.CursesMenu):
                      True)
     if selected_idx is not None:
       self.current_option = selected_idx
-    review_strings = reviews_to_strings(reviews, already_played_urls)
+    review_strings = reviews_to_strings(reviews, known_reviews)
     for index, (review, review_string) in enumerate(zip(reviews, review_strings)):
       self.append_item(ReviewItem(review, review_string, index, self))
 
@@ -364,12 +372,12 @@ def cl_main():
   locale.setlocale(locale.LC_ALL, "")
 
   # get reviews
-  already_played_urls = get_played_urls()
+  known_reviews = KnownReviews()
   reviews = list(itertools.islice(get_reviews(), args.count))
 
   # initial menu
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
-    selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls)
+    selected_idx = setup_and_show_menu(args.mode, reviews, known_reviews)
 
   to_play = None
   track_loop = True
@@ -390,7 +398,7 @@ def cl_main():
     elif args.mode is PlayerMode.DISCOVER:
       # auto play all non played tracks
       if to_play is None:
-        to_play = filter(lambda x: x.url not in already_played_urls,
+        to_play = filter(lambda x: not known_reviews.isKnownUrl(x.url),
                          reversed(reviews))
     if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER):
       try:
@@ -421,7 +429,7 @@ def cl_main():
           while c not in frozenset("prsq"):
             c = input("Play (p) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
           if c == "p":
-            already_played_urls = set_played(review.url)
+            known_reviews.setLastPlayed(review.url)
             play(review, track_url, merge_with_picture=audio_only)
             input_loop = False
           elif c == "r":
@@ -432,12 +440,12 @@ def cl_main():
             input_loop = False
             track_loop = False
       else:
-        already_played_urls = set_played(review.url)
+        known_reviews.setLastPlayed(review.url)
         play(review, track_url, merge_with_picture=audio_only)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
-      selected_idx = setup_and_show_menu(args.mode, reviews, already_played_urls, selected_idx=selected_idx)
+      selected_idx = setup_and_show_menu(args.mode, reviews, known_reviews, selected_idx=selected_idx)
 
 
 if __name__ == "__main__":
