@@ -22,6 +22,7 @@ import shelve
 import string
 import subprocess
 import tempfile
+import urllib.parse
 import webbrowser
 
 from amg import colored_logging
@@ -96,11 +97,17 @@ def parse_review_block(review):
   elif "[Things You Might Have Missed" in title:
     title = title.rsplit("[", 1)[0].strip()
   artist, album = map(str.strip, title.split("–", 1))
+  def make_absolute_url(url):
+    url_parts = urllib.parse.urlsplit(url)
+    if url_parts.scheme:
+      return url
+    url_parts = ("https",) + url_parts[1:]
+    return urllib.parse.urlunsplit(url_parts)
   review_img = REVIEW_COVER_SELECTOR(review)[0]
-  cover_thumbnail_url = "http:%s" % (review_img.get("src"))
+  cover_thumbnail_url = make_absolute_url(review_img.get("src"))
   srcset = review_img.get("srcset")
   if srcset is not None:
-    cover_url = "http:%s" % (srcset.split(" ")[-2])
+    cover_url = make_absolute_url(srcset.split(" ")[-2])
   else:
     cover_url = None
   published = REVIEW_DATE_SELECTOR(review)[0].get("datetime")
