@@ -261,9 +261,14 @@ def play(review, track_url, *, merge_with_picture):
       subprocess.check_call(cmd, stdin=merge_process.stdout)
       merge_process.terminate()
   else:
-    cmd = ("mpv", track_url)
+    cmd_dl = ("youtube-dl", "-o", "-", track_url)
+    logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
+    dl_process = subprocess.Popen(cmd_dl,
+                                  stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL)
+    cmd = ("mpv", "--force-seekable=yes", "-")
     logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-    subprocess.check_call(cmd)
+    subprocess.check_call(cmd, stdin=dl_process.stdout)
 
 
 class AmgMenu(cursesmenu.CursesMenu):
