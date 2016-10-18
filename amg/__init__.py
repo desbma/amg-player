@@ -7,6 +7,7 @@ __author__ = "desbma"
 __license__ = "GPLv3"
 
 import argparse
+import base64
 import collections
 import contextlib
 import datetime
@@ -31,6 +32,8 @@ import appdirs
 import cursesmenu
 import lxml.cssselect
 import lxml.etree
+import mutagen
+import PIL.Image
 import requests
 import web_cache
 import youtube_dl
@@ -249,6 +252,56 @@ def download_and_merge(review, track_url, tmp_dir):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
+def download_audio(review, track_url):
+  """ Download track audio to file iun current directory. """
+  with tempfile.TemporaryDirectory() as tmp_dir:
+    logging.getLogger().info("Downloading audio for track '%s'" % (track_url))
+    ydl_opts = {"outtmpl": os.path.join(tmp_dir,
+                                        ("%s-" % (review.date_published.strftime("%Y%m%d"))) +
+                                        r"%(autonumber)s" +
+                                        (". %s - %s" % (review.artist,
+                                                        review.album)) +
+                                        r".%(ext)s"),
+                "format": "opus/vorbis/bestaudio",
+                "postprocessors": [{
+                    "key": "FFmpegExtractAudio"
+                }]}
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+      ydl.download((track_url,))
+    track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
+                                os.listdir(tmp_dir)))
+
+    # get cover
+    cover_filepath = os.path.join(tmp_dir, "front.jpg")
+    fetch_ressource(review.cover_url if review.cover_url is not None else review.cover_thumbnail_url,
+                    cover_filepath)
+
+    # embed cover
+    # TODO support embedding for non ogg tracks
+    for track_filepath in track_filepaths:
+      try:
+        mf = mutagen.File(track_filepath)
+        picture = mutagen.flac.Picture()
+        with open(cover_filepath, "rb") as cover_file:
+          img = PIL.Image.open(cover_file)
+          picture.width, picture.height = img.size
+          cover_file.seek(0)
+          picture.data = cover_file.read()
+        picture.type = 17
+        picture.desc = "Front cover"
+        picture.mime = "image/jpeg"
+        picture.depth = 24
+        encoded_data = base64.b64encode(picture.write())
+        mf["metadata_block_picture"] = encoded_data.decode("ascii")
+        mf.save()
+      except Exception as e:
+        logging.getLogger().warning("Failed to embed cover: %s" % (e.__class__.__qualname__))
+
+    # move tracks
+    for track_filepath in track_filepaths:
+      shutil.move(track_filepath, os.getcwd())
+
+
 def play(review, track_url, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
@@ -275,14 +328,15 @@ class AmgMenu(cursesmenu.CursesMenu):
 
   """ Custom menu to choose review/track. """
 
-  UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW"))
+  UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
 
   def __init__(self, *, reviews, known_reviews, http_cache, mode, selected_idx):
-    menu_subtitle = {PlayerMode.MANUAL: "Select a track to play",
-                     PlayerMode.RADIO: "Select track to start playing from"}
+    menu_subtitle = {PlayerMode.MANUAL: "Select a track",
+                     PlayerMode.RADIO: "Select track to start from"}
     super().__init__("AMG Player v%s" % (__version__),
                      "%s mode: %s "
                      "(ENTER to play, "
+                     "d to download audio, "
                      "r to open review, "
                      "q to exit)" % (mode.name.capitalize(),
                                      menu_subtitle[mode]),
@@ -302,6 +356,10 @@ class AmgMenu(cursesmenu.CursesMenu):
     c = super().process_user_input()
     if c in frozenset(map(ord, "rR")):
       self.user_action = __class__.UserAction.OPEN_REVIEW
+      self.select()
+    elif c in frozenset(map(ord, "dD")):
+      # select last item (exit item)
+      self.user_action = __class__.UserAction.DOWNLOAD_AUDIO
       self.select()
     elif c in frozenset(map(ord, "qQ")):
       # select last item (exit item)
@@ -356,7 +414,7 @@ class AmgMenu(cursesmenu.CursesMenu):
                    selected_idx=selected_idx)
     menu.show()
     idx = menu.selected_option
-    return None if (idx == len(reviews)) else idx
+    return None if (idx == len(reviews)) else (idx, menu.get_last_user_action())
 
 
 class ReviewItem(cursesmenu.items.SelectionItem):
@@ -446,13 +504,16 @@ def cl_main():
 
   # initial menu
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
-    selected_idx = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache)
+    menu_ret = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache)
 
   to_play = None
   track_loop = True
   while track_loop:
-    if (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and (selected_idx is None):
-      break
+    if (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)):
+      if menu_ret is None:
+        break
+      else:
+        selected_idx, action = menu_ret
 
     if args.mode is PlayerMode.MANUAL:
       # fully interactive mode
@@ -495,11 +556,14 @@ def cl_main():
         input_loop = True
         while input_loop:
           c = None
-          while c not in frozenset("prsq"):
-            c = input("Play (p) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
+          while c not in frozenset("pdrsq"):
+            c = input("Play (p) / Download (d) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
           if c == "p":
             known_reviews.setLastPlayed(review.url)
             play(review, track_url, merge_with_picture=audio_only)
+            input_loop = False
+          elif c == "d":
+            download_audio(review, track_url)
             input_loop = False
           elif c == "r":
             webbrowser.open_new_tab(review.url)
@@ -510,11 +574,15 @@ def cl_main():
             track_loop = False
       else:
         known_reviews.setLastPlayed(review.url)
-        play(review, track_url, merge_with_picture=audio_only)
+        if ((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
+                (action is AmgMenu.UserAction.DOWNLOAD_AUDIO)):
+          download_audio(review, track_url)
+        else:
+          play(review, track_url, merge_with_picture=audio_only)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
-      selected_idx = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache, selected_idx=selected_idx)
+      menu_ret = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache, selected_idx=selected_idx)
 
 
 if __name__ == "__main__":
