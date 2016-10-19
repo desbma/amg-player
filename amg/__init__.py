@@ -33,7 +33,6 @@ import cursesmenu
 import lxml.cssselect
 import lxml.etree
 import mutagen
-import PIL.Image
 import requests
 import web_cache
 import youtube_dl
@@ -59,6 +58,7 @@ REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
+TCP_TIMEOUT = 9.1
 
 
 def fetch_page(url, *, http_cache=None):
@@ -68,7 +68,7 @@ def fetch_page(url, *, http_cache=None):
     page = http_cache[url]
   else:
     logging.getLogger().debug("Fetching '%s'..." % (url))
-    response = requests.get(url, timeout=9.1)
+    response = requests.get(url, timeout=TCP_TIMEOUT)
     response.raise_for_status()
     page = response.content
     if http_cache is not None:
@@ -79,7 +79,7 @@ def fetch_page(url, *, http_cache=None):
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug("Fetching '%s'..." % (url))
-  with contextlib.closing(requests.get(url, timeout=9.1, stream=True)) as response:
+  with contextlib.closing(requests.get(url, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
     with open(dest_filepath, "wb") as dest_file:
       for chunk in response.iter_content(2 ** 14):
@@ -263,9 +263,9 @@ def download_audio(review, track_url):
                                                         review.album)) +
                                         r".%(ext)s"),
                 "format": "opus/vorbis/bestaudio",
-                "postprocessors": [{
-                    "key": "FFmpegExtractAudio"
-                }]}
+                "postprocessors": [{"key": "FFmpegExtractAudio"},
+                                   {"key": "FFmpegMetadata"}],
+                "socket_timeout": TCP_TIMEOUT}
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
       ydl.download((track_url,))
     track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
@@ -276,26 +276,55 @@ def download_audio(review, track_url):
     fetch_ressource(review.cover_url if review.cover_url is not None else review.cover_thumbnail_url,
                     cover_filepath)
 
-    # embed cover
-    # TODO support embedding for non ogg tracks
+    # crunch it
+    if shutil.which("jpegoptim"):
+      cmd = ("jpegoptim", "-q", "--strip-all", cover_filepath)
+      subprocess.check_call(cmd)
+
+    # add tags & embed cover
     for track_filepath in track_filepaths:
       try:
         mf = mutagen.File(track_filepath)
-        picture = mutagen.flac.Picture()
-        with open(cover_filepath, "rb") as cover_file:
-          img = PIL.Image.open(cover_file)
-          picture.width, picture.height = img.size
-          cover_file.seek(0)
-          picture.data = cover_file.read()
-        picture.type = 17
-        picture.desc = "Front cover"
-        picture.mime = "image/jpeg"
-        picture.depth = 24
-        encoded_data = base64.b64encode(picture.write())
-        mf["metadata_block_picture"] = encoded_data.decode("ascii")
-        mf.save()
+        if isinstance(mf, mutagen.ogg.OggFileType):
+          # override youtube-dl tags, because they often contain crap
+          mf["artist"] = review.artist
+          mf["album"] = review.album
+          mf.save()
+          # embed album art
+          picture = mutagen.flac.Picture()
+          with open(cover_filepath, "rb") as cover_file:
+            picture.data = cover_file.read()
+          picture.type = mutagen.id3.PictureType.COVER_FRONT
+          picture.mime = "image/jpeg"
+          encoded_data = base64.b64encode(picture.write())
+          mf["metadata_block_picture"] = encoded_data.decode("ascii")
+          mf.save()
+        elif isinstance(mf, mutagen.mp3.MP3):
+          # override youtube-dl tags, because they often contain crap
+          mf2 = mutagen.easyid3.EasyID3(track_filepath)
+          mf2["artist"] = review.artist
+          mf2["album"] = review.album
+          mf2.save()
+          # embed album art
+          with open(cover_filepath, "rb") as cover_file:
+            mf.tags.add(mutagen.id3.APIC(mime="image/jpeg",
+                                         type=mutagen.id3.PictureType.COVER_FRONT,
+                                         data=cover_file.read()))
+          mf.save()
+        elif isinstance(mf, mutagen.mp4.MP4):
+          # override youtube-dl tags, because they often contain crap
+          mf["\xa9ART"] = review.artist
+          mf["\xa9alb"] = review.album
+          mf.save()
+          # embed album art
+          with open(cover_filepath, "rb") as cover_file:
+            mf["covr"] = [mutagen.mp4.MP4Cover(cover_file.read(),
+                                               imageformat=mutagen.mp4.AtomDataType.JPEG)]
+          mf.save()
       except Exception as e:
-        logging.getLogger().warning("Failed to embed cover: %s" % (e.__class__.__qualname__))
+        raise
+        logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
+                                                                             e.__class__.__qualname__))
 
     # move tracks
     for track_filepath in track_filepaths:
