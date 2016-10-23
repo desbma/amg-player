@@ -359,7 +359,7 @@ def play(review, track_url, *, merge_with_picture):
             download_and_merge(review, track_url, tmp_dir) as merge_process:
       if merge_process is None:
         return
-      cmd = ("mpv", "-")
+      cmd = ("mpv", "--force-seekable=yes", "-")
       logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
       subprocess.check_call(cmd, stdin=merge_process.stdout)
       merge_process.terminate()
