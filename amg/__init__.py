@@ -220,12 +220,21 @@ class KnownReviews:
 
 
 def download_and_merge(review, track_url, tmp_dir):
+  """ Download track, and return ffmpeg process that outputs merged audio & album art, ot None if download failed. """
   # fetch audio
   # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
   ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
-  with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-    ydl.download((track_url,))
+  try:
+    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+      ydl.download((track_url,))
+  except youtube_dl.utils.DownloadError as e:
+    # already logged
+    # logging.getLogger().warning("Download error : %s" % (e))
+    pass
   audio_filepaths = os.listdir(tmp_dir)
+  if not audio_filepaths:
+    logging.getLogger().error("Download failed")
+    return
   concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
   with open(concat_filepath, "wt") as concat_file:
     for audio_filepath in audio_filepaths:
@@ -253,7 +262,7 @@ def download_and_merge(review, track_url, tmp_dir):
 
 
 def download_audio(review, track_url):
-  """ Download track audio to file in current directory. """
+  """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
     logging.getLogger().info("Downloading audio for track '%s'" % (track_url))
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
@@ -266,10 +275,18 @@ def download_audio(review, track_url):
                 "postprocessors": [{"key": "FFmpegExtractAudio"},
                                    {"key": "FFmpegMetadata"}],
                 "socket_timeout": TCP_TIMEOUT}
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-      ydl.download((track_url,))
+    try:
+      with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download((track_url,))
+    except youtube_dl.utils.DownloadError as e:
+      # already logged
+      # logging.getLogger().warning("Download error : %s" % (e))
+      pass
     track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
                                 os.listdir(tmp_dir)))
+    if not track_filepaths:
+      logging.getLogger().error("Download failed")
+      return False
 
     # get cover
     cover_filepath = os.path.join(tmp_dir, "front.jpg")
@@ -329,6 +346,8 @@ def download_audio(review, track_url):
     for track_filepath in track_filepaths:
       shutil.move(track_filepath, os.getcwd())
 
+    return True
+
 
 def play(review, track_url, *, merge_with_picture):
   """ Play it fucking loud! """
@@ -337,6 +356,8 @@ def play(review, track_url, *, merge_with_picture):
           ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
     with tempfile.TemporaryDirectory() as tmp_dir,\
             download_and_merge(review, track_url, tmp_dir) as merge_process:
+      if merge_process is None:
+        return
       cmd = ("mpv", "-")
       logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
       subprocess.check_call(cmd, stdin=merge_process.stdout)
