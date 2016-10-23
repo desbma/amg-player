@@ -322,7 +322,6 @@ def download_audio(review, track_url):
                                                imageformat=mutagen.mp4.AtomDataType.JPEG)]
           mf.save()
       except Exception as e:
-        raise
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
                                                                              e.__class__.__qualname__))
 
