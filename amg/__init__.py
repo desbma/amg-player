@@ -114,7 +114,7 @@ def parse_review_block(review):
   else:
     cover_url = None
   published = REVIEW_DATE_SELECTOR(review)[0].get("datetime")
-  published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S+00:00").date()
+  published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S+00:00")
   return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, published, tags)
 
 
@@ -253,11 +253,11 @@ def download_and_merge(review, track_url, tmp_dir):
 
 
 def download_audio(review, track_url):
-  """ Download track audio to file iun current directory. """
+  """ Download track audio to file in current directory. """
   with tempfile.TemporaryDirectory() as tmp_dir:
     logging.getLogger().info("Downloading audio for track '%s'" % (track_url))
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
-                                        ("%s-" % (review.date_published.strftime("%Y%m%d"))) +
+                                        ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                         r"%(autonumber)s" +
                                         (". %s - %s" % (review.artist,
                                                         review.album)) +
@@ -406,7 +406,7 @@ class AmgMenu(cursesmenu.CursesMenu):
     for i, review in enumerate(reviews):
       try:
         play_count = known_reviews.getPlayCount(review.url)
-        played = "Last played: %s (%u time%s)" % (known_reviews.getLastPlayed(review.url).strftime("%x %X"),
+        played = "Last played: %s (%u time%s)" % (known_reviews.getLastPlayed(review.url).strftime("%x %H:%M"),
                                                   play_count,
                                                   "s" if play_count > 1 else "")
       except KeyError:
@@ -575,11 +575,11 @@ def cl_main():
       print("Artist: %s\n"
             "Album: %s\n"
             "Review URL: %s\n"
-            "Date published: %s\n"
+            "Published: %s\n"
             "Tags: %s" % (review.artist,
                           review.album,
                           review.url,
-                          review.date_published,
+                          review.date_published.strftime("%x %H:%M"),
                           ", ".join(review.tags)))
       if args.interactive:
         input_loop = True
