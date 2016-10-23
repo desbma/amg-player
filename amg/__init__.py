@@ -232,6 +232,7 @@ def download_and_merge(review, track_url, tmp_dir):
     # logging.getLogger().warning("Download error : %s" % (e))
     pass
   audio_filepaths = os.listdir(tmp_dir)
+  audio_filepaths.sort()
   if not audio_filepaths:
     logging.getLogger().error("Download failed")
     return
