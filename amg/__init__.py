@@ -16,6 +16,7 @@ import itertools
 import json
 import locale
 import logging
+import mimetypes
 import operator
 import os
 import shutil
@@ -290,13 +291,18 @@ def download_audio(review, track_url):
       return False
 
     # get cover
-    cover_filepath = os.path.join(tmp_dir, "front.jpg")
-    fetch_ressource(review.cover_url if review.cover_url is not None else review.cover_thumbnail_url,
-                    cover_filepath)
+    cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
+    cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
+    cover_mime_type = mimetypes.guess_type(cover_url)
+    cover_filepath = os.path.join(tmp_dir, "front.%s" % (cover_ext))
+    fetch_ressource(cover_url, cover_filepath)
 
     # crunch it
-    if shutil.which("jpegoptim"):
+    if (cover_ext in ("jpg", "jpeg")) and shutil.which("jpegoptim"):
       cmd = ("jpegoptim", "-q", "--strip-all", cover_filepath)
+      subprocess.check_call(cmd)
+    elif (cover_ext == "png") and shutil.which("optipng"):
+      cmd = ("optipng", "-quiet", "-o7", cover_filepath)
       subprocess.check_call(cmd)
 
     # add tags & embed cover
@@ -313,7 +319,7 @@ def download_audio(review, track_url):
           with open(cover_filepath, "rb") as cover_file:
             picture.data = cover_file.read()
           picture.type = mutagen.id3.PictureType.COVER_FRONT
-          picture.mime = "image/jpeg"
+          picture.mime = cover_mime_type
           encoded_data = base64.b64encode(picture.write())
           mf["metadata_block_picture"] = encoded_data.decode("ascii")
           mf.save()
@@ -325,7 +331,7 @@ def download_audio(review, track_url):
           mf2.save()
           # embed album art
           with open(cover_filepath, "rb") as cover_file:
-            mf.tags.add(mutagen.id3.APIC(mime="image/jpeg",
+            mf.tags.add(mutagen.id3.APIC(mime=cover_mime_type,
                                          type=mutagen.id3.PictureType.COVER_FRONT,
                                          data=cover_file.read()))
           mf.save()
@@ -336,8 +342,9 @@ def download_audio(review, track_url):
           mf.save()
           # embed album art
           with open(cover_filepath, "rb") as cover_file:
+            img_format = mutagen.mp4.AtomDataType.PNG if (cover_ext == "png") else mutagen.mp4.AtomDataType.JPEG
             mf["covr"] = [mutagen.mp4.MP4Cover(cover_file.read(),
-                                               imageformat=mutagen.mp4.AtomDataType.JPEG)]
+                                               imageformat=img_format)]
           mf.save()
       except Exception as e:
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
