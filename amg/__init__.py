@@ -294,7 +294,7 @@ def download_audio(review, track_url):
     # get cover
     cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
     cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
-    cover_mime_type = mimetypes.guess_type(cover_url)
+    cover_mime_type = mimetypes.guess_type(cover_url)[0]
     cover_filepath = os.path.join(tmp_dir, "front.%s" % (cover_ext))
     fetch_ressource(cover_url, cover_filepath)
 
