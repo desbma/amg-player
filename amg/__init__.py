@@ -34,6 +34,7 @@ import cursesmenu
 import lxml.cssselect
 import lxml.etree
 import mutagen
+import mutagen.easyid3
 import requests
 import web_cache
 import youtube_dl
@@ -325,11 +326,12 @@ def download_audio(review, track_url):
           mf.save()
         elif isinstance(mf, mutagen.mp3.MP3):
           # override youtube-dl tags, because they often contain crap
-          mf2 = mutagen.easyid3.EasyID3(track_filepath)
-          mf2["artist"] = review.artist
-          mf2["album"] = review.album
-          mf2.save()
+          mf = mutagen.easyid3.EasyID3(track_filepath)
+          mf["artist"] = review.artist
+          mf["album"] = review.album
+          mf.save()
           # embed album art
+          mf = mutagen.File(track_filepath)
           with open(cover_filepath, "rb") as cover_file:
             mf.tags.add(mutagen.id3.APIC(mime=cover_mime_type,
                                          type=mutagen.id3.PictureType.COVER_FRONT,
