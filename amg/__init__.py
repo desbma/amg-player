@@ -271,8 +271,8 @@ def download_audio(review, track_url):
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                         ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                         r"%(autonumber)s" +
-                                        (". %s - %s" % (review.artist,
-                                                        review.album)) +
+                                        (". %s - %s" % (review.artist.replace(os.sep, "_"),
+                                                        review.album.replace(os.sep, "_"))) +
                                         r".%(ext)s"),
                 "format": "opus/vorbis/bestaudio",
                 "postprocessors": [{"key": "FFmpegExtractAudio"},
