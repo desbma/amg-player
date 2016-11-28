@@ -35,9 +35,21 @@ class TestAmg(unittest.TestCase):
     http_cache = amg.web_cache.WebCache(":memory:",
                                         "reviews",
                                         caching_strategy=amg.web_cache.CachingStrategy.FIFO)
-    urls = {"https://www.angrymetalguy.com/vredehammer-violator-review/": ("https://www.youtube.com/watch?v=9Z34GAEO8hU", False),
-            "https://www.angrymetalguy.com/cadaveric-fumes-dimensions-obscure-review/": ("https://bloodharvestrecords.bandcamp.com/album/dimensions-obscure-12mlp", True),
-            "https://www.angrymetalguy.com/sinnery-feast-fools-review/": ("https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/257383834", True)}
+    urls = {"https://www.angrymetalguy.com/vredehammer-violator-review/":
+            (("https://www.youtube.com/watch?v=9Z34GAEO8hU",),
+             False),
+            "https://www.angrymetalguy.com/cadaveric-fumes-dimensions-obscure-review/":
+            (("https://bloodharvestrecords.bandcamp.com/track/crepuscular-journey",
+              "https://bloodharvestrecords.bandcamp.com/track/extatic-extirpation",
+              "https://bloodharvestrecords.bandcamp.com/track/where-darkness-reigns-pristine",
+              "https://bloodharvestrecords.bandcamp.com/track/swallowed-into-eternity"),
+             True),
+            "https://www.angrymetalguy.com/sinnery-feast-fools-review/":
+            (("https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/257383834",),
+             True),
+            "https://www.angrymetalguy.com/hornss-telepath-review/":
+            (("https://hornss.bandcamp.com/track/atrophic",),
+             True)}
     for review_url, (expected_track_url, expected_audio_only) in urls.items():
       review_page = amg.fetch_page(review_url)
       track_url, audio_only = amg.get_embedded_track(review_page, http_cache)

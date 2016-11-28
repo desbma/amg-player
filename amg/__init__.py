@@ -131,7 +131,7 @@ def get_reviews():
 
 def get_embedded_track(page, http_cache):
   """ Parse page and extract embedded track. """
-  url = None
+  urls = None
   audio_only = False
   try:
     try:
@@ -146,7 +146,7 @@ def get_embedded_track(page, http_cache):
         sc_prefix = "https://w.soundcloud.com/player/"
         if iframe_url.startswith(yt_prefix):
           yt_id = iframe_url[len(yt_prefix):]
-          url = "https://www.youtube.com/watch?v=%s" % (yt_id)
+          urls = ("https://www.youtube.com/watch?v=%s" % (yt_id),)
         elif iframe_url.startswith(bc_prefix):
           iframe_page = fetch_page(iframe_url, http_cache=http_cache)
           js = BANDCAMP_JS_SELECTOR(iframe_page)[-1].text
@@ -155,16 +155,17 @@ def get_embedded_track(page, http_cache):
                            js.split("\n")))
           js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
           js = json.loads(js)
-          url = js["linkback"]
+          #urls = (js["linkback"],)
+          urls = tuple(t["title_link"] for t in js["tracks"] if t["track_streaming"])
           audio_only = True
         elif iframe_url.startswith(sc_prefix):
-          url = iframe_url.split("&", 1)[0]
+          urls = (iframe_url.split("&", 1)[0],)
           audio_only = True
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
-  if url is not None:
-    logging.getLogger().debug("Track URL: %s" % (url))
-  return url, audio_only
+  if urls is not None:
+    logging.getLogger().debug("Track URL(s): %s" % (" ".join(urls)))
+  return urls, audio_only
 
 
 class KnownReviews:
@@ -264,10 +265,10 @@ def download_and_merge(review, track_url, tmp_dir):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
-def download_audio(review, track_url):
+def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
-    logging.getLogger().info("Downloading audio for track '%s'" % (track_url))
+    logging.getLogger().info("Downloading audio for track(s) %s" % (" ".join(track_urls)))
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                         ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                         r"%(autonumber)s" +
@@ -280,7 +281,7 @@ def download_audio(review, track_url):
                 "socket_timeout": TCP_TIMEOUT}
     try:
       with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download((track_url,))
+        ydl.download(track_urls)
     except youtube_dl.utils.DownloadError as e:
       # already logged
       # logging.getLogger().warning("Download error : %s" % (e))
@@ -359,28 +360,30 @@ def download_audio(review, track_url):
     return True
 
 
-def play(review, track_url, *, merge_with_picture):
+def play(review, track_urls, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
-  if (merge_with_picture and
-          ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
-    with tempfile.TemporaryDirectory() as tmp_dir,\
-            download_and_merge(review, track_url, tmp_dir) as merge_process:
-      if merge_process is None:
-        return
+  for track_url in track_urls:
+    if (merge_with_picture and
+            ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
+      # TODO avoid downloading cover several times in download_and_merge
+      with tempfile.TemporaryDirectory() as tmp_dir,\
+              download_and_merge(review, track_url, tmp_dir) as merge_process:
+        if merge_process is None:
+          return
+        cmd = ("mpv", "--force-seekable=yes", "-")
+        logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+        subprocess.check_call(cmd, stdin=merge_process.stdout)
+        merge_process.terminate()
+    else:
+      cmd_dl = ("youtube-dl", "-o", "-", track_url)
+      logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
+      dl_process = subprocess.Popen(cmd_dl,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
       cmd = ("mpv", "--force-seekable=yes", "-")
       logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-      subprocess.check_call(cmd, stdin=merge_process.stdout)
-      merge_process.terminate()
-  else:
-    cmd_dl = ("youtube-dl", "-o", "-", track_url)
-    logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
-    dl_process = subprocess.Popen(cmd_dl,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.DEVNULL)
-    cmd = ("mpv", "--force-seekable=yes", "-")
-    logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-    subprocess.check_call(cmd, stdin=dl_process.stdout)
+      subprocess.check_call(cmd, stdin=dl_process.stdout)
 
 
 class AmgMenu(cursesmenu.CursesMenu):
@@ -597,8 +600,8 @@ def cl_main():
 
     # fetch review & play
     review_page = fetch_page(review.url, http_cache=http_cache)
-    track_url, audio_only = get_embedded_track(review_page, http_cache)
-    if track_url is None:
+    track_urls, audio_only = get_embedded_track(review_page, http_cache)
+    if track_urls is None:
       logging.getLogger().warning("Unable to extract embedded track")
     else:
       print("-" * (shutil.get_terminal_size()[0] - 1))
@@ -619,10 +622,10 @@ def cl_main():
             c = input("Play (p) / Download (d) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
           if c == "p":
             known_reviews.setLastPlayed(review.url)
-            play(review, track_url, merge_with_picture=audio_only)
+            play(review, track_urls, merge_with_picture=audio_only)
             input_loop = False
           elif c == "d":
-            download_audio(review, track_url)
+            download_audio(review, track_urls)
             input_loop = False
           elif c == "r":
             webbrowser.open_new_tab(review.url)
@@ -635,9 +638,9 @@ def cl_main():
         known_reviews.setLastPlayed(review.url)
         if ((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
                 (action is AmgMenu.UserAction.DOWNLOAD_AUDIO)):
-          download_audio(review, track_url)
+          download_audio(review, track_urls)
         else:
-          play(review, track_url, merge_with_picture=audio_only)
+          play(review, track_urls, merge_with_picture=audio_only)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
