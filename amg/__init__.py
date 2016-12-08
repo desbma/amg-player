@@ -265,6 +265,88 @@ def download_and_merge(review, track_url, tmp_dir):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
+def normalize_tag_case(s):
+  """ Normalize case of a tag string. """
+  lowercase_words = frozenset(("a", "an", "and", "at", "for", "from", "in",
+                               "of", "on", "or", "over", "the", "to", "with"))
+  prev_words = s.split(" ")
+  new_words = []
+  for i, prev_word in enumerate(prev_words):
+    if (i != 0) and (prev_word.lower() in lowercase_words):
+      new_word = prev_word.lower()
+    else:
+      new_word = prev_word.capitalize()
+    new_words.append(new_word)
+  return " ".join(new_words)
+
+
+def normalize_title_tag(title, artist):
+  """ Remove useless prefix and suffix from title tag string. """
+  if title.lower().startswith(artist.lower()):
+    title = title[len(artist):]
+    title = title.lstrip(string.punctuation + string.whitespace)
+  of_string = "official video"
+  if title.rstrip(string.punctuation).lower().endswith(of_string):
+    title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation)
+  title = title.strip(string.whitespace)
+  return normalize_tag_case(title)
+
+
+def tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext):
+  """ Tag an audio file. """
+  mf = mutagen.File(track_filepath)
+  if isinstance(mf, mutagen.ogg.OggFileType):
+    # override/fix source tags added by youtube-dl, because they often contain crap
+    mf["artist"] = review.artist
+    mf["album"] = review.album
+    try:
+      mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
+    except KeyError:
+      pass
+    mf.save()
+    # embed album art
+    picture = mutagen.flac.Picture()
+    with open(cover_filepath, "rb") as cover_file:
+      picture.data = cover_file.read()
+    picture.type = mutagen.id3.PictureType.COVER_FRONT
+    picture.mime = cover_mime_type
+    encoded_data = base64.b64encode(picture.write())
+    mf["metadata_block_picture"] = encoded_data.decode("ascii")
+    mf.save()
+  elif isinstance(mf, mutagen.mp3.MP3):
+    # override/fix source tags added by youtube-dl, because they often contain crap
+    mf = mutagen.easyid3.EasyID3(track_filepath)
+    mf["artist"] = review.artist
+    mf["album"] = review.album
+    try:
+      mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
+    except KeyError:
+      pass
+    mf.save()
+    # embed album art
+    mf = mutagen.File(track_filepath)
+    with open(cover_filepath, "rb") as cover_file:
+      mf.tags.add(mutagen.id3.APIC(mime=cover_mime_type,
+                                   type=mutagen.id3.PictureType.COVER_FRONT,
+                                   data=cover_file.read()))
+    mf.save()
+  elif isinstance(mf, mutagen.mp4.MP4):
+    # override/fix source tags added by youtube-dl, because they often contain crap
+    mf["\xa9ART"] = review.artist
+    mf["\xa9alb"] = review.album
+    try:
+      mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist)
+    except KeyError:
+      pass
+    mf.save()
+    # embed album art
+    with open(cover_filepath, "rb") as cover_file:
+      img_format = mutagen.mp4.AtomDataType.PNG if (cover_ext == "png") else mutagen.mp4.AtomDataType.JPEG
+      mf["covr"] = [mutagen.mp4.MP4Cover(cover_file.read(),
+                                         imageformat=img_format)]
+    mf.save()
+
+
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
@@ -304,51 +386,13 @@ def download_audio(review, track_urls):
       cmd = ("jpegoptim", "-q", "--strip-all", cover_filepath)
       subprocess.check_call(cmd)
     elif (cover_ext == "png") and shutil.which("optipng"):
-      cmd = ("optipng", "-quiet", "-o7", cover_filepath)
+      cmd = ("optipng", "-quiet", "-o3", cover_filepath)
       subprocess.check_call(cmd)
 
     # add tags & embed cover
     for track_filepath in track_filepaths:
       try:
-        mf = mutagen.File(track_filepath)
-        if isinstance(mf, mutagen.ogg.OggFileType):
-          # override youtube-dl tags, because they often contain crap
-          mf["artist"] = review.artist
-          mf["album"] = review.album
-          mf.save()
-          # embed album art
-          picture = mutagen.flac.Picture()
-          with open(cover_filepath, "rb") as cover_file:
-            picture.data = cover_file.read()
-          picture.type = mutagen.id3.PictureType.COVER_FRONT
-          picture.mime = cover_mime_type
-          encoded_data = base64.b64encode(picture.write())
-          mf["metadata_block_picture"] = encoded_data.decode("ascii")
-          mf.save()
-        elif isinstance(mf, mutagen.mp3.MP3):
-          # override youtube-dl tags, because they often contain crap
-          mf = mutagen.easyid3.EasyID3(track_filepath)
-          mf["artist"] = review.artist
-          mf["album"] = review.album
-          mf.save()
-          # embed album art
-          mf = mutagen.File(track_filepath)
-          with open(cover_filepath, "rb") as cover_file:
-            mf.tags.add(mutagen.id3.APIC(mime=cover_mime_type,
-                                         type=mutagen.id3.PictureType.COVER_FRONT,
-                                         data=cover_file.read()))
-          mf.save()
-        elif isinstance(mf, mutagen.mp4.MP4):
-          # override youtube-dl tags, because they often contain crap
-          mf["\xa9ART"] = review.artist
-          mf["\xa9alb"] = review.album
-          mf.save()
-          # embed album art
-          with open(cover_filepath, "rb") as cover_file:
-            img_format = mutagen.mp4.AtomDataType.PNG if (cover_ext == "png") else mutagen.mp4.AtomDataType.JPEG
-            mf["covr"] = [mutagen.mp4.MP4Cover(cover_file.read(),
-                                               imageformat=img_format)]
-          mf.save()
+        tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext)
       except Exception as e:
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
                                                                              e.__class__.__qualname__))
