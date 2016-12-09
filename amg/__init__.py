@@ -593,6 +593,7 @@ def cl_main():
   logging.getLogger().setLevel(logging_level[args.verbosity])
   logging.getLogger("requests").setLevel(logging.ERROR)
   logging.getLogger("urllib3").setLevel(logging.ERROR)
+  logging.getLogger("PIL").setLevel(logging.ERROR)
   logging_formatter = colored_logging.ColoredFormatter(fmt="%(message)s")
   logging_handler = logging.StreamHandler()
   logging_handler.setFormatter(logging_formatter)
