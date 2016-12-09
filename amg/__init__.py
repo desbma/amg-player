@@ -12,6 +12,7 @@ import collections
 import contextlib
 import datetime
 import enum
+import io
 import itertools
 import json
 import locale
@@ -28,6 +29,7 @@ import urllib.parse
 import webbrowser
 
 from amg import colored_logging
+from amg import mkstemp_ctx
 
 import appdirs
 import cursesmenu
@@ -35,6 +37,7 @@ import lxml.cssselect
 import lxml.etree
 import mutagen
 import mutagen.easyid3
+import PIL.Image
 import requests
 import web_cache
 import youtube_dl
@@ -222,7 +225,32 @@ class KnownReviews:
       return 1
 
 
-def download_and_merge(review, track_url, tmp_dir):
+def get_cover_data(review):
+  """ Fetch cover and return buffer of JPEG data. """
+  cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
+  cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
+
+  with mkstemp_ctx.mkstemp(suffix=".%s" % (cover_ext)) as filepath:
+    fetch_ressource(cover_url, filepath)
+
+    if cover_ext == "png":
+      # convert to JPEG
+      img = PIL.Image.open(filepath)
+      f = io.BytesIO()
+      img.save(f, format="JPEG", quality=90, optimize=True)
+      f.seek(0)
+      out_bytes = f.read()
+    else:
+      if shutil.which("jpegoptim"):
+        cmd = ("jpegoptim", "-q", "--strip-all", filepath)
+        subprocess.check_call(cmd)
+      with open(filepath, "rb") as f:
+        out_bytes = f.read()
+
+  return out_bytes
+
+
+def download_and_merge(review, track_url, tmp_dir, cover_filepath):
   """ Download track, and return ffmpeg process that outputs merged audio & album art, ot None if download failed. """
   # fetch audio
   # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
@@ -244,17 +272,10 @@ def download_and_merge(review, track_url, tmp_dir):
     for audio_filepath in audio_filepaths:
       concat_file.write("file %s\n" % (audio_filepath))
 
-  # fetch cover
-  img_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".jpg")
-  if review.cover_url is not None:
-    fetch_ressource(review.cover_url, img_filepath)
-  else:
-    fetch_ressource(review.cover_thumbnail_url, img_filepath)
-
   # merge
   cmd = (shutil.which("ffmpeg") or shutil.which("avconv"),
          "-loglevel", "quiet",
-         "-loop", "1", "-framerate", "1", "-i", img_filepath,
+         "-loop", "1", "-framerate", "1", "-i", cover_filepath,
          "-f", "concat", "-i", concat_filepath,
          "-filter:v", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
          "-c:a", "copy",
@@ -292,7 +313,7 @@ def normalize_title_tag(title, artist):
   return normalize_tag_case(title)
 
 
-def tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext):
+def tag(track_filepath, review, cover_data):
   """ Tag an audio file. """
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.ogg.OggFileType):
@@ -306,10 +327,9 @@ def tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext):
     mf.save()
     # embed album art
     picture = mutagen.flac.Picture()
-    with open(cover_filepath, "rb") as cover_file:
-      picture.data = cover_file.read()
+    picture.data = cover_data
     picture.type = mutagen.id3.PictureType.COVER_FRONT
-    picture.mime = cover_mime_type
+    picture.mime = "image/jpeg"
     encoded_data = base64.b64encode(picture.write())
     mf["metadata_block_picture"] = encoded_data.decode("ascii")
     mf.save()
@@ -325,10 +345,9 @@ def tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext):
     mf.save()
     # embed album art
     mf = mutagen.File(track_filepath)
-    with open(cover_filepath, "rb") as cover_file:
-      mf.tags.add(mutagen.id3.APIC(mime=cover_mime_type,
-                                   type=mutagen.id3.PictureType.COVER_FRONT,
-                                   data=cover_file.read()))
+    mf.tags.add(mutagen.id3.APIC(mime="image/jpeg",
+                                 type=mutagen.id3.PictureType.COVER_FRONT,
+                                 data=cover_data))
     mf.save()
   elif isinstance(mf, mutagen.mp4.MP4):
     # override/fix source tags added by youtube-dl, because they often contain crap
@@ -340,10 +359,8 @@ def tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext):
       pass
     mf.save()
     # embed album art
-    with open(cover_filepath, "rb") as cover_file:
-      img_format = mutagen.mp4.AtomDataType.PNG if (cover_ext == "png") else mutagen.mp4.AtomDataType.JPEG
-      mf["covr"] = [mutagen.mp4.MP4Cover(cover_file.read(),
-                                         imageformat=img_format)]
+    mf["covr"] = [mutagen.mp4.MP4Cover(cover_data,
+                                       imageformat=mutagen.mp4.AtomDataType.JPEG)]
     mf.save()
 
 
@@ -375,24 +392,12 @@ def download_audio(review, track_urls):
       return False
 
     # get cover
-    cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
-    cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
-    cover_mime_type = mimetypes.guess_type(cover_url)[0]
-    cover_filepath = os.path.join(tmp_dir, "front.%s" % (cover_ext))
-    fetch_ressource(cover_url, cover_filepath)
-
-    # crunch it
-    if (cover_ext in ("jpg", "jpeg")) and shutil.which("jpegoptim"):
-      cmd = ("jpegoptim", "-q", "--strip-all", cover_filepath)
-      subprocess.check_call(cmd)
-    elif (cover_ext == "png") and shutil.which("optipng"):
-      cmd = ("optipng", "-quiet", "-o3", cover_filepath)
-      subprocess.check_call(cmd)
+    cover_data = get_cover_data(review)
 
     # add tags & embed cover
     for track_filepath in track_filepaths:
       try:
-        tag(track_filepath, review, cover_filepath, cover_mime_type, cover_ext)
+        tag(track_filepath, review, cover_data)
       except Exception as e:
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
                                                                              e.__class__.__qualname__))
@@ -406,28 +411,33 @@ def download_audio(review, track_urls):
 
 def play(review, track_urls, *, merge_with_picture):
   """ Play it fucking loud! """
-  # TODO support other players (vlc, avplay, ffplay...)
-  for track_url in track_urls:
-    if (merge_with_picture and
-            ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
-      # TODO avoid downloading cover several times in download_and_merge
-      with tempfile.TemporaryDirectory() as tmp_dir,\
-              download_and_merge(review, track_url, tmp_dir) as merge_process:
-        if merge_process is None:
-          return
+  with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
+    if merge_with_picture:
+      cover_data = get_cover_data(review)
+      with open(cover_filepath, "wb") as f:
+        f.write(cover_data)
+
+    # TODO support other players (vlc, avplay, ffplay...)
+    for track_url in track_urls:
+      if (merge_with_picture and
+              ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
+        with tempfile.TemporaryDirectory() as tmp_dir,\
+                download_and_merge(review, track_url, tmp_dir, cover_filepath) as merge_process:
+          if merge_process is None:
+            return
+          cmd = ("mpv", "--force-seekable=yes", "-")
+          logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+          subprocess.check_call(cmd, stdin=merge_process.stdout)
+          merge_process.terminate()
+      else:
+        cmd_dl = ("youtube-dl", "-o", "-", track_url)
+        logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
+        dl_process = subprocess.Popen(cmd_dl,
+                                      stdout=subprocess.PIPE,
+                                      stderr=subprocess.DEVNULL)
         cmd = ("mpv", "--force-seekable=yes", "-")
         logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-        subprocess.check_call(cmd, stdin=merge_process.stdout)
-        merge_process.terminate()
-    else:
-      cmd_dl = ("youtube-dl", "-o", "-", track_url)
-      logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
-      dl_process = subprocess.Popen(cmd_dl,
-                                    stdout=subprocess.PIPE,
-                                    stderr=subprocess.DEVNULL)
-      cmd = ("mpv", "--force-seekable=yes", "-")
-      logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-      subprocess.check_call(cmd, stdin=dl_process.stdout)
+        subprocess.check_call(cmd, stdin=dl_process.stdout)
 
 
 class AmgMenu(cursesmenu.CursesMenu):
