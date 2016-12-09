@@ -303,14 +303,19 @@ def normalize_tag_case(s):
 
 def normalize_title_tag(title, artist):
   """ Remove useless prefix and suffix from title tag string. """
+  original_title = title
+  title = title.strip(string.whitespace)
   if title.lower().startswith(artist.lower()):
     title = title[len(artist):]
     title = title.lstrip(string.punctuation + string.whitespace)
-  of_string = "official video"
-  if title.rstrip(string.punctuation).lower().endswith(of_string):
-    title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation)
-  title = title.strip(string.whitespace)
-  return normalize_tag_case(title)
+  of_strings = ["official video", "official lyric video", "lyric video", "lyricvideo"]
+  for of_string in of_strings:
+    if title.rstrip(string.punctuation).lower().endswith(of_string):
+      title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
+  title = normalize_tag_case(title)
+  if title != original_title:
+    logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
+  return title
 
 
 def tag(track_filepath, review, cover_data):
@@ -318,8 +323,8 @@ def tag(track_filepath, review, cover_data):
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.ogg.OggFileType):
     # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["artist"] = review.artist
-    mf["album"] = review.album
+    mf["artist"] = normalize_tag_case(review.artist)
+    mf["album"] = normalize_tag_case(review.album)
     try:
       mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
     except KeyError:
@@ -336,8 +341,8 @@ def tag(track_filepath, review, cover_data):
   elif isinstance(mf, mutagen.mp3.MP3):
     # override/fix source tags added by youtube-dl, because they often contain crap
     mf = mutagen.easyid3.EasyID3(track_filepath)
-    mf["artist"] = review.artist
-    mf["album"] = review.album
+    mf["artist"] = normalize_tag_case(review.artist)
+    mf["album"] = normalize_tag_case(review.album)
     try:
       mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
     except KeyError:
@@ -351,8 +356,8 @@ def tag(track_filepath, review, cover_data):
     mf.save()
   elif isinstance(mf, mutagen.mp4.MP4):
     # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["\xa9ART"] = review.artist
-    mf["\xa9alb"] = review.album
+    mf["\xa9ART"] = normalize_tag_case(review.artist)
+    mf["\xa9alb"] = normalize_tag_case(review.album)
     try:
       mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist)
     except KeyError:
