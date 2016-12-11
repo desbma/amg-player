@@ -293,7 +293,9 @@ def normalize_tag_case(s):
   prev_words = s.split(" ")
   new_words = []
   for i, prev_word in enumerate(prev_words):
-    if (i != 0) and (prev_word.lower() in lowercase_words):
+    if "." in prev_word:
+      new_word = prev_word
+    elif (i != 0) and (prev_word.lower() in lowercase_words):
       new_word = prev_word.lower()
     else:
       new_word = prev_word.capitalize()

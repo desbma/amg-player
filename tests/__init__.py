@@ -58,7 +58,8 @@ class TestAmg(unittest.TestCase):
 
   def test_normalize_tag_case(self):
     references = {"ALL CAPS IS SO STUPID": "All Caps Is So Stupid",
-                  "i ZZ the a Bzz bhh": "I Zz the a Bzz Bhh"}
+                  "i ZZ the a Bzz bhh": "I Zz the a Bzz Bhh",
+                  "I.C.Y.C.S.D": "I.C.Y.C.S.D"}
     for before, after in references.items():
       self.assertEqual(amg.normalize_tag_case(before), after)
 
