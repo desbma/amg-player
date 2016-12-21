@@ -283,6 +283,7 @@ def download_and_merge(review, track_url, tmp_dir, cover_filepath):
          "-loglevel", "quiet",
          "-loop", "1", "-framerate", "1", "-i", cover_filepath,
          "-f", "concat", "-i", concat_filepath,
+         "-map", "0:v", "-map", "1:a",
          "-filter:v", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
          "-c:a", "copy",
          "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
