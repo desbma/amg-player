@@ -104,7 +104,11 @@ def parse_review_block(review):
     title = title[:len(title) - len(expected_suffix)]
   elif "[Things You Might Have Missed" in title:
     title = title.rsplit("[", 1)[0].strip()
-  artist, album = map(str.strip, title.split("–", 1))
+  try:
+    artist, album = map(str.strip, title.split("–", 1))
+  except ValueError:
+    # most likely not a review, ie. http://www.angrymetalguy.com/ep-edition-things-you-might-have-missed-2016/
+    return None
   def make_absolute_url(url):
     url_parts = urllib.parse.urlsplit(url)
     if url_parts.scheme:
@@ -129,7 +133,9 @@ def get_reviews():
     url = ROOT_URL if (i == 0) else "%spage/%u" % (ROOT_URL, i + 1)
     page = fetch_page(url)
     for review in REVIEW_BLOCK_SELECTOR(page):
-      yield parse_review_block(review)
+      r = parse_review_block(review)
+      if r is not None:
+        yield r
 
 
 def get_embedded_track(page, http_cache):
