@@ -256,14 +256,14 @@ def get_cover_data(review):
   return out_bytes
 
 
-def download_and_merge(review, track_url, tmp_dir, cover_filepath):
+def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   """ Download track, and return ffmpeg process that outputs merged audio & album art, ot None if download failed. """
   # fetch audio
   # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
   ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
   try:
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-      ydl.download((track_url,))
+      ydl.download(track_urls)
   except youtube_dl.utils.DownloadError as e:
     # already logged
     # logging.getLogger().warning("Download error : %s" % (e))
@@ -425,33 +425,34 @@ def download_audio(review, track_urls):
 
 def play(review, track_urls, *, merge_with_picture):
   """ Play it fucking loud! """
-  with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
-    if merge_with_picture:
+  # TODO support other players (vlc, avplay, ffplay...)
+  merge_with_picture = merge_with_picture and ((shutil.which("ffmpeg") is not None) or
+                                               (shutil.which("avconv") is not None))
+  if merge_with_picture:
+    with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
       cover_data = get_cover_data(review)
       with open(cover_filepath, "wb") as f:
         f.write(cover_data)
 
-    # TODO support other players (vlc, avplay, ffplay...)
-    for track_url in track_urls:
-      if (merge_with_picture and
-              ((shutil.which("ffmpeg") is not None) or (shutil.which("avconv") is not None))):
-        with tempfile.TemporaryDirectory() as tmp_dir,\
-                download_and_merge(review, track_url, tmp_dir, cover_filepath) as merge_process:
-          if merge_process is None:
-            return
-          cmd = ("mpv", "--force-seekable=yes", "-")
-          logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-          subprocess.check_call(cmd, stdin=merge_process.stdout)
-          merge_process.terminate()
-      else:
-        cmd_dl = ("youtube-dl", "-o", "-", track_url)
-        logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
-        dl_process = subprocess.Popen(cmd_dl,
-                                      stdout=subprocess.PIPE,
-                                      stderr=subprocess.DEVNULL)
+      with tempfile.TemporaryDirectory() as tmp_dir,\
+              download_and_merge(review, track_urls, tmp_dir, cover_filepath) as merge_process:
+        if merge_process is None:
+          return
         cmd = ("mpv", "--force-seekable=yes", "-")
         logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-        subprocess.check_call(cmd, stdin=dl_process.stdout)
+        subprocess.check_call(cmd, stdin=merge_process.stdout)
+        merge_process.terminate()
+
+  else:
+    for track_url in track_urls:
+      cmd_dl = ("youtube-dl", "-o", "-", track_url)
+      logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
+      dl_process = subprocess.Popen(cmd_dl,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.DEVNULL)
+      cmd = ("mpv", "--force-seekable=yes", "-")
+      logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+      subprocess.check_call(cmd, stdin=dl_process.stdout)
 
 
 class AmgMenu(cursesmenu.CursesMenu):
