@@ -17,7 +17,6 @@ import itertools
 import json
 import locale
 import logging
-import mimetypes
 import operator
 import os
 import shutil
