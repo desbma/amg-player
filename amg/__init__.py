@@ -185,6 +185,7 @@ class KnownReviews:
 
   def __init__(self):
     data_dir = appdirs.user_data_dir("amg-player")
+    os.makedirs(data_dir, exist_ok=True)
     filepath = os.path.join(data_dir, "played.dat")
     self.data = shelve.open(filepath, protocol=3)
     # cleanup old entries
