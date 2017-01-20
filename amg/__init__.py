@@ -297,16 +297,18 @@ def normalize_tag_case(s):
   """ Normalize case of a tag string. """
   lowercase_words = frozenset(("a", "an", "and", "at", "for", "from", "in",
                                "of", "on", "or", "over", "the", "to", "with"))
-  prev_words = s.split(" ")
+  old_words = s.split(" ")
   new_words = []
-  for i, prev_word in enumerate(prev_words):
-    if "." in prev_word:
-      new_word = prev_word
-    elif (i != 0) and (prev_word.lower() in lowercase_words):
-      new_word = prev_word.lower()
+  prev_word = None
+  for i, old_word in enumerate(old_words):
+    if ((prev_word is not None) and prev_word.endswith(":")) or ("." in old_word):
+      new_word = old_word
+    elif (i != 0) and (old_word.lower() in lowercase_words):
+      new_word = old_word.lower()
     else:
-      new_word = prev_word.capitalize()
+      new_word = old_word.capitalize()
     new_words.append(new_word)
+    prev_word = old_word
   return " ".join(new_words)
 
 
@@ -317,10 +319,27 @@ def normalize_title_tag(title, artist):
   if title.lower().startswith(artist.lower()):
     title = title[len(artist):]
     title = title.lstrip(string.punctuation + string.whitespace)
-  of_strings = ["official video", "official lyric video", "lyric video", "lyricvideo"]
-  for of_string in of_strings:
-    if title.rstrip(string.punctuation).lower().endswith(of_string):
-      title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
+  of_strings = []
+  prefixes = ("", "official")
+  nouns2 = ("", "video", "music", "track", "lyric")
+  nouns = ("video", "track", "premiere")
+  for prefix in prefixes:
+    for noun2 in nouns2:
+      for noun in nouns:
+        if (prefix or noun2) and (noun != noun2):
+          for rsep in (" ", ""):
+            rpart = rsep.join((noun2, noun)).strip()
+            of_strings.append(" ".join((prefix, rpart)).strip())
+  of_strings.extend(("pre-orders available", "preorders available"))
+  of_strings.sort(key=len, reverse=True)
+  loop = True
+  while loop:
+    loop = False
+    for of_string in of_strings:
+      if title.rstrip(string.punctuation).lower().endswith(of_string):
+        title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
+        loop = True
+        break
   title = normalize_tag_case(title)
   if title != original_title:
     logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))

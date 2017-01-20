@@ -66,7 +66,13 @@ class TestAmg(unittest.TestCase):
   def test_normalize_title_tag(self):
     references = {("CREST OF DARKNESS - Welcome The Dead (Official Video)", "Crest of Darkness"): "Welcome the Dead",
                   ("REVEL IN FLESH - Emissary Of All Plagues (Official Lyric Video)", "Revel in Flesh"): "Emissary of All Plagues",
-                  ("BORNHOLM - March Of Saturn Lyricvideo", "Bornholm"): "March of Saturn"}
+                  ("BORNHOLM - March Of Saturn Lyricvideo", "Bornholm"): "March of Saturn",
+                  ("BLACK ANVIL - \"As Was\" (Official Track)", "Black Anvil"): "As Was",
+                  ("Emptiness - Your Skin Won't Hide You (Official Premiere)", "Emptiness"): "Your Skin Won't Hide You",
+                  ("The Light at the End (Effect)", "Uniform"): "The Light at the End (effect)",
+                  ("INFERNAL ANGELS - Belial: The Deceiver (OFFICIAL VIDEO)", "Infernal Angels"): "Belial: The Deceiver",
+                  ("BEHEADED - Beast Incarnate (official video) PRE-ORDERS AVAILABLE", "Beheaded"): "Beast Incarnate",
+                  ("Undrask - Longhammer (OFFICIAL MUSIC VIDEO)", "Undrask"): "Longhammer"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 
