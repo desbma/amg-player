@@ -296,13 +296,16 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 def normalize_tag_case(s):
   """ Normalize case of a tag string. """
   lowercase_words = frozenset(("a", "an", "and", "at", "for", "from", "in",
-                               "of", "on", "or", "over", "the", "to", "with"))
+                               "of", "on", "or", "over", "the", "to", "with",
+                               "de", "des", "le", "la", "les"))
   old_words = s.split(" ")
   new_words = []
   prev_word = None
   for i, old_word in enumerate(old_words):
     if ((prev_word is not None) and prev_word.endswith(":")) or ("." in old_word):
       new_word = old_word
+    elif old_word.find("'") == 1:
+      new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
     elif (i != 0) and (old_word.lower() in lowercase_words):
       new_word = old_word.lower()
     else:
