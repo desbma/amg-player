@@ -69,7 +69,7 @@ class TestAmg(unittest.TestCase):
                   ("BORNHOLM - March Of Saturn Lyricvideo", "Bornholm"): "March of Saturn",
                   ("BLACK ANVIL - \"As Was\" (Official Track)", "Black Anvil"): "As Was",
                   ("Emptiness - Your Skin Won't Hide You (Official Premiere)", "Emptiness"): "Your Skin Won't Hide You",
-                  ("The Light at the End (Effect)", "Uniform"): "The Light at the End (effect)",
+                  ("The Light at the End (Effect)", "Uniform"): "The Light at the End (Effect)",
                   ("INFERNAL ANGELS - Belial: The Deceiver (OFFICIAL VIDEO)", "Infernal Angels"): "Belial: The Deceiver",
                   ("BEHEADED - Beast Incarnate (official video) PRE-ORDERS AVAILABLE", "Beheaded"): "Beast Incarnate",
                   ("Undrask - Longhammer (OFFICIAL MUSIC VIDEO)", "Undrask"): "Longhammer",
