@@ -24,6 +24,7 @@ import shelve
 import string
 import subprocess
 import tempfile
+import unicodedata
 import urllib.parse
 import webbrowser
 
@@ -402,6 +403,16 @@ def tag(track_filepath, review, cover_data):
     mf.save()
 
 
+def sanitize_for_path(s):
+  """ Sanitize a string to be FAT/NTFS friendly when used in file path. """
+  valid_chars = frozenset("-_.()!#$%%&'@^{}~ %s%s" % (string.ascii_letters, string.digits))
+  s = s.translate(str.maketrans("/\\|*", "---x"))
+  s = "".join(c for c in unicodedata.normalize("NFKD", s) if c in valid_chars)
+  s = s.strip()
+  s = s.rstrip(".")  # this if for FAT on Android
+  return s
+
+
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
@@ -409,8 +420,8 @@ def download_audio(review, track_urls):
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                         ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                         r"%(autonumber)s" +
-                                        (". %s - %s" % (review.artist.replace(os.sep, "_"),
-                                                        review.album.replace(os.sep, "_"))) +
+                                        (". %s - %s" % (sanitize_for_path(review.artist.replace(os.sep, "_")),
+                                                        sanitize_for_path(review.album.replace(os.sep, "_")))) +
                                         r".%(ext)s"),
                 "format": "opus/vorbis/bestaudio",
                 "postprocessors": [{"key": "FFmpegExtractAudio"},
