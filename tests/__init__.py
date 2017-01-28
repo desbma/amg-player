@@ -73,7 +73,8 @@ class TestAmg(unittest.TestCase):
                   ("INFERNAL ANGELS - Belial: The Deceiver (OFFICIAL VIDEO)", "Infernal Angels"): "Belial: The Deceiver",
                   ("BEHEADED - Beast Incarnate (official video) PRE-ORDERS AVAILABLE", "Beheaded"): "Beast Incarnate",
                   ("Undrask - Longhammer (OFFICIAL MUSIC VIDEO)", "Undrask"): "Longhammer",
-                  ("Nuit Noire De L'Ame", "Wolvennest"): "Nuit Noire de l'Ame"}
+                  ("Nuit Noire De L'Ame", "Wolvennest"): "Nuit Noire de l'Ame",
+                  ("L'Etoile Du Matin", "Au Champ Des Morts"): "L'Etoile du Matin"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 

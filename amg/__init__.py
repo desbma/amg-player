@@ -298,7 +298,7 @@ def normalize_tag_case(s):
   """ Normalize case of a tag string. """
   lowercase_words = frozenset(("a", "an", "and", "at", "for", "from", "in",
                                "of", "on", "or", "over", "the", "to", "with",
-                               "de", "des", "le", "la", "les"))
+                               "de", "des", "du", "le", "la", "les"))
   old_words = s.split(" ")
   new_words = []
   prev_word = None
@@ -308,7 +308,10 @@ def normalize_tag_case(s):
     elif (len(old_word) > 2) and (old_word[0] == "(") and (old_word[-1] == ")"):
       new_word = old_word
     elif old_word.find("'") == 1:
-      new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
+      if i > 0:
+        new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
+      else:
+        new_word = old_word
     elif (i != 0) and (old_word.lower() in lowercase_words):
       new_word = old_word.lower()
     else:
