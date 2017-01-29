@@ -30,6 +30,7 @@ import webbrowser
 
 from amg import colored_logging
 from amg import mkstemp_ctx
+from amg import sanitize
 
 import appdirs
 import cursesmenu
@@ -294,33 +295,6 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
-def normalize_tag_case(s):
-  """ Normalize case of a tag string. """
-  lowercase_words = frozenset(("a", "an", "and", "at", "for", "from", "in",
-                               "of", "on", "or", "over", "the", "to", "with",
-                               "de", "des", "du", "le", "la", "les"))
-  old_words = s.split(" ")
-  new_words = []
-  prev_word = None
-  for i, old_word in enumerate(old_words):
-    if ((prev_word is not None) and prev_word.endswith(":")) or ("." in old_word):
-      new_word = old_word
-    elif (len(old_word) > 2) and (old_word[0] == "(") and (old_word[-1] == ")"):
-      new_word = old_word
-    elif old_word.find("'") == 1:
-      if i > 0:
-        new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
-      else:
-        new_word = old_word
-    elif (i != 0) and (old_word.lower() in lowercase_words):
-      new_word = old_word.lower()
-    else:
-      new_word = old_word.capitalize()
-    new_words.append(new_word)
-    prev_word = old_word
-  return " ".join(new_words)
-
-
 def normalize_title_tag(title, artist):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
@@ -349,7 +323,7 @@ def normalize_title_tag(title, artist):
         title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
         loop = True
         break
-  title = normalize_tag_case(title)
+  title = sanitize.normalize_tag_case(title)
   if title != original_title:
     logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
   return title
@@ -360,8 +334,8 @@ def tag(track_filepath, review, cover_data):
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.ogg.OggFileType):
     # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["artist"] = normalize_tag_case(review.artist)
-    mf["album"] = normalize_tag_case(review.album)
+    mf["artist"] = sanitize.normalize_tag_case(review.artist)
+    mf["album"] = sanitize.normalize_tag_case(review.album)
     try:
       mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
     except KeyError:
@@ -378,8 +352,8 @@ def tag(track_filepath, review, cover_data):
   elif isinstance(mf, mutagen.mp3.MP3):
     # override/fix source tags added by youtube-dl, because they often contain crap
     mf = mutagen.easyid3.EasyID3(track_filepath)
-    mf["artist"] = normalize_tag_case(review.artist)
-    mf["album"] = normalize_tag_case(review.album)
+    mf["artist"] = sanitize.normalize_tag_case(review.artist)
+    mf["album"] = sanitize.normalize_tag_case(review.album)
     try:
       mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
     except KeyError:
@@ -393,8 +367,8 @@ def tag(track_filepath, review, cover_data):
     mf.save()
   elif isinstance(mf, mutagen.mp4.MP4):
     # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["\xa9ART"] = normalize_tag_case(review.artist)
-    mf["\xa9alb"] = normalize_tag_case(review.album)
+    mf["\xa9ART"] = sanitize.normalize_tag_case(review.artist)
+    mf["\xa9alb"] = sanitize.normalize_tag_case(review.album)
     try:
       mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist)
     except KeyError:
@@ -406,16 +380,6 @@ def tag(track_filepath, review, cover_data):
     mf.save()
 
 
-def sanitize_for_path(s):
-  """ Sanitize a string to be FAT/NTFS friendly when used in file path. """
-  valid_chars = frozenset("-_.()!#$%%&'@^{}~ %s%s" % (string.ascii_letters, string.digits))
-  s = s.translate(str.maketrans("/\\|*", "---x"))
-  s = "".join(c for c in unicodedata.normalize("NFKD", s) if c in valid_chars)
-  s = s.strip()
-  s = s.rstrip(".")  # this if for FAT on Android
-  return s
-
-
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
@@ -423,8 +387,8 @@ def download_audio(review, track_urls):
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                         ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                         r"%(autonumber)s" +
-                                        (". %s - %s" % (sanitize_for_path(review.artist.replace(os.sep, "_")),
-                                                        sanitize_for_path(review.album.replace(os.sep, "_")))) +
+                                        (". %s - %s" % (sanitize.sanitize_for_path(review.artist.replace(os.sep, "_")),
+                                                        sanitize.sanitize_for_path(review.album.replace(os.sep, "_")))) +
                                         r".%(ext)s"),
                 "format": "opus/vorbis/bestaudio",
                 "postprocessors": [{"key": "FFmpegExtractAudio"},

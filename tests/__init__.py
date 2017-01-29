@@ -61,7 +61,7 @@ class TestAmg(unittest.TestCase):
                   "i ZZ the a Bzz bhh": "I Zz the a Bzz Bhh",
                   "I.C.Y.C.S.D": "I.C.Y.C.S.D"}
     for before, after in references.items():
-      self.assertEqual(amg.normalize_tag_case(before), after)
+      self.assertEqual(amg.sanitize.normalize_tag_case(before), after)
 
   def test_normalize_title_tag(self):
     references = {("CREST OF DARKNESS - Welcome The Dead (Official Video)", "Crest of Darkness"): "Welcome the Dead",
