@@ -74,7 +74,11 @@ class TestAmg(unittest.TestCase):
                   ("BEHEADED - Beast Incarnate (official video) PRE-ORDERS AVAILABLE", "Beheaded"): "Beast Incarnate",
                   ("Undrask - Longhammer (OFFICIAL MUSIC VIDEO)", "Undrask"): "Longhammer",
                   ("Nuit Noire De L'Ame", "Wolvennest"): "Nuit Noire de l'Ame",
-                  ("L'Etoile Du Matin", "Au Champ Des Morts"): "L'Etoile du Matin"}
+                  ("L'Etoile Du Matin", "Au Champ Des Morts"): "L'Etoile du Matin",
+                  ("Drude", "Drude"): "Drude",
+                  ("Drude - Drude", "Drude"): "Drude",
+                  ("Drude (official video)", "Drude"): "Drude",
+                  ("Drude Drude (official video)", "Drude"): "Drude"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 

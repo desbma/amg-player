@@ -299,9 +299,6 @@ def normalize_title_tag(title, artist):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
   title = title.strip(string.whitespace)
-  if title.lower().startswith(artist.lower()):
-    title = title[len(artist):]
-    title = title.lstrip(string.punctuation + string.whitespace)
   of_strings = []
   prefixes = ("", "official")
   nouns2 = ("", "video", "music", "track", "lyric")
@@ -323,6 +320,11 @@ def normalize_title_tag(title, artist):
         title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
         loop = True
         break
+  if title.lower().startswith(artist.lower()):
+    title2 = title[len(artist):]
+    title2 = title2.lstrip(string.punctuation + string.whitespace)
+    if title2:
+      title = title2
   title = sanitize.normalize_tag_case(title)
   if title != original_title:
     logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
