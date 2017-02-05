@@ -7,7 +7,7 @@ Angry Metal Guy Player
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
 [![License](https://img.shields.io/github/license/desbma/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg/)
 
-Angry Metal Guy Player (AMG Player) is a Python multi platform console tool to automatically play tracks from [Angry Metal Guy](https://www.angrymetalguy.com/) reviews.
+Angry Metal Guy Player (AMG Player) is a Python multi platform console tool to automatically play or download tracks from [Angry Metal Guy](https://www.angrymetalguy.com/) reviews.
 
 I created this because:  
 
@@ -23,6 +23,7 @@ I created this because:
 * Can work either in interactive mode (manually select tracks) or totally automatic (play new tracks like a radio)
 * Supports embedded tracks from: YouTube, Bandcamp, SoundCloud
 * Play YouTube video if available, or generate a video on the fly with the cover image + audio track(s) (requires FFMpeg or Libav)
+* Can download tracks (with embedded album art) to play later
 
 
 ## Screenshots
