@@ -165,8 +165,10 @@ def get_embedded_track(page, http_cache):
                            js.split("\n")))
           js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
           js = json.loads(js)
-          #urls = (js["linkback"],)
-          urls = tuple(t["title_link"] for t in js["tracks"] if t["track_streaming"])
+          # import pprint
+          # pprint.pprint(js)
+          # exit(7)
+          urls = tuple(t["title_link"] for t in js["tracks"] if (t["track_streaming"] and t["file"]))
           audio_only = True
         elif iframe_url.startswith(sc_prefix):
           urls = (iframe_url.split("&", 1)[0],)
