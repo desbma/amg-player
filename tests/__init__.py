@@ -78,7 +78,8 @@ class TestAmg(unittest.TestCase):
                   ("Drude", "Drude"): "Drude",
                   ("Drude - Drude", "Drude"): "Drude",
                   ("Drude (official video)", "Drude"): "Drude",
-                  ("Drude Drude (official video)", "Drude"): "Drude"}
+                  ("Drude Drude (official video)", "Drude"): "Drude",
+                  ("WITHERFALL - End Of Time (ALBUM VERSION - OFFICIAL TRACK)", "Witherfall"): "End of Time"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 

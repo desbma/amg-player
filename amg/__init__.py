@@ -303,8 +303,8 @@ def normalize_title_tag(title, artist):
   title = title.strip(string.whitespace)
   of_strings = []
   prefixes = ("", "official")
-  nouns2 = ("", "video", "music", "track", "lyric")
-  nouns = ("video", "track", "premiere")
+  nouns2 = ("", "video", "music", "track", "lyric", "album")
+  nouns = ("video", "track", "premiere", "version")
   for prefix in prefixes:
     for noun2 in nouns2:
       for noun in nouns:
