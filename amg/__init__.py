@@ -24,7 +24,6 @@ import shelve
 import string
 import subprocess
 import tempfile
-import unicodedata
 import urllib.parse
 import webbrowser
 
