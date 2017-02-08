@@ -303,7 +303,7 @@ def normalize_title_tag(title, artist):
   of_strings = []
   prefixes = ("", "official")
   nouns2 = ("", "video", "music", "track", "lyric", "album")
-  nouns = ("video", "track", "premiere", "version")
+  nouns = ("video", "track", "premiere", "version", "clip")
   for prefix in prefixes:
     for noun2 in nouns2:
       for noun in nouns:
@@ -312,6 +312,9 @@ def normalize_title_tag(title, artist):
             rpart = rsep.join((noun2, noun)).strip()
             of_strings.append(" ".join((prefix, rpart)).strip())
   of_strings.extend(("pre-orders available", "preorders available"))
+  year = datetime.datetime.today().year
+  for y in range(year - 5, year + 1):
+    of_strings.append(str(y))
   of_strings.sort(key=len, reverse=True)
   loop = True
   while loop:
@@ -321,6 +324,15 @@ def normalize_title_tag(title, artist):
         title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
         loop = True
         break
+      # detect and remove 'xxx records'
+      suffix = "records"
+      if title.rstrip(string.punctuation).lower().endswith(suffix):
+        title2 = title.rstrip(string.punctuation)[:-len(suffix)].rstrip(string.punctuation + string.whitespace)
+        title2 = " ".join(title2.split()[:-1]).rstrip(string.punctuation + string.whitespace)
+        if title2:
+          title = title2
+          loop = True
+          break
   if title.lower().startswith(artist.lower()):
     title2 = title[len(artist):]
     title2 = title2.lstrip(string.punctuation + string.whitespace)

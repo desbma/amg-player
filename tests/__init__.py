@@ -79,7 +79,11 @@ class TestAmg(unittest.TestCase):
                   ("Drude - Drude", "Drude"): "Drude",
                   ("Drude (official video)", "Drude"): "Drude",
                   ("Drude Drude (official video)", "Drude"): "Drude",
-                  ("WITHERFALL - End Of Time (ALBUM VERSION - OFFICIAL TRACK)", "Witherfall"): "End of Time"}
+                  ("WITHERFALL - End Of Time (ALBUM VERSION - OFFICIAL TRACK)", "Witherfall"): "End of Time",
+                  ("CRYSTAL VIPER - The Witch Is Back (2017) // official clip // AFM Records", "Crystal Viper"): "The Witch Is Back",
+                  ("CRYSTAL VIPER // AFM Records", "Crystal Viper"): "Crystal Viper",
+                  ("AFM Records", "Crystal Viper"): "Afm Records",
+                  ("Records", "Crystal Viper"): "Records"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 
