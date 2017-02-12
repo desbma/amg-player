@@ -7,7 +7,7 @@ readonly VERSION=${1:?}
 
 cd "$(git rev-parse --show-toplevel)"
 
-ydl_version=$(echo $(LANG=C pacman -Qi youtube-dl | grep ^Version | cut -d ':' -f 2))
+ydl_version=$(echo $(LANG=C pacman -Qi youtube-dl | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1))
 grep -v youtube-dl requirements.txt > requirements.txt.tmp
 echo "youtube-dl>=$ydl_version" >> requirements.txt.tmp
 sort -u -o requirements.txt.tmp requirements.txt.tmp
