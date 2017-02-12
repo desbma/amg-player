@@ -129,13 +129,15 @@ def parse_review_block(review):
 
 def get_reviews():
   """ Parse site and yield ReviewMetadata objects. """
+  previous_review = None
   for i in itertools.count():
     url = ROOT_URL if (i == 0) else "%spage/%u" % (ROOT_URL, i + 1)
     page = fetch_page(url)
     for review in REVIEW_BLOCK_SELECTOR(page):
       r = parse_review_block(review)
-      if r is not None:
+      if (r is not None) and (r != previous_review):
         yield r
+        previous_review = r
 
 
 def get_embedded_track(page, http_cache):
