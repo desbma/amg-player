@@ -19,6 +19,7 @@ import locale
 import logging
 import operator
 import os
+import re
 import shutil
 import shelve
 import string
@@ -318,6 +319,11 @@ def normalize_title_tag(title, artist):
   for y in range(year - 5, year + 1):
     of_strings.append(str(y))
   of_strings.sort(key=len, reverse=True)
+  match = re.search("taken from .*, out on", title, re.IGNORECASE)
+  if match:
+    title2 = title[:match.start(0)].rstrip(string.punctuation + string.whitespace)
+    if title2:
+      title = title2
   loop = True
   while loop:
     loop = False
