@@ -304,9 +304,14 @@ def normalize_title_tag(title, artist):
   original_title = title
   title = title.strip(string.whitespace)
   of_strings = []
-  prefixes = ("", "official")
+  prefixes = ("", "official", "new")
   nouns2 = ("", "video", "music", "track", "lyric", "album")
   nouns = ("video", "track", "premiere", "version", "clip")
+  def rclean(s):
+    c = list(string.punctuation)
+    c.remove(")")
+    c = str(c) + string.whitespace
+    return s.rstrip(c)
   for prefix in prefixes:
     for noun2 in nouns2:
       for noun in nouns:
@@ -321,7 +326,7 @@ def normalize_title_tag(title, artist):
   of_strings.sort(key=len, reverse=True)
   match = re.search("taken from .*, out on", title, re.IGNORECASE)
   if match:
-    title2 = title[:match.start(0)].rstrip(string.punctuation + string.whitespace)
+    title2 = rclean(title[:match.start(0)])
     if title2:
       title = title2
   loop = True
@@ -329,14 +334,14 @@ def normalize_title_tag(title, artist):
     loop = False
     for of_string in of_strings:
       if title.rstrip(string.punctuation).lower().endswith(of_string):
-        title = title.rstrip(string.punctuation)[:-len(of_string)].rstrip(string.punctuation + string.whitespace)
+        title = rclean(title.rstrip(string.punctuation)[:-len(of_string)])
         loop = True
         break
       # detect and remove 'xxx records'
       suffix = "records"
       if title.rstrip(string.punctuation).lower().endswith(suffix):
-        title2 = title.rstrip(string.punctuation)[:-len(suffix)].rstrip(string.punctuation + string.whitespace)
-        title2 = " ".join(title2.split()[:-1]).rstrip(string.punctuation + string.whitespace)
+        title2 = rclean(title.rstrip(string.punctuation)[:-len(suffix)])
+        title2 = rclean(" ".join(title2.split()[:-1]))
         if title2:
           title = title2
           loop = True

@@ -84,7 +84,9 @@ class TestAmg(unittest.TestCase):
                   ("CRYSTAL VIPER // AFM Records", "Crystal Viper"): "Crystal Viper",
                   ("AFM Records", "Crystal Viper"): "Afm Records",
                   ("Records", "Crystal Viper"): "Records",
-                  ("Dool - She Goat [taken from \"Here Now, There Then\", out on February 17th 2017]", "Dool"): "She Goat"}
+                  ("Dool - She Goat [taken from \"Here Now, There Then\", out on February 17th 2017]", "Dool"): "She Goat",
+                  ("Cnoc an Tursa - Wha Wadna Fecht for Charlie (New Track - 2017)", "Cnoc an Tursa"): "Wha Wadna Fecht for Charlie",
+                  ("Black Sites - Burning Away The Day (In Monochrome) 2016", "Black Sites"): "Burning Away the Day (in Monochrome)"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 
