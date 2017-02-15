@@ -303,57 +303,77 @@ def normalize_title_tag(title, artist):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
   title = title.strip(string.whitespace)
-  of_strings = []
-  prefixes = ("", "official", "new")
-  nouns2 = ("", "video", "music", "track", "lyric", "album")
-  nouns = ("video", "track", "premiere", "version", "clip")
+
+  # basic string funcs
+  rclean_chars = list(string.punctuation)
+  for c in "!?)":
+    rclean_chars.remove(c)
+  rclean_chars = str(rclean_chars) + string.whitespace
   def rclean(s):
-    c = list(string.punctuation)
-    c.remove(")")
-    c = str(c) + string.whitespace
-    return s.rstrip(c)
-  for prefix in prefixes:
-    for noun2 in nouns2:
-      for noun in nouns:
-        if (prefix or noun2) and (noun != noun2):
+    return s.rstrip(rclean_chars)
+  def endslike(s, l):
+    return s.rstrip(string.punctuation).lower().endswith(l)
+  def rmsuffix(s, e):
+    return s.rstrip(string.punctuation)[:-len(e)]
+
+  # build list of common suffixes
+  suffixes = []
+  suffix_words1 = ("", "official", "new")
+  suffix_words2 = ("", "video", "music", "track", "lyric", "album")
+  suffix_words3 = ("video", "track", "premiere", "version", "clip")
+  for w1 in suffix_words1:
+    for w2 in suffix_words2:
+      for w3 in suffix_words3:
+        if (w1 or w2) and (w3 != w2):
           for rsep in (" ", ""):
-            rpart = rsep.join((noun2, noun)).strip()
-            of_strings.append(" ".join((prefix, rpart)).strip())
-  of_strings.extend(("pre-orders available", "preorders available"))
+            rpart = rsep.join((w2, w3)).strip()
+            suffixes.append(" ".join((w1, rpart)).strip())
+  suffixes.extend(("pre-orders available", "preorders available"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
-    of_strings.append(str(y))
-  of_strings.sort(key=len, reverse=True)
+    suffixes.append(str(y))
+  suffixes.sort(key=len, reverse=True)
+
+  # detect and remove  'taken from album xxx, out on yyy' suffix
   match = re.search("taken from .*, out on", title, re.IGNORECASE)
   if match:
-    title2 = rclean(title[:match.start(0)])
-    if title2:
-      title = title2
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
   loop = True
   while loop:
     loop = False
-    for of_string in of_strings:
-      if title.rstrip(string.punctuation).lower().endswith(of_string):
-        title = rclean(title.rstrip(string.punctuation)[:-len(of_string)])
+    for suffix in suffixes:
+      # detect and remove common suffixes
+      if endslike(title, suffix):
+        title = rclean(rmsuffix(title, suffix))
         loop = True
         break
-      # detect and remove 'xxx records'
+
+      # detect and remove 'xxx records' suffix
       suffix = "records"
-      if title.rstrip(string.punctuation).lower().endswith(suffix):
-        title2 = rclean(title.rstrip(string.punctuation)[:-len(suffix)])
-        title2 = rclean(" ".join(title2.split()[:-1]))
-        if title2:
-          title = title2
+      if endslike(title, suffix):
+        new_title = rclean(rmsuffix(title, suffix))
+        new_title = rclean(" ".join(new_title.split()[:-1]))
+        if new_title:
+          title = new_title
           loop = True
           break
+
+  # detect and remove artist prefix
   if title.lower().startswith(artist.lower()):
-    title2 = title[len(artist):]
-    title2 = title2.lstrip(string.punctuation + string.whitespace)
-    if title2:
-      title = title2
+    new_title = title[len(artist):]
+    new_title = new_title.lstrip(string.punctuation + string.whitespace)
+    if new_title:
+      title = new_title
+
+  # normalize case
   title = sanitize.normalize_tag_case(title)
+
   if title != original_title:
     logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
+
   return title
 
 
