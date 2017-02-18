@@ -86,7 +86,10 @@ class TestAmg(unittest.TestCase):
                   ("Records", "Crystal Viper"): "Records",
                   ("Dool - She Goat [taken from \"Here Now, There Then\", out on February 17th 2017]", "Dool"): "She Goat",
                   ("Cnoc an Tursa - Wha Wadna Fecht for Charlie (New Track - 2017)", "Cnoc an Tursa"): "Wha Wadna Fecht for Charlie",
-                  ("Black Sites - Burning Away The Day (In Monochrome) 2016", "Black Sites"): "Burning Away the Day (in Monochrome)"}
+                  ("Black Sites - Burning Away The Day (In Monochrome) 2016", "Black Sites"): "Burning Away the Day (In Monochrome)",
+                  ("In Thousand Lakes - Death Train [HD]", "In Thousand Lakes"): "Death Train",
+                  ("EX DEO - The Rise Of Hannibal (Official Audio) | Napalm Records", "Ex Deo"): "The Rise of Hannibal",
+                  ("Power Trip - \"Executioner's Tax (Swing of the Axe)\"", "Power Trip"): "Executioner's Tax (Swing of the Axe)"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 

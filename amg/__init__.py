@@ -302,7 +302,6 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 def normalize_title_tag(title, artist):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
-  title = title.strip(string.whitespace)
 
   # basic string funcs
   rclean_chars = list(string.punctuation)
@@ -316,11 +315,13 @@ def normalize_title_tag(title, artist):
   def rmsuffix(s, e):
     return s.rstrip(string.punctuation)[:-len(e)]
 
+  title = rclean(title.strip(string.whitespace))
+
   # build list of common suffixes
   suffixes = []
   suffix_words1 = ("", "official", "new")
   suffix_words2 = ("", "video", "music", "track", "lyric", "album")
-  suffix_words3 = ("video", "track", "premiere", "version", "clip")
+  suffix_words3 = ("video", "track", "premiere", "version", "clip", "audio")
   for w1 in suffix_words1:
     for w2 in suffix_words2:
       for w3 in suffix_words3:
@@ -328,7 +329,7 @@ def normalize_title_tag(title, artist):
           for rsep in (" ", ""):
             rpart = rsep.join((w2, w3)).strip()
             suffixes.append(" ".join((w1, rpart)).strip())
-  suffixes.extend(("pre-orders available", "preorders available"))
+  suffixes.extend(("pre-orders available", "preorders available", "hd"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     suffixes.append(str(y))

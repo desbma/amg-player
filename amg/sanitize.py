@@ -26,7 +26,7 @@ def normalize_tag_case(s):
   for i, old_word in enumerate(old_words):
     if ((prev_word is not None) and prev_word.endswith(":")) or ("." in old_word):
       new_word = old_word
-    elif (len(old_word) > 2) and (old_word[0] == "(") and (old_word[-1] == ")"):
+    elif old_word[0] == "(":
       new_word = old_word
     elif old_word.find("'") == 1:
       if i > 0:
