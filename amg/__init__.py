@@ -329,7 +329,7 @@ def normalize_title_tag(title, artist):
           for rsep in (" ", ""):
             rpart = rsep.join((w2, w3)).strip()
             suffixes.append(" ".join((w1, rpart)).strip())
-  suffixes.extend(("pre-orders available", "preorders available", "hd"))
+  suffixes.extend(("pre-orders available", "preorders available", "hd", "official"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     suffixes.append(str(y))
@@ -365,6 +365,11 @@ def normalize_title_tag(title, artist):
   # detect and remove artist prefix
   if title.lower().startswith(artist.lower()):
     new_title = title[len(artist):]
+    new_title = new_title.lstrip(string.punctuation + string.whitespace)
+    if new_title:
+      title = new_title
+  elif title.lower().startswith(artist.replace(" ", "").lower()):
+    new_title = title[len(artist.replace(" ", "")):]
     new_title = new_title.lstrip(string.punctuation + string.whitespace)
     if new_title:
       title = new_title
