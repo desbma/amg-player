@@ -1,9 +1,10 @@
 Angry Metal Guy Player
 ======================
 
-[![Latest Version](https://img.shields.io/pypi/v/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
-[![Tests Status](https://img.shields.io/travis/desbma/amg-player/master.svg?label=tests&style=flat)](https://travis-ci.org/desbma/amg-player)
+[![Latest version](https://img.shields.io/pypi/v/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
+[![Tests status](https://img.shields.io/travis/desbma/amg-player/master.svg?label=tests&style=flat)](https://travis-ci.org/desbma/amg-player)
 [![Coverage](https://img.shields.io/coveralls/desbma/amg-player/master.svg?style=flat)](https://coveralls.io/github/desbma/amg-player?branch=master)
+[![Lines of code](https://tokei.rs/b1/github/desbma/amg-player)](https://github.com/desbma/amg-player)
 [![Supported Python versions](https://img.shields.io/pypi/pyversions/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
 [![License](https://img.shields.io/github/license/desbma/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg/)
 
