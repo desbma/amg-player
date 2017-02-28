@@ -91,7 +91,8 @@ class TestAmg(unittest.TestCase):
                   ("EX DEO - The Rise Of Hannibal (Official Audio) | Napalm Records", "Ex Deo"): "The Rise of Hannibal",
                   ("Power Trip - \"Executioner's Tax (Swing of the Axe)\"", "Power Trip"): "Executioner's Tax (Swing of the Axe)",
                   ("Antropomorphia \"Crown ov the Dead\" (OFFICIAL)", "Antropomorphia"): "Crown Ov the Dead",
-                  ("ARDUINI/BALICH - \"THE FALLEN\"", "Arduini / Balich"): "The Fallen"}
+                  ("ARDUINI/BALICH - \"THE FALLEN\"", "Arduini / Balich"): "The Fallen",
+                  ("VENDETTA - Religion Is A Killer Pre-Listening", "Vendetta"): "Religion Is a Killer"}
     for (before, artist), after in references.items():
       self.assertEqual(amg.normalize_title_tag(before, artist), after)
 

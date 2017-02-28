@@ -329,7 +329,8 @@ def normalize_title_tag(title, artist):
           for rsep in (" ", ""):
             rpart = rsep.join((w2, w3)).strip()
             suffixes.append(" ".join((w1, rpart)).strip())
-  suffixes.extend(("pre-orders available", "preorders available", "hd", "official"))
+  suffixes.extend(("pre-orders available", "preorders available", "hd",
+                   "official", "pre-listening", "prelistening"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     suffixes.append(str(y))
