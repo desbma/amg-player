@@ -299,7 +299,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
-def normalize_title_tag(title, artist):
+def normalize_title_tag(title, artist, album):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
 
@@ -310,6 +310,8 @@ def normalize_title_tag(title, artist):
   rclean_chars = str(rclean_chars) + string.whitespace
   def rclean(s):
     return s.rstrip(rclean_chars)
+  def startslike(s, l):
+    return s.lower().startswith(l.lower())
   def endslike(s, l):
     return s.rstrip(string.punctuation).lower().endswith(l)
   def rmsuffix(s, e):
@@ -317,24 +319,26 @@ def normalize_title_tag(title, artist):
 
   title = rclean(title.strip(string.whitespace))
 
-  # build list of common suffixes
-  suffixes = []
-  suffix_words1 = ("", "official", "new")
-  suffix_words2 = ("", "video", "music", "track", "lyric", "album")
-  suffix_words3 = ("video", "track", "premiere", "version", "clip", "audio")
-  for w1 in suffix_words1:
-    for w2 in suffix_words2:
-      for w3 in suffix_words3:
+  # build list of common useless expressions
+  expressions = []
+  words1 = ("", "official", "new")
+  words2 = ("", "video", "music", "track", "lyric", "album", "promo")
+  words3 = ("video", "track", "premiere", "version", "clip", "audio")
+  for w1 in words1:
+    for w2 in words2:
+      for w3 in words3:
         if (w1 or w2) and (w3 != w2):
           for rsep in (" ", ""):
             rpart = rsep.join((w2, w3)).strip()
-            suffixes.append(" ".join((w1, rpart)).strip())
-  suffixes.extend(("pre-orders available", "preorders available", "hd",
+            expressions.append(" ".join((w1, rpart)).strip())
+  expressions.extend(("pre-orders available", "preorders available", "hd",
                    "official", "pre-listening", "prelistening"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
-    suffixes.append(str(y))
-  suffixes.sort(key=len, reverse=True)
+    expressions.append(str(y))
+  if album is not None:
+    expressions.append(album.lower())
+  expressions.sort(key=len, reverse=True)
 
   # detect and remove  'taken from album xxx, out on yyy' suffix
   match = re.search("taken from .*, out on", title, re.IGNORECASE)
@@ -346,34 +350,59 @@ def normalize_title_tag(title, artist):
   loop = True
   while loop:
     loop = False
-    for suffix in suffixes:
-      # detect and remove common suffixes
-      if endslike(title, suffix):
-        title = rclean(rmsuffix(title, suffix))
-        loop = True
-        break
 
-      # detect and remove 'xxx records' suffix
-      suffix = "records"
-      if endslike(title, suffix):
-        new_title = rclean(rmsuffix(title, suffix))
-        new_title = rclean(" ".join(new_title.split()[:-1]))
+    # detect and remove 'xxx records' suffix
+    expression = "records"
+    if endslike(title, expression):
+      new_title = rclean(rmsuffix(title, expression))
+      new_title = rclean(" ".join(new_title.split()[:-1]))
+      if new_title:
+        title = new_title
+        loop = True
+
+    for expression in expressions:
+      # detect and remove common suffixes
+      if endslike(title, expression):
+        new_title = rclean(rmsuffix(title, expression))
         if new_title:
           title = new_title
           loop = True
           break
 
-  # detect and remove artist prefix
-  if title.lower().startswith(artist.lower()):
-    new_title = title[len(artist):]
-    new_title = new_title.lstrip(string.punctuation + string.whitespace)
-    if new_title:
-      title = new_title
-  elif title.lower().startswith(artist.replace(" ", "").lower()):
-    new_title = title[len(artist.replace(" ", "")):]
-    new_title = new_title.lstrip(string.punctuation + string.whitespace)
-    if new_title:
-      title = new_title
+      # detect and remove common prefixes
+      if startslike(title, expression):
+        new_title = title[len(expression):]
+        new_title = new_title.lstrip(string.punctuation + string.whitespace)
+        if new_title:
+          title = new_title
+          loop = True
+          break
+
+    # detect and remove artist prefix
+    if startslike(title, artist):
+      new_title = title[len(artist):]
+      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      if new_title:
+        title = new_title
+        loop = True
+    elif startslike(title, artist.replace(" ", "")):
+      new_title = title[len(artist.replace(" ", "")):]
+      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      if new_title:
+        title = new_title
+        loop = True
+
+    # detect and remove album prefix
+    elif (album is not None) and startslike(title, album):
+      new_title = title[len(album):]
+      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      if new_title:
+        title = new_title
+        loop = True
+
+  # detect unpaired brackets
+  if title.endswith(")") and ("(" not in title):
+    title = title[:-1]
 
   # normalize case
   title = sanitize.normalize_tag_case(title)
@@ -392,7 +421,7 @@ def tag(track_filepath, review, cover_data):
     mf["artist"] = sanitize.normalize_tag_case(review.artist)
     mf["album"] = sanitize.normalize_tag_case(review.album)
     try:
-      mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
+      mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
     except KeyError:
       pass
     mf.save()
@@ -410,7 +439,7 @@ def tag(track_filepath, review, cover_data):
     mf["artist"] = sanitize.normalize_tag_case(review.artist)
     mf["album"] = sanitize.normalize_tag_case(review.album)
     try:
-      mf["title"] = normalize_title_tag(mf["title"][0], review.artist)
+      mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
     except KeyError:
       pass
     mf.save()
@@ -425,7 +454,7 @@ def tag(track_filepath, review, cover_data):
     mf["\xa9ART"] = sanitize.normalize_tag_case(review.artist)
     mf["\xa9alb"] = sanitize.normalize_tag_case(review.album)
     try:
-      mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist)
+      mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist, review.album)
     except KeyError:
       pass
     mf.save()
