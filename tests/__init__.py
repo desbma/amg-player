@@ -56,13 +56,6 @@ class TestAmg(unittest.TestCase):
       self.assertEqual(track_url, expected_track_url)
       self.assertEqual(audio_only, expected_audio_only)
 
-  def test_normalize_tag_case(self):
-    references = {"ALL CAPS IS SO STUPID": "All Caps Is So Stupid",
-                  "i ZZ the a Bzz bhh": "I Zz the a Bzz Bhh",
-                  "I.C.Y.C.S.D": "I.C.Y.C.S.D"}
-    for before, after in references.items():
-      self.assertEqual(amg.sanitize.normalize_tag_case(before), after)
-
   def test_normalize_title_tag(self):
     references = (("CREST OF DARKNESS - Welcome The Dead (Official Video)",
                    "Crest of Darkness",

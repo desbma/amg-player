@@ -23,8 +23,11 @@ def normalize_tag_case(s):
   old_words = s.split(" ")
   new_words = []
   prev_word = None
+  roman_letters = frozenset("IVXLCDM")
   for i, old_word in enumerate(old_words):
-    if ((prev_word is not None) and prev_word.endswith(":")) or ("." in old_word):
+    if (((prev_word is not None) and
+         (prev_word.endswith(":") and old_word[0].isupper())) or
+        ("." in old_word)):
       new_word = old_word
     elif old_word[0] == "(":
       new_word = old_word
@@ -35,6 +38,11 @@ def normalize_tag_case(s):
         new_word = old_word
     elif (i != 0) and (old_word.lower() in TAG_LOWERCASE_WORDS):
       new_word = old_word.lower()
+    elif (((old_word is old_words[-1]) or
+           (old_word.strip(string.punctuation) != old_word)) and
+          all(map(roman_letters.__contains__,
+                  old_word.strip(string.punctuation)))):
+      new_word = old_word
     else:
       new_word = old_word.capitalize()
     new_words.append(new_word)
