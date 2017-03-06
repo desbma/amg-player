@@ -3,7 +3,9 @@
 import datetime
 import inspect
 import logging
+import os
 import random
+import tempfile
 import unittest
 
 import amg
@@ -180,6 +182,14 @@ class TestAmg(unittest.TestCase):
 
     for before, artist, album, after in references:
       self.assertEqual(amg.normalize_title_tag(before, artist, album), after)
+
+  def test_get_r128_volume(self):
+    refs = (("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", -7.7),)
+    with tempfile.TemporaryDirectory() as tmp_dir:
+      for i, (url, volume) in enumerate(refs):
+        filepath = os.path.join(tmp_dir, "%u.%s" % (i, url.rsplit(".", 1)[-1]))
+        amg.fetch_ressource(url, filepath)
+        self.assertAlmostEqual(amg.get_r128_volume(filepath), volume)
 
 
 if __name__ == "__main__":

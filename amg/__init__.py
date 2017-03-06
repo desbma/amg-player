@@ -491,6 +491,10 @@ def download_audio(review, track_urls):
       logging.getLogger().error("Download failed")
       return False
 
+    for track_filepath in track_filepaths:
+      # TODO normalize audio
+      pass
+
     # get cover
     cover_data = get_cover_data(review)
 
@@ -507,6 +511,28 @@ def download_audio(review, track_urls):
       shutil.move(track_filepath, os.getcwd())
 
     return True
+
+
+def get_r128_volume(audio_filepath):
+  """ Get R128 loudness level, in dbFS. """
+  cmd = ("ffmpeg",
+         "-hide_banner", "-nostats",
+         "-i", audio_filepath,
+         "-filter_complex", "ebur128=peak=true",
+         "-f", "null", "-")
+  output = subprocess.check_output(cmd,
+                                   stdin=subprocess.DEVNULL,
+                                   stderr=subprocess.STDOUT,
+                                   universal_newlines=True)
+  output = output.splitlines()
+  for i in reversed(range(len(output))):
+    line = output[i]
+    if line.startswith("[Parsed_ebur128") and line.endswith("Summary:"):
+      break
+  output = filter(None, map(str.strip, output[i:]))
+  r128_stats = dict(tuple(map(str.strip, line.split(":", 1))) for line in output if not line.endswith(":"))
+  r128_stats = {k: float(v.split(" ", 1)[0]) for k, v in r128_stats.items()}
+  return r128_stats["I"]
 
 
 def play(review, track_urls, *, merge_with_picture):
