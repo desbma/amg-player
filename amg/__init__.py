@@ -285,7 +285,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
       concat_file.write("file %s\n" % (audio_filepath))
 
   # merge
-  cmd = (shutil.which("ffmpeg") or shutil.which("avconv"),
+  cmd = ("ffmpeg",
          "-loglevel", "quiet",
          "-loop", "1", "-framerate", "1", "-i", cover_filepath,
          "-f", "concat", "-i", concat_filepath,
@@ -512,8 +512,7 @@ def download_audio(review, track_urls):
 def play(review, track_urls, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
-  merge_with_picture = merge_with_picture and ((shutil.which("ffmpeg") is not None) or
-                                               (shutil.which("avconv") is not None))
+  merge_with_picture = merge_with_picture and (shutil.which("ffmpeg") is not None)
   if merge_with_picture:
     with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
       cover_data = get_cover_data(review)
