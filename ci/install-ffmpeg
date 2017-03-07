@@ -6,6 +6,14 @@ readonly FFMPEG_VERSION=${1:?}
 readonly PROC_COUNT=$([ $(which getconf) ] && getconf _NPROCESSORS_ONLN || grep -cE '^processor' /proc/cpuinfo)
 
 
+configure() {
+  ./configure --enable-gpl \
+              --enable-version3 \
+              --enable-nonfree \
+              --disable-ffserver \
+              --disable-debug
+}
+
 # dependencies
 apt-get -y install yasm
 
@@ -29,6 +37,9 @@ then
     # cleanup
     make clean
     make distclean
+
+    # (re)configure
+    configure
   fi
 else
   # clone & set branch
@@ -37,11 +48,7 @@ else
   git checkout $branch_name
 
   # configure
-  ./configure --enable-gpl \
-              --enable-version3 \
-              --enable-nonfree \
-              --disable-ffserver \
-              --disable-debug
+  configure
 fi
 
 # build
