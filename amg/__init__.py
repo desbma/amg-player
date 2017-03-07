@@ -64,7 +64,8 @@ REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
-TCP_TIMEOUT = 9.1
+IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
+TCP_TIMEOUT = 30.1 if IS_TRAVIS else 9.1
 
 
 def fetch_page(url, *, http_cache=None):
