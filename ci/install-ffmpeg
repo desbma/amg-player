@@ -7,15 +7,13 @@ readonly PROC_COUNT=$([ $(which getconf) ] && getconf _NPROCESSORS_ONLN || grep 
 
 
 configure() {
-  ./configure --enable-gpl \
+  ./configure --prefix=$HOME/.local
+              --enable-gpl \
               --enable-version3 \
               --enable-nonfree \
               --disable-ffserver \
               --disable-debug
 }
-
-# dependencies
-apt-get -y install yasm
 
 # clone
 repo_dir=$HOME/FFmpeg/$FFMPEG_VERSION
@@ -54,6 +52,3 @@ fi
 # build
 make -j $PROC_COUNT
 make install
-
-# update shared libs cache
-ldconfig

@@ -1,5 +1,5 @@
 dist: trusty
-sudo: required
+sudo: false
 language: python
 cache:
   pip: true
@@ -32,18 +32,23 @@ matrix:
     - python: "3.7-dev"
     - env: FFMPEG_VERSION=master
   fast_finish: true
+addons:
+  apt:
+    packages:
+    - yasm
+    - pandoc
 before_install:
-  - "sudo ./ci/install-ffmpeg $FFMPEG_VERSION"
+  - "./ci/install-ffmpeg $FFMPEG_VERSION"
   - "pip install -U pip"
 install:
   - "pip install -r requirements.txt"
   - "pip install coveralls"
 script:
+  - "export PATH=$HOME/.local/bin:$PATH"
   - "coverage run --source=amg setup.py test"
 after_success:
   - "coveralls"
 before_deploy:
-  - "sudo apt-get -V install pandoc"
   - "pip install pypandoc"
   - "pip install restructuredtext_lint && t=$(mktemp --suffix=.rst) && pandoc README.md -o $t && rst-lint $t"
 deploy:
