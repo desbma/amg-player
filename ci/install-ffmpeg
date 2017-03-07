@@ -7,7 +7,7 @@ readonly PROC_COUNT=$([ $(which getconf) ] && getconf _NPROCESSORS_ONLN || grep 
 
 
 # dependencies
-apt-get -y install build-essential git yasm
+apt-get -y install yasm
 
 # clone
 repo_dir=$HOME/FFmpeg/$FFMPEG_VERSION
