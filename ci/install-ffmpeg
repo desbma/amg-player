@@ -29,7 +29,7 @@ if [ -d $repo_dir ]
 then
   # repo dir already exists
   cd $repo_dir
-  if [ "$(git rev-parse @)" = "$(git rev-parse origin/$branch_name)" ]
+  if [ "$(git rev-parse @)" != "$(git rev-parse origin/$branch_name)" ]
   then
     # update
     git pull
