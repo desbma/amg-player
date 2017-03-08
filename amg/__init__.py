@@ -421,52 +421,53 @@ def normalize_title_tag(title, artist, album):
 def tag(track_filepath, review, cover_data):
   """ Tag an audio file. """
   mf = mutagen.File(track_filepath)
-  if isinstance(mf, mutagen.ogg.OggFileType):
-    # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["artist"] = sanitize.normalize_tag_case(review.artist)
-    mf["album"] = sanitize.normalize_tag_case(review.album)
-    try:
-      mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
-    except KeyError:
-      pass
+  if isinstance(mf, mutagen.mp4.MP4):
+    artist_key = "\xa9ART"
+    album_key = "\xa9alb"
+    title_key = "\xa9nam"
+  else:
+    artist_key = "artist"
+    album_key = "album"
+    title_key = "title"
+
+  if isinstance(mf, mutagen.mp3.MP3):
+    mf = mutagen.easyid3.EasyID3(track_filepath)
+
+  # override/fix source tags added by youtube-dl, because they often contain crap
+  mf[artist_key] = sanitize.normalize_tag_case(review.artist)
+  mf[album_key] = sanitize.normalize_tag_case(review.album)
+  try:
+    mf[title_key] = normalize_title_tag(mf[title_key][0], review.artist, review.album)
+  except KeyError:
+    pass
+
+  if isinstance(mf, mutagen.easyid3.EasyID3):
+    # EasyID3 does not allow embedding album art, reopen as mutagen.mp3.MP3
     mf.save()
-    # embed album art
+    mf = mutagen.File(track_filepath)
+
+  # embed album art
+  embed_album_art(mf, cover_data)
+  mf.save()
+
+
+def embed_album_art(mf, cover_data):
+  """ Embed album art into audio file. """
+  if isinstance(mf, mutagen.ogg.OggFileType):
     picture = mutagen.flac.Picture()
     picture.data = cover_data
     picture.type = mutagen.id3.PictureType.COVER_FRONT
     picture.mime = "image/jpeg"
     encoded_data = base64.b64encode(picture.write())
     mf["metadata_block_picture"] = encoded_data.decode("ascii")
-    mf.save()
   elif isinstance(mf, mutagen.mp3.MP3):
-    # override/fix source tags added by youtube-dl, because they often contain crap
-    mf = mutagen.easyid3.EasyID3(track_filepath)
-    mf["artist"] = sanitize.normalize_tag_case(review.artist)
-    mf["album"] = sanitize.normalize_tag_case(review.album)
-    try:
-      mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
-    except KeyError:
-      pass
-    mf.save()
-    # embed album art
-    mf = mutagen.File(track_filepath)
     mf.tags.add(mutagen.id3.APIC(mime="image/jpeg",
                                  type=mutagen.id3.PictureType.COVER_FRONT,
                                  data=cover_data))
     mf.save()
   elif isinstance(mf, mutagen.mp4.MP4):
-    # override/fix source tags added by youtube-dl, because they often contain crap
-    mf["\xa9ART"] = sanitize.normalize_tag_case(review.artist)
-    mf["\xa9alb"] = sanitize.normalize_tag_case(review.album)
-    try:
-      mf["\xa9nam"] = normalize_title_tag(mf["\xa9nam"][0], review.artist, review.album)
-    except KeyError:
-      pass
-    mf.save()
-    # embed album art
     mf["covr"] = [mutagen.mp4.MP4Cover(cover_data,
                                        imageformat=mutagen.mp4.AtomDataType.JPEG)]
-    mf.save()
 
 
 def download_audio(review, track_urls):
@@ -508,6 +509,7 @@ def download_audio(review, track_urls):
       try:
         tag(track_filepath, review, cover_data)
       except Exception as e:
+        # raise
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
                                                                              e.__class__.__qualname__))
 
