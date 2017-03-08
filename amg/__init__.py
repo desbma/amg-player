@@ -450,7 +450,28 @@ def tag(track_filepath, review, cover_data):
     # embed album art
     embed_album_art(mf, cover_data)
 
+  # RG/R128
+  add_rg_or_r128_tag(track_filepath)
+
   mf.save()
+
+
+def add_rg_or_r128_tag(track_filepath):
+  vol = get_r128_volume(track_filepath)
+  # TODO add RG/R128 tags
+  # * opus
+  # see https://wiki.xiph.org/OggOpus#Comment_Header
+  # R128_TRACK_GAIN=xx
+  # ascii rel int Q7.8 to -23 dBFS ref
+  # * ogg
+  # see https://wiki.xiph.org/VorbisComment#Replay_Gain
+  # REPLAYGAIN_TRACK_GAIN=-7.03 dB
+  # REPLAYGAIN_TRACK_PEAK=1.21822226
+  # ref -14 dBFS
+  # * ID3
+  # see http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
+  # http://mutagen.readthedocs.io/en/latest/api/id3_frames.html#mutagen.id3.TXXX
+  # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
 
 
 def has_embedded_album_art(filepath):
@@ -509,10 +530,6 @@ def download_audio(review, track_urls):
     if not track_filepaths:
       logging.getLogger().error("Download failed")
       return False
-
-    for track_filepath in track_filepaths:
-      # TODO normalize audio
-      pass
 
     if not all(map(has_embedded_album_art, track_filepaths)):
       # get cover
