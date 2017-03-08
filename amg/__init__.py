@@ -323,8 +323,8 @@ def normalize_title_tag(title, artist, album):
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new")
-  words2 = ("", "video", "music", "track", "lyric", "album", "promo")
-  words3 = ("video", "track", "premiere", "version", "clip", "audio")
+  words2 = ("", "video", "music", "track", "lyric", "album", "promo", "stream")
+  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -401,9 +401,13 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
 
-  # detect unpaired brackets
-  if title.endswith(")") and ("(" not in title):
-    title = title[:-1]
+  # detect unpaired chars
+  char_pairs = ("()", "\"" * 2, "'" * 2)
+  for c1, c2 in char_pairs:
+    if title.endswith(c2) and (c1 not in title[:-1]):
+      title = title[:-1]
+    elif title.startswith(c1) and (c2 not in title[1:]):
+      title = title[1:]
 
   # normalize case
   title = sanitize.normalize_tag_case(title)

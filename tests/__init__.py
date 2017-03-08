@@ -178,7 +178,11 @@ class TestAmg(unittest.TestCase):
                   ("DESECRATE THE FAITH 'Unholy Infestation' promo clip (Shrine of Enmity)",
                    "Desecrate the Faith",
                    "Unholy Infestation",
-                   "Shrine of Enmity"))
+                   "Shrine of Enmity"),
+                  ("\"This Mortal Road\" Official Stream",
+                   "Rozamov",
+                   "This Mortal Road",
+                   "This Mortal Road"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.normalize_title_tag(before, artist, album), after)
