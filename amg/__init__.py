@@ -441,14 +441,27 @@ def tag(track_filepath, review, cover_data):
   except KeyError:
     pass
 
-  if isinstance(mf, mutagen.easyid3.EasyID3):
-    # EasyID3 does not allow embedding album art, reopen as mutagen.mp3.MP3
-    mf.save()
-    mf = mutagen.File(track_filepath)
+  if cover_data is not None:
+    if isinstance(mf, mutagen.easyid3.EasyID3):
+      # EasyID3 does not allow embedding album art, reopen as mutagen.mp3.MP3
+      mf.save()
+      mf = mutagen.File(track_filepath)
 
-  # embed album art
-  embed_album_art(mf, cover_data)
+    # embed album art
+    embed_album_art(mf, cover_data)
+
   mf.save()
+
+
+def has_embedded_album_art(filepath):
+  """ Return True if file already has an embedded album art, False instead. """
+  mf = mutagen.File(filepath)
+  if isinstance(mf, mutagen.ogg.OggFileType):
+    return "metadata_block_picture" in mf
+  elif isinstance(mf, mutagen.mp3.MP3):
+    return any(map(operator.methodcaller("startswith", "APIC:"), mf.keys()))
+  elif isinstance(mf, mutagen.mp4.MP4):
+    return "covr" in mf
 
 
 def embed_album_art(mf, cover_data):
@@ -501,8 +514,11 @@ def download_audio(review, track_urls):
       # TODO normalize audio
       pass
 
-    # get cover
-    cover_data = get_cover_data(review)
+    if not all(map(has_embedded_album_art, track_filepaths)):
+      # get cover
+      cover_data = get_cover_data(review)
+    else:
+      cover_data = None
 
     # add tags & embed cover
     for track_filepath in track_filepaths:
