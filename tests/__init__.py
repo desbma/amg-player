@@ -5,6 +5,7 @@ import inspect
 import logging
 import os
 import random
+import shutil
 import tempfile
 import unittest
 
@@ -12,6 +13,34 @@ import amg
 
 
 class TestAmg(unittest.TestCase):
+
+  @classmethod
+  def setUpClass(cls):
+    cls.ref_temp_dir = tempfile.TemporaryDirectory()
+    ogg_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
+    amg.fetch_ressource("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg",
+                        ogg_filepath)
+    mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
+    amg.fetch_ressource("http://www.stephaniequinn.com/Music/Vivaldi%20-%20Spring%20from%20Four%20Seasons.mp3",
+                        mp3_filepath)
+    m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
+    amg.fetch_ressource("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
+                        m4a_filepath)
+
+  @classmethod
+  def tearDownClass(cls):
+    cls.ref_temp_dir.cleanup()
+
+  def setUp(self):
+    self.temp_dir = tempfile.TemporaryDirectory()
+    for src_filename in os.listdir(__class__.ref_temp_dir.name):
+      shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
+    self.ogg_filepath = os.path.join(self.temp_dir.name, "f.ogg")
+    self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
+    self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
+
+  def tearDown(self):
+    self.temp_dir.cleanup()
 
   def test_get_reviews(self):
     count = random.randint(10, 50)
@@ -188,12 +217,11 @@ class TestAmg(unittest.TestCase):
       self.assertEqual(amg.normalize_title_tag(before, artist, album), after)
 
   def test_get_r128_volume(self):
-    refs = (("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", -7.7),)
-    with tempfile.TemporaryDirectory() as tmp_dir:
-      for i, (url, volume) in enumerate(refs):
-        filepath = os.path.join(tmp_dir, "%u.%s" % (i, url.rsplit(".", 1)[-1]))
-        amg.fetch_ressource(url, filepath)
-        self.assertAlmostEqual(amg.get_r128_volume(filepath), volume)
+    refs = ((self.ogg_filepath, -7.7),
+            (self.mp3_filepath, -19),
+            (self.m4a_filepath, -20.6))
+    for filepath, volume in refs:
+      self.assertAlmostEqual(amg.get_r128_volume(filepath), volume, msg=filepath)
 
 
 if __name__ == "__main__":
