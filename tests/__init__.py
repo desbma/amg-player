@@ -214,14 +214,14 @@ class TestAmg(unittest.TestCase):
                    "This Mortal Road"))
 
     for before, artist, album, after in references:
-      self.assertEqual(amg.normalize_title_tag(before, artist, album), after)
+      self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
 
   def test_get_r128_volume(self):
     refs = ((self.ogg_filepath, -7.7),
             (self.mp3_filepath, -19),
             (self.m4a_filepath, -20.6))
     for filepath, volume in refs:
-      self.assertAlmostEqual(amg.get_r128_volume(filepath), volume, msg=filepath)
+      self.assertAlmostEqual(amg.tag.get_r128_volume(filepath), volume, msg=filepath)
 
 
 if __name__ == "__main__":

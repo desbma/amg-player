@@ -7,7 +7,6 @@ __author__ = "desbma"
 __license__ = "GPLv3"
 
 import argparse
-import base64
 import collections
 import contextlib
 import datetime
@@ -19,7 +18,6 @@ import locale
 import logging
 import operator
 import os
-import re
 import shutil
 import shelve
 import string
@@ -29,15 +27,15 @@ import urllib.parse
 import webbrowser
 
 from amg import colored_logging
+from amg import menu
 from amg import mkstemp_ctx
 from amg import sanitize
+from amg import tag
 
 import appdirs
-import cursesmenu
 import lxml.cssselect
 import lxml.etree
-import mutagen
-import mutagen.easyid3
+
 import PIL.Image
 import requests
 import web_cache
@@ -300,210 +298,6 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
 
 
-def normalize_title_tag(title, artist, album):
-  """ Remove useless prefix and suffix from title tag string. """
-  original_title = title
-
-  # basic string funcs
-  rclean_chars = list(string.punctuation)
-  for c in "!?)":
-    rclean_chars.remove(c)
-  rclean_chars = str(rclean_chars) + string.whitespace
-  def rclean(s):
-    return s.rstrip(rclean_chars)
-  def startslike(s, l):
-    return s.lower().startswith(l.lower())
-  def endslike(s, l):
-    return s.rstrip(string.punctuation).lower().endswith(l)
-  def rmsuffix(s, e):
-    return s.rstrip(string.punctuation)[:-len(e)]
-
-  title = rclean(title.strip(string.whitespace))
-
-  # build list of common useless expressions
-  expressions = []
-  words1 = ("", "official", "new")
-  words2 = ("", "video", "music", "track", "lyric", "album", "promo", "stream")
-  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream")
-  for w1 in words1:
-    for w2 in words2:
-      for w3 in words3:
-        if (w1 or w2) and (w3 != w2):
-          for rsep in (" ", ""):
-            rpart = rsep.join((w2, w3)).strip()
-            expressions.append(" ".join((w1, rpart)).strip())
-  expressions.extend(("pre-orders available", "preorders available", "hd",
-                   "official", "pre-listening", "prelistening"))
-  year = datetime.datetime.today().year
-  for y in range(year - 5, year + 1):
-    expressions.append(str(y))
-  if album is not None:
-    expressions.append(album.lower())
-  expressions.sort(key=len, reverse=True)
-
-  # detect and remove  'taken from album xxx, out on yyy' suffix
-  match = re.search("taken from .*, out on", title, re.IGNORECASE)
-  if match:
-    new_title = rclean(title[:match.start(0)])
-    if new_title:
-      title = new_title
-
-  loop = True
-  while loop:
-    loop = False
-
-    # detect and remove 'xxx records' suffix
-    expression = "records"
-    if endslike(title, expression):
-      new_title = rclean(rmsuffix(title, expression))
-      new_title = rclean(" ".join(new_title.split()[:-1]))
-      if new_title:
-        title = new_title
-        loop = True
-
-    for expression in expressions:
-      # detect and remove common suffixes
-      if endslike(title, expression):
-        new_title = rclean(rmsuffix(title, expression))
-        if new_title:
-          title = new_title
-          loop = True
-          break
-
-      # detect and remove common prefixes
-      if startslike(title, expression):
-        new_title = title[len(expression):]
-        new_title = new_title.lstrip(string.punctuation + string.whitespace)
-        if new_title:
-          title = new_title
-          loop = True
-          break
-
-    # detect and remove artist prefix
-    if startslike(title, artist):
-      new_title = title[len(artist):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
-      if new_title:
-        title = new_title
-        loop = True
-    elif startslike(title, artist.replace(" ", "")):
-      new_title = title[len(artist.replace(" ", "")):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
-      if new_title:
-        title = new_title
-        loop = True
-
-    # detect and remove album prefix
-    elif (album is not None) and startslike(title, album):
-      new_title = title[len(album):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
-      if new_title:
-        title = new_title
-        loop = True
-
-  # detect unpaired chars
-  char_pairs = ("()", "\"" * 2, "'" * 2)
-  for c1, c2 in char_pairs:
-    if title.endswith(c2) and (c1 not in title[:-1]):
-      title = title[:-1]
-    elif title.startswith(c1) and (c2 not in title[1:]):
-      title = title[1:]
-
-  # normalize case
-  title = sanitize.normalize_tag_case(title)
-
-  if title != original_title:
-    logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
-
-  return title
-
-
-def tag(track_filepath, review, cover_data):
-  """ Tag an audio file. """
-  mf = mutagen.File(track_filepath)
-  if isinstance(mf, mutagen.mp4.MP4):
-    artist_key = "\xa9ART"
-    album_key = "\xa9alb"
-    title_key = "\xa9nam"
-  else:
-    artist_key = "artist"
-    album_key = "album"
-    title_key = "title"
-
-  if isinstance(mf, mutagen.mp3.MP3):
-    mf = mutagen.easyid3.EasyID3(track_filepath)
-
-  # override/fix source tags added by youtube-dl, because they often contain crap
-  mf[artist_key] = sanitize.normalize_tag_case(review.artist)
-  mf[album_key] = sanitize.normalize_tag_case(review.album)
-  try:
-    mf[title_key] = normalize_title_tag(mf[title_key][0], review.artist, review.album)
-  except KeyError:
-    pass
-
-  if cover_data is not None:
-    if isinstance(mf, mutagen.easyid3.EasyID3):
-      # EasyID3 does not allow embedding album art, reopen as mutagen.mp3.MP3
-      mf.save()
-      mf = mutagen.File(track_filepath)
-
-    # embed album art
-    embed_album_art(mf, cover_data)
-
-  # RG/R128
-  add_rg_or_r128_tag(track_filepath)
-
-  mf.save()
-
-
-def add_rg_or_r128_tag(track_filepath):
-  vol = get_r128_volume(track_filepath)
-  # TODO add RG/R128 tags
-  # * opus
-  # see https://wiki.xiph.org/OggOpus#Comment_Header
-  # R128_TRACK_GAIN=xx
-  # ascii rel int Q7.8 to -23 dBFS ref
-  # * ogg
-  # see https://wiki.xiph.org/VorbisComment#Replay_Gain
-  # REPLAYGAIN_TRACK_GAIN=-7.03 dB
-  # REPLAYGAIN_TRACK_PEAK=1.21822226
-  # ref -14 dBFS
-  # * ID3
-  # see http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
-  # http://mutagen.readthedocs.io/en/latest/api/id3_frames.html#mutagen.id3.TXXX
-  # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
-
-
-def has_embedded_album_art(filepath):
-  """ Return True if file already has an embedded album art, False instead. """
-  mf = mutagen.File(filepath)
-  if isinstance(mf, mutagen.ogg.OggFileType):
-    return "metadata_block_picture" in mf
-  elif isinstance(mf, mutagen.mp3.MP3):
-    return any(map(operator.methodcaller("startswith", "APIC:"), mf.keys()))
-  elif isinstance(mf, mutagen.mp4.MP4):
-    return "covr" in mf
-
-
-def embed_album_art(mf, cover_data):
-  """ Embed album art into audio file. """
-  if isinstance(mf, mutagen.ogg.OggFileType):
-    picture = mutagen.flac.Picture()
-    picture.data = cover_data
-    picture.type = mutagen.id3.PictureType.COVER_FRONT
-    picture.mime = "image/jpeg"
-    encoded_data = base64.b64encode(picture.write())
-    mf["metadata_block_picture"] = encoded_data.decode("ascii")
-  elif isinstance(mf, mutagen.mp3.MP3):
-    mf.tags.add(mutagen.id3.APIC(mime="image/jpeg",
-                                 type=mutagen.id3.PictureType.COVER_FRONT,
-                                 data=cover_data))
-    mf.save()
-  elif isinstance(mf, mutagen.mp4.MP4):
-    mf["covr"] = [mutagen.mp4.MP4Cover(cover_data,
-                                       imageformat=mutagen.mp4.AtomDataType.JPEG)]
-
-
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory() as tmp_dir:
@@ -531,7 +325,7 @@ def download_audio(review, track_urls):
       logging.getLogger().error("Download failed")
       return False
 
-    if not all(map(has_embedded_album_art, track_filepaths)):
+    if not all(map(tag.has_embedded_album_art, track_filepaths)):
       # get cover
       cover_data = get_cover_data(review)
     else:
@@ -540,7 +334,7 @@ def download_audio(review, track_urls):
     # add tags & embed cover
     for track_filepath in track_filepaths:
       try:
-        tag(track_filepath, review, cover_data)
+        tag.tag(track_filepath, review, cover_data)
       except Exception as e:
         # raise
         logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
@@ -551,28 +345,6 @@ def download_audio(review, track_urls):
       shutil.move(track_filepath, os.getcwd())
 
     return True
-
-
-def get_r128_volume(audio_filepath):
-  """ Get R128 loudness level, in dbFS. """
-  cmd = ("ffmpeg",
-         "-hide_banner", "-nostats",
-         "-i", audio_filepath,
-         "-filter_complex", "ebur128=peak=true",
-         "-f", "null", "-")
-  output = subprocess.check_output(cmd,
-                                   stdin=subprocess.DEVNULL,
-                                   stderr=subprocess.STDOUT,
-                                   universal_newlines=True)
-  output = output.splitlines()
-  for i in reversed(range(len(output))):
-    line = output[i]
-    if line.startswith("[Parsed_ebur128") and line.endswith("Summary:"):
-      break
-  output = filter(None, map(str.strip, output[i:]))
-  r128_stats = dict(tuple(map(str.strip, line.split(":", 1))) for line in output if not line.endswith(":"))
-  r128_stats = {k: float(v.split(" ", 1)[0]) for k, v in r128_stats.items()}
-  return r128_stats["I"]
 
 
 def play(review, track_urls, *, merge_with_picture):
@@ -604,115 +376,6 @@ def play(review, track_urls, *, merge_with_picture):
       cmd = ("mpv", "--force-seekable=yes", "-")
       logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
       subprocess.check_call(cmd, stdin=dl_process.stdout)
-
-
-class AmgMenu(cursesmenu.CursesMenu):
-
-  """ Custom menu to choose review/track. """
-
-  UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
-
-  def __init__(self, *, reviews, known_reviews, http_cache, mode, selected_idx):
-    menu_subtitle = {PlayerMode.MANUAL: "Select a track",
-                     PlayerMode.RADIO: "Select track to start from"}
-    super().__init__("AMG Player v%s" % (__version__),
-                     "%s mode: %s "
-                     "(ENTER to play, "
-                     "d to download audio, "
-                     "r to open review, "
-                     "q to exit)" % (mode.name.capitalize(),
-                                     menu_subtitle[mode]),
-                     True)
-    if selected_idx is not None:
-      self.current_option = selected_idx
-    review_strings = __class__.reviewsToStrings(reviews, known_reviews, http_cache)
-    for index, (review, review_string) in enumerate(zip(reviews, review_strings)):
-      self.append_item(ReviewItem(review, review_string, index, self))
-
-  def process_user_input(self):
-    """ Override key handling to add "open review" and "quick exit" features.
-
-    See cursesmenu.CursesMenu.process_user_input
-    """
-    self.user_action = __class__.UserAction.DEFAULT
-    c = super().process_user_input()
-    if c in frozenset(map(ord, "rR")):
-      self.user_action = __class__.UserAction.OPEN_REVIEW
-      self.select()
-    elif c in frozenset(map(ord, "dD")):
-      # select last item (exit item)
-      self.user_action = __class__.UserAction.DOWNLOAD_AUDIO
-      self.select()
-    elif c in frozenset(map(ord, "qQ")):
-      # select last item (exit item)
-      self.current_option = len(self.items) - 1
-      self.select()
-
-  def get_last_user_action(self):
-    """ Return last user action when item was selected. """
-    return self.user_action
-
-  @staticmethod
-  def reviewsToStrings(reviews, known_reviews, http_cache):
-    """ Generate a list of string representations of reviews. """
-    lines = []
-    for i, review in enumerate(reviews):
-      try:
-        play_count = known_reviews.getPlayCount(review.url)
-        played = "Last played: %s (%u time%s)" % (known_reviews.getLastPlayed(review.url).strftime("%x %H:%M"),
-                                                  play_count,
-                                                  "s" if play_count > 1 else "")
-      except KeyError:
-        if review.url in http_cache:
-          review_page = fetch_page(review.url, http_cache=http_cache)
-          if get_embedded_track(review_page, http_cache)[0] is None:
-            played = "No track"
-          else:
-            played = "Last played: never"
-        else:
-          played = "Last played: never"
-      lines.append(("%s - %s" % (review.artist, review.album),
-                    "Published: %s" % (review.date_published.strftime("%x")),
-                    played))
-    # auto align/justify
-    max_lens = [0] * len(lines[0])
-    for line in lines:
-      for i, s in enumerate(line):
-        if len(s) > max_lens[i]:
-          max_lens[i] = len(s)
-    sep = "\t"
-    for i, line in enumerate(lines):
-      lines[i] = "%s%s" % (" " if i < 9 else "",
-                           sep.join(s.ljust(max_len) for s, max_len in zip(line, max_lens)))
-    return lines
-
-  @staticmethod
-  def setupAndShow(mode, reviews, known_reviews, http_cache, selected_idx=None):
-    """ Setup and display interactive menu, return selected review index or None if exist requested. """
-    menu = AmgMenu(reviews=reviews,
-                   known_reviews=known_reviews,
-                   http_cache=http_cache,
-                   mode=mode,
-                   selected_idx=selected_idx)
-    menu.show()
-    idx = menu.selected_option
-    return None if (idx == len(reviews)) else (idx, menu.get_last_user_action())
-
-
-class ReviewItem(cursesmenu.items.SelectionItem):
-
-  """ Custom menu item (menu line), overriden to support several actions per item. """
-
-  def __init__(self, review, review_string, index, menu):
-    super().__init__(review_string, index, menu)
-    self.review = review
-
-  def action(self):
-    if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
-      webbrowser.open_new_tab(self.review.url)
-      self.should_exit = False
-    else:
-      self.should_exit = True
 
 
 def cl_main():
@@ -787,7 +450,7 @@ def cl_main():
 
   # initial menu
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
-    menu_ret = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache)
+    menu_ret = menu.AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache)
 
   to_play = None
   track_loop = True
@@ -858,14 +521,14 @@ def cl_main():
       else:
         known_reviews.setLastPlayed(review.url)
         if ((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
-                (action is AmgMenu.UserAction.DOWNLOAD_AUDIO)):
+                (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)):
           download_audio(review, track_urls)
         else:
           play(review, track_urls, merge_with_picture=audio_only)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
-      menu_ret = AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache, selected_idx=selected_idx)
+      menu_ret = menu.AmgMenu.setupAndShow(args.mode, reviews, known_reviews, http_cache, selected_idx=selected_idx)
 
 
 if __name__ == "__main__":
