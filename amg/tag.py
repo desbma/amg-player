@@ -173,6 +173,7 @@ def get_r128_volume(audio_filepath):
   cmd = ("ffmpeg",
          "-hide_banner", "-nostats",
          "-i", audio_filepath,
+         "-map", "a",
          "-filter_complex", "ebur128=peak=true",
          "-f", "null", "-")
   output = subprocess.check_output(cmd,
