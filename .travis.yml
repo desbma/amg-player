@@ -15,7 +15,6 @@ python:
   - "3.6-dev"
   - "3.7-dev"
 env:
-  - FFMPEG_VERSION=2.2  # first version with ebur128 filter, and peak detection
   - FFMPEG_VERSION=2.3
   - FFMPEG_VERSION=2.4
   - FFMPEG_VERSION=2.5
