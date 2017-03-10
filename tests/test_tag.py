@@ -1,8 +1,12 @@
+import base64
 import os
+import random
 import shutil
 import tempfile
 import unittest
 import urllib.parse
+
+import mutagen
 
 import amg
 
@@ -191,3 +195,44 @@ class TestTag(unittest.TestCase):
             (self.m4a_filepath, -20.6))
     for filepath, volume in refs:
       self.assertAlmostEqual(amg.tag.get_r128_volume(filepath), volume, msg=filepath)
+
+  def test_tag(self):
+    artist = "Artist"
+    album = "Album"
+    cover_data = os.urandom(random.randint(10000, 500000))
+    review = amg.ReviewMetadata(None, artist, album, None, None, None, None)
+
+    for filepath in (self.vorbis_filepath, self.opus_filepath):
+      amg.tag.tag(filepath, review, cover_data)
+      tags = mutagen.File(filepath)
+      ref_tags = {"artist": [artist],
+                  "album": [album]}
+      for k, v in ref_tags.items():
+        self.assertIn(k, tags)
+        self.assertEqual(tags[k], v)
+      self.assertIn("metadata_block_picture", tags)
+      self.assertEqual(len(tags["metadata_block_picture"]), 1)
+      self.assertIn(base64.b64encode(cover_data).decode(),
+                    tags["metadata_block_picture"][0])
+
+    amg.tag.tag(self.mp3_filepath, review, cover_data)
+    tags = mutagen.File(self.mp3_filepath)
+    ref_tags = {"TPE1": [artist],
+                "TALB": [album]}
+    for k, v in ref_tags.items():
+      self.assertIn(k, tags)
+      self.assertEqual(tags[k].text, v)
+    self.assertIn("APIC:", tags)
+    self.assertIn(cover_data,
+                  tags["APIC:"].data)
+
+    amg.tag.tag(self.m4a_filepath, review, cover_data)
+    tags = mutagen.File(self.m4a_filepath)
+    ref_tags = {"\xa9ART": [artist],
+                "\xa9alb": [album]}
+    for k, v in ref_tags.items():
+      self.assertIn(k, tags)
+      self.assertEqual(tags[k], v)
+    self.assertIn("covr", tags)
+    self.assertEqual(len(tags["covr"]), 1)
+    self.assertEqual(bytes(tags["covr"][0]), cover_data)
