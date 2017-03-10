@@ -30,7 +30,6 @@ matrix:
     - python: "3.5-dev"
     - python: "3.6-dev"
     - python: "3.7-dev"
-    - env: FFMPEG_VERSION=master
   fast_finish: true
 addons:
   apt:
