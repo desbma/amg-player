@@ -5,6 +5,7 @@ cache:
   pip: true
   directories:
     - $HOME/FFmpeg
+    - $HOME/.cache/amg-player-test
 python:
   - "3.3"
   - "3.4"
@@ -44,6 +45,7 @@ install:
   - "pip install coveralls"
 script:
   - "export PATH=$HOME/.local/bin:$PATH"
+  - "export TEST_DL_CACHE_DIR=$HOME/.cache/amg-player-test"
   - "coverage run --source=amg setup.py test"
 after_success:
   - "coveralls"

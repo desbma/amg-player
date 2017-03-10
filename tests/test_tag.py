@@ -2,8 +2,23 @@ import os
 import shutil
 import tempfile
 import unittest
+import urllib.parse
 
 import amg
+
+
+def download(url, filepath):
+  cache_dir = os.getenv("TEST_DL_CACHE_DIR")
+  if cache_dir is not None:
+    os.makedirs(cache_dir, exist_ok=True)
+    cache_filepath = os.path.join(cache_dir,
+                                  os.path.basename(urllib.parse.urlsplit(url).path))
+    if os.path.isfile(cache_filepath):
+      shutil.copyfile(cache_filepath, filepath)
+      return
+  amg.fetch_ressource(url, filepath)
+  if cache_dir is not None:
+    shutil.copyfile(filepath, cache_filepath)
 
 
 class TestTag(unittest.TestCase):
@@ -11,15 +26,18 @@ class TestTag(unittest.TestCase):
   @classmethod
   def setUpClass(cls):
     cls.ref_temp_dir = tempfile.TemporaryDirectory()
-    ogg_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
-    amg.fetch_ressource("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg",
-                        ogg_filepath)
+    vorbis_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
+    download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg",
+             vorbis_filepath)
+    opus_filepath = os.path.join(cls.ref_temp_dir.name, "f.opus")
+    download("https://people.xiph.org/~giles/2012/opus/ehren-paper_lights-64.opus",
+             opus_filepath)
     mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
-    amg.fetch_ressource("http://www.stephaniequinn.com/Music/Vivaldi%20-%20Spring%20from%20Four%20Seasons.mp3",
-                        mp3_filepath)
+    download("http://www.stephaniequinn.com/Music/Vivaldi%20-%20Spring%20from%20Four%20Seasons.mp3",
+             mp3_filepath)
     m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
-    amg.fetch_ressource("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
-                        m4a_filepath)
+    download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
+             m4a_filepath)
 
   @classmethod
   def tearDownClass(cls):
@@ -29,7 +47,8 @@ class TestTag(unittest.TestCase):
     self.temp_dir = tempfile.TemporaryDirectory()
     for src_filename in os.listdir(__class__.ref_temp_dir.name):
       shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
-    self.ogg_filepath = os.path.join(self.temp_dir.name, "f.ogg")
+    self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
+    self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
     self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
     self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
 
@@ -166,7 +185,8 @@ class TestTag(unittest.TestCase):
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
 
   def test_get_r128_volume(self):
-    refs = ((self.ogg_filepath, -7.7),
+    refs = ((self.vorbis_filepath, -7.7),
+            (self.opus_filepath, -14.7),
             (self.mp3_filepath, -19),
             (self.m4a_filepath, -20.6))
     for filepath, volume in refs:
