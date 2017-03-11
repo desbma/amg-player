@@ -188,13 +188,15 @@ class TestTag(unittest.TestCase):
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
 
-  def test_get_r128_volume(self):
-    refs = ((self.vorbis_filepath, -7.7),
-            (self.opus_filepath, -14.7),
-            (self.mp3_filepath, -19),
-            (self.m4a_filepath, -20.6))
-    for filepath, volume in refs:
-      self.assertAlmostEqual(amg.tag.get_r128_volume(filepath), volume, msg=filepath)
+  def test_get_r128_loudness(self):
+    refs = ((self.vorbis_filepath, -7.7, 2.6),
+            (self.opus_filepath, -14.7, 1.1),
+            (self.mp3_filepath, -19, -4.2),
+            (self.m4a_filepath, -20.6, 0.1))
+    for filepath, level_ref, peak_ref in refs:
+      level, peak = amg.tag.get_r128_loudness(filepath)
+      self.assertAlmostEqual(level, level_ref, msg=filepath)
+      self.assertAlmostEqual(peak, peak_ref, msg=filepath)
 
   def test_tag(self):
     artist = "Artist"
@@ -202,18 +204,32 @@ class TestTag(unittest.TestCase):
     cover_data = os.urandom(random.randint(10000, 500000))
     review = amg.ReviewMetadata(None, artist, album, None, None, None, None)
 
-    for filepath in (self.vorbis_filepath, self.opus_filepath):
-      amg.tag.tag(filepath, review, cover_data)
-      tags = mutagen.File(filepath)
-      ref_tags = {"artist": [artist],
-                  "album": [album]}
-      for k, v in ref_tags.items():
-        self.assertIn(k, tags)
-        self.assertEqual(tags[k], v)
-      self.assertIn("metadata_block_picture", tags)
-      self.assertEqual(len(tags["metadata_block_picture"]), 1)
-      self.assertIn(base64.b64encode(cover_data).decode(),
-                    tags["metadata_block_picture"][0])
+    amg.tag.tag(self.vorbis_filepath, review, cover_data)
+    tags = mutagen.File(self.vorbis_filepath)
+    ref_tags = {"artist": [artist],
+                "album": [album],
+                "REPLAYGAIN_TRACK_GAIN": ["-6.30 dB"],
+                "REPLAYGAIN_TRACK_PEAK": ["1.34896288"]}
+    for k, v in ref_tags.items():
+      self.assertIn(k, tags)
+      self.assertEqual(tags[k], v)
+    self.assertIn("metadata_block_picture", tags)
+    self.assertEqual(len(tags["metadata_block_picture"]), 1)
+    self.assertIn(base64.b64encode(cover_data).decode(),
+                  tags["metadata_block_picture"][0])
+
+    amg.tag.tag(self.opus_filepath, review, cover_data)
+    tags = mutagen.File(self.opus_filepath)
+    ref_tags = {"artist": [artist],
+                "album": [album],
+                "R128_TRACK_GAIN": ["-2125"]}
+    for k, v in ref_tags.items():
+      self.assertIn(k, tags)
+      self.assertEqual(tags[k], v)
+    self.assertIn("metadata_block_picture", tags)
+    self.assertEqual(len(tags["metadata_block_picture"]), 1)
+    self.assertIn(base64.b64encode(cover_data).decode(),
+                  tags["metadata_block_picture"][0])
 
     amg.tag.tag(self.mp3_filepath, review, cover_data)
     tags = mutagen.File(self.mp3_filepath)

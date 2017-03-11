@@ -12,6 +12,10 @@ import mutagen.easyid3
 from amg import sanitize
 
 
+R128_REF_LOUDNESS_DBFS = -23
+RG_REF_LOUDNESS_DBFS = -14
+
+
 def normalize_title_tag(title, artist, album):
   """ Remove useless prefix and suffix from title tag string. """
   original_title = title
@@ -163,13 +167,13 @@ def tag(track_filepath, review, cover_data):
     embed_album_art(mf, cover_data)
 
   # RG/R128
-  add_rg_or_r128_tag(track_filepath)
+  add_rg_or_r128_tag(track_filepath, mf)
 
   mf.save()
 
 
-def get_r128_volume(audio_filepath):
-  """ Get R128 loudness level, in dbFS. """
+def get_r128_loudness(audio_filepath):
+  """ Get R128 loudness level and peak, in dbFS. """
   cmd = ("ffmpeg",
          "-hide_banner", "-nostats",
          "-i", audio_filepath,
@@ -188,25 +192,36 @@ def get_r128_volume(audio_filepath):
   output = filter(None, map(str.strip, output[i:]))
   r128_stats = dict(tuple(map(str.strip, line.split(":", 1))) for line in output if not line.endswith(":"))
   r128_stats = {k: float(v.split(" ", 1)[0]) for k, v in r128_stats.items()}
-  return r128_stats["I"]
+  return r128_stats["I"], r128_stats["Peak"]
 
 
-def add_rg_or_r128_tag(track_filepath):
-  vol = get_r128_volume(track_filepath)
-  # TODO add RG/R128 tags
-  # * opus
-  # see https://wiki.xiph.org/OggOpus#Comment_Header
-  # R128_TRACK_GAIN=xx
-  # ascii rel int Q7.8 to -23 dBFS ref
-  # * ogg
-  # see https://wiki.xiph.org/VorbisComment#Replay_Gain
-  # REPLAYGAIN_TRACK_GAIN=-7.03 dB
-  # REPLAYGAIN_TRACK_PEAK=1.21822226
-  # ref -14 dBFS
-  # * ID3
-  # see http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
-  # http://mutagen.readthedocs.io/en/latest/api/id3_frames.html#mutagen.id3.TXXX
-  # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
+def encode_float_to_fixed_point_7dot8(f):
+  """ Encode float f to a fixed point Q7.8 integer. """
+  # https://en.wikipedia.org/wiki/Q_(number_format)#Float_to_Q
+  return int(round(f * (2 ** 8), 0))
+
+
+def add_rg_or_r128_tag(track_filepath, mf):
+  level, peak = get_r128_loudness(track_filepath)
+  if isinstance(mf, mutagen.oggvorbis.OggVorbis):
+    # https://wiki.xiph.org/VorbisComment#Replay_Gain
+    mf["REPLAYGAIN_TRACK_GAIN"] = "%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)
+    # peak_dbfs = 20 * log10(max_sample) <=> max_sample = 10^(peak_dbfs / 20)
+    mf["REPLAYGAIN_TRACK_PEAK"] = "%.8f" % (10 ** (peak / 20))
+  elif isinstance(mf, mutagen.oggopus.OggOpus):
+    # https://wiki.xiph.org/OggOpus#Comment_Header
+    fp = encode_float_to_fixed_point_7dot8(R128_REF_LOUDNESS_DBFS - level)
+    assert(-32768 <= fp <= 32767)
+    mf["R128_TRACK_GAIN"] = str(fp)
+  elif isinstance(mf, mutagen.mp3.MP3):
+    # TODO
+    # see http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
+    # http://mutagen.readthedocs.io/en/latest/api/id3_frames.html#mutagen.id3.TXXX
+    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
+    pass
+  elif isinstance(mf, mutagen.mp4.MP4):
+    # TODO
+    pass
 
 
 def has_embedded_album_art(filepath):
