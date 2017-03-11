@@ -27,6 +27,8 @@ if [ -d $repo_dir ]
 then
   # repo dir already exists
   cd $repo_dir
+  git fetch
+
   if [ "$(git rev-parse @)" != "$(git rev-parse origin/$branch_name)" ]
   then
     # update
