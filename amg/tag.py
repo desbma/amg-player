@@ -210,6 +210,7 @@ def encode_float_to_fixed_point_7dot8(f):
 
 
 def add_rg_or_r128_tag(track_filepath, mf):
+  """ Add ReplayGain/R128 tags to file. """
   level, peak = get_r128_loudness(track_filepath)
   if isinstance(mf, mutagen.oggvorbis.OggVorbis):
     # https://wiki.xiph.org/VorbisComment#Replay_Gain
@@ -218,18 +219,26 @@ def add_rg_or_r128_tag(track_filepath, mf):
     mf["REPLAYGAIN_TRACK_PEAK"] = "%.8f" % (10 ** (peak / 20))
   elif isinstance(mf, mutagen.oggopus.OggOpus):
     # https://wiki.xiph.org/OggOpus#Comment_Header
-    fp = encode_float_to_fixed_point_7dot8(R128_REF_LOUDNESS_DBFS - level)
+    # for now, use ReplayGain -14 dBFS as reference loudness
+    # this is what foobar2000 and GMMP do
+    fp = encode_float_to_fixed_point_7dot8(RG_REF_LOUDNESS_DBFS - level)
     assert(-32768 <= fp <= 32767)
     mf["R128_TRACK_GAIN"] = str(fp)
   elif isinstance(mf, mutagen.mp3.MP3):
-    # TODO
-    # see http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
-    # http://mutagen.readthedocs.io/en/latest/api/id3_frames.html#mutagen.id3.TXXX
+    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
+    mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
+                                 desc="REPLAYGAIN_TRACK_GAIN",
+                                 text="%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)))
+    mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
+                                 desc="REPLAYGAIN_TRACK_PEAK",
+                                 text="%.6f" % (10 ** (peak / 20))))
+    # other legacy formats:
     # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
-    pass
+    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RVA2
   elif isinstance(mf, mutagen.mp4.MP4):
-    # TODO
-    pass
+    # https://github.com/xbmc/xbmc/blob/9e855967380ef3a5d25718ff2e6db5e3dd2e2829/xbmc/music/tags/TagLoaderTagLib.cpp#L806-L812
+    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"] = mutagen.mp4.MP4FreeForm(("%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)).encode())
+    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"] = mutagen.mp4.MP4FreeForm(("%.6f" % (10 ** (peak / 20))).encode())
 
 
 def has_embedded_album_art(filepath):

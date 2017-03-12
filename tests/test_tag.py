@@ -55,6 +55,9 @@ class TestTag(unittest.TestCase):
     self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
     self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
     self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
+    mf = mutagen.File(self.m4a_filepath)
+    del mf["covr"]
+    mf.save()
 
   def tearDown(self):
     self.temp_dir.cleanup()
@@ -204,6 +207,7 @@ class TestTag(unittest.TestCase):
     cover_data = os.urandom(random.randint(10000, 500000))
     review = amg.ReviewMetadata(None, artist, album, None, None, None, None)
 
+    self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))
     amg.tag.tag(self.vorbis_filepath, review, cover_data)
     tags = mutagen.File(self.vorbis_filepath)
     ref_tags = {"artist": [artist],
@@ -217,12 +221,14 @@ class TestTag(unittest.TestCase):
     self.assertEqual(len(tags["metadata_block_picture"]), 1)
     self.assertIn(base64.b64encode(cover_data).decode(),
                   tags["metadata_block_picture"][0])
+    self.assertTrue(amg.tag.has_embedded_album_art(self.vorbis_filepath))
 
+    self.assertFalse(amg.tag.has_embedded_album_art(self.opus_filepath))
     amg.tag.tag(self.opus_filepath, review, cover_data)
     tags = mutagen.File(self.opus_filepath)
     ref_tags = {"artist": [artist],
                 "album": [album],
-                "R128_TRACK_GAIN": ["-2125"]}
+                "R128_TRACK_GAIN": ["179"]}
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
@@ -230,18 +236,24 @@ class TestTag(unittest.TestCase):
     self.assertEqual(len(tags["metadata_block_picture"]), 1)
     self.assertIn(base64.b64encode(cover_data).decode(),
                   tags["metadata_block_picture"][0])
+    self.assertTrue(amg.tag.has_embedded_album_art(self.opus_filepath))
 
+    self.assertFalse(amg.tag.has_embedded_album_art(self.mp3_filepath))
     amg.tag.tag(self.mp3_filepath, review, cover_data)
     tags = mutagen.File(self.mp3_filepath)
     ref_tags = {"TPE1": [artist],
-                "TALB": [album]}
+                "TALB": [album],
+                "TXXX:REPLAYGAIN_TRACK_GAIN": ["5.00 dB"],
+                "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.616595"]}
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k].text, v)
     self.assertIn("APIC:", tags)
     self.assertIn(cover_data,
                   tags["APIC:"].data)
+    self.assertTrue(amg.tag.has_embedded_album_art(self.mp3_filepath))
 
+    self.assertFalse(amg.tag.has_embedded_album_art(self.m4a_filepath))
     amg.tag.tag(self.m4a_filepath, review, cover_data)
     tags = mutagen.File(self.m4a_filepath)
     ref_tags = {"\xa9ART": [artist],
@@ -249,6 +261,13 @@ class TestTag(unittest.TestCase):
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
+    self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN", tags)
+    self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"]), 1)
+    self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"][0]), b"6.60 dB")
+    self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK", tags)
+    self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"]), 1)
+    self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"][0]), b"1.011579")
     self.assertIn("covr", tags)
     self.assertEqual(len(tags["covr"]), 1)
     self.assertEqual(bytes(tags["covr"][0]), cover_data)
+    self.assertTrue(amg.tag.has_embedded_album_art(self.m4a_filepath))
