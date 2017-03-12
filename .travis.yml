@@ -38,7 +38,7 @@ addons:
     - yasm
     - pandoc
 before_install:
-  - "[ \"$FFMPEG_VERSION\" ] && ./ci/install-ffmpeg $FFMPEG_VERSION"
+  - "[ \"$FFMPEG_VERSION\" ] && ./ci/install-ffmpeg $FFMPEG_VERSION || true"
   - "pip install -U pip"
 install:
   - "pip install -r requirements.txt"
