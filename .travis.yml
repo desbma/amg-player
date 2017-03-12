@@ -15,6 +15,7 @@ python:
   - "3.6-dev"
   - "3.7-dev"
 env:
+  - FFMPEG_VERSION=
   - FFMPEG_VERSION=2.3
   - FFMPEG_VERSION=2.4
   - FFMPEG_VERSION=2.5
@@ -37,7 +38,7 @@ addons:
     - yasm
     - pandoc
 before_install:
-  - "./ci/install-ffmpeg $FFMPEG_VERSION"
+  - "[ \"$FFMPEG_VERSION\" ] && ./ci/install-ffmpeg $FFMPEG_VERSION"
   - "pip install -U pip"
 install:
   - "pip install -r requirements.txt"

@@ -191,6 +191,7 @@ class TestTag(unittest.TestCase):
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
 
+  @unittest.skipUnless(amg.HAS_FFMPEG, "FFmpeg is not installed")
   def test_get_r128_loudness(self):
     refs = ((self.vorbis_filepath, -7.7, 2.6),
             (self.opus_filepath, -14.7, 1.1),
@@ -207,13 +208,15 @@ class TestTag(unittest.TestCase):
     cover_data = os.urandom(random.randint(10000, 500000))
     review = amg.ReviewMetadata(None, artist, album, None, None, None, None)
 
+    # vorbis
     self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))
     amg.tag.tag(self.vorbis_filepath, review, cover_data)
     tags = mutagen.File(self.vorbis_filepath)
     ref_tags = {"artist": [artist],
-                "album": [album],
-                "REPLAYGAIN_TRACK_GAIN": ["-6.30 dB"],
-                "REPLAYGAIN_TRACK_PEAK": ["1.34896288"]}
+                "album": [album]}
+    if amg.HAS_FFMPEG:
+      ref_tags.update({"REPLAYGAIN_TRACK_GAIN": ["-6.30 dB"],
+                       "REPLAYGAIN_TRACK_PEAK": ["1.34896288"]})
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
@@ -223,12 +226,14 @@ class TestTag(unittest.TestCase):
                   tags["metadata_block_picture"][0])
     self.assertTrue(amg.tag.has_embedded_album_art(self.vorbis_filepath))
 
+    # opus
     self.assertFalse(amg.tag.has_embedded_album_art(self.opus_filepath))
     amg.tag.tag(self.opus_filepath, review, cover_data)
     tags = mutagen.File(self.opus_filepath)
     ref_tags = {"artist": [artist],
-                "album": [album],
-                "R128_TRACK_GAIN": ["179"]}
+                "album": [album]}
+    if amg.HAS_FFMPEG:
+      ref_tags["R128_TRACK_GAIN"] = ["179"]
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
@@ -238,13 +243,15 @@ class TestTag(unittest.TestCase):
                   tags["metadata_block_picture"][0])
     self.assertTrue(amg.tag.has_embedded_album_art(self.opus_filepath))
 
+    # mp3
     self.assertFalse(amg.tag.has_embedded_album_art(self.mp3_filepath))
     amg.tag.tag(self.mp3_filepath, review, cover_data)
     tags = mutagen.File(self.mp3_filepath)
     ref_tags = {"TPE1": [artist],
-                "TALB": [album],
-                "TXXX:REPLAYGAIN_TRACK_GAIN": ["5.00 dB"],
-                "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.616595"]}
+                "TALB": [album]}
+    if amg.HAS_FFMPEG:
+      ref_tags.update({"TXXX:REPLAYGAIN_TRACK_GAIN": ["5.00 dB"],
+                       "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.616595"]})
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k].text, v)
@@ -253,6 +260,7 @@ class TestTag(unittest.TestCase):
                   tags["APIC:"].data)
     self.assertTrue(amg.tag.has_embedded_album_art(self.mp3_filepath))
 
+    # mp4
     self.assertFalse(amg.tag.has_embedded_album_art(self.m4a_filepath))
     amg.tag.tag(self.m4a_filepath, review, cover_data)
     tags = mutagen.File(self.m4a_filepath)
@@ -261,12 +269,13 @@ class TestTag(unittest.TestCase):
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
-    self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN", tags)
-    self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"]), 1)
-    self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"][0]), b"6.60 dB")
-    self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK", tags)
-    self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"]), 1)
-    self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"][0]), b"1.011579")
+    if amg.HAS_FFMPEG:
+      self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN", tags)
+      self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"]), 1)
+      self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"][0]), b"6.60 dB")
+      self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK", tags)
+      self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"]), 1)
+      self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"][0]), b"1.011579")
     self.assertIn("covr", tags)
     self.assertEqual(len(tags["covr"]), 1)
     self.assertEqual(bytes(tags["covr"][0]), cover_data)

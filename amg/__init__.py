@@ -26,6 +26,9 @@ import tempfile
 import urllib.parse
 import webbrowser
 
+HAS_JPEGOPTIM = (shutil.which("jpegoptim") is not None)
+HAS_FFMPEG = (shutil.which("ffmpeg") is not None)
+
 from amg import colored_logging
 from amg import menu
 from amg import mkstemp_ctx
@@ -252,7 +255,7 @@ def get_cover_data(review):
       f.seek(0)
       out_bytes = f.read()
     else:
-      if shutil.which("jpegoptim"):
+      if HAS_JPEGOPTIM:
         cmd = ("jpegoptim", "-q", "--strip-all", filepath)
         subprocess.check_call(cmd)
       with open(filepath, "rb") as f:
@@ -350,7 +353,7 @@ def download_audio(review, track_urls):
 def play(review, track_urls, *, merge_with_picture):
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
-  merge_with_picture = merge_with_picture and (shutil.which("ffmpeg") is not None)
+  merge_with_picture = merge_with_picture and HAS_FFMPEG
   if merge_with_picture:
     with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
       cover_data = get_cover_data(review)
@@ -430,6 +433,10 @@ def cl_main():
 
   # locale (for date display)
   locale.setlocale(locale.LC_ALL, "")
+
+  # warn if missing tools
+  if not HAS_FFMPEG:
+    logging.getLogger().warning("FFmpeg is not installed, some features won't be available")
 
   # get reviews
   known_reviews = KnownReviews()

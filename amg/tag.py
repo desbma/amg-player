@@ -10,7 +10,7 @@ import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
 
-from amg import sanitize
+from amg import HAS_FFMPEG, sanitize
 
 
 R128_REF_LOUDNESS_DBFS = -23
@@ -205,7 +205,10 @@ def encode_float_to_fixed_point_7dot8(f):
 
 def add_rg_or_r128_tag(track_filepath, mf):
   """ Add ReplayGain/R128 tags to file. """
+  if not HAS_FFMPEG:
+    return
   level, peak = get_r128_loudness(track_filepath)
+
   if isinstance(mf, mutagen.oggvorbis.OggVorbis):
     # https://wiki.xiph.org/VorbisComment#Replay_Gain
     mf["REPLAYGAIN_TRACK_GAIN"] = "%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)
