@@ -8,6 +8,7 @@ import subprocess
 
 import mutagen
 import mutagen.easyid3
+import mutagen.easymp4
 
 from amg import sanitize
 
@@ -145,32 +146,25 @@ def normalize_title_tag(title, artist, album):
 def tag(track_filepath, review, cover_data):
   """ Tag an audio file. """
   mf = mutagen.File(track_filepath)
-  if isinstance(mf, mutagen.mp4.MP4):
-    artist_key = "\xa9ART"
-    album_key = "\xa9alb"
-    title_key = "\xa9nam"
-  else:
-    artist_key = "artist"
-    album_key = "album"
-    title_key = "title"
-
   if isinstance(mf, mutagen.mp3.MP3):
     mf = mutagen.easyid3.EasyID3(track_filepath)
+  elif isinstance(mf, mutagen.mp4.MP4):
+    mf = mutagen.easymp4.EasyMP4(track_filepath)
 
   # override/fix source tags added by youtube-dl, because they often contain crap
-  mf[artist_key] = sanitize.normalize_tag_case(review.artist)
-  mf[album_key] = sanitize.normalize_tag_case(review.album)
+  mf["artist"] = sanitize.normalize_tag_case(review.artist)
+  mf["album"] = sanitize.normalize_tag_case(review.album)
   try:
-    mf[title_key] = normalize_title_tag(mf[title_key][0], review.artist, review.album)
+    mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
   except KeyError:
     pass
 
-  if cover_data is not None:
-    if isinstance(mf, mutagen.easyid3.EasyID3):
-      # EasyID3 does not allow embedding album art, reopen as mutagen.mp3.MP3
-      mf.save()
-      mf = mutagen.File(track_filepath)
+  if isinstance(mf, mutagen.easyid3.EasyID3) or isinstance(mf, mutagen.easymp4.EasyMP4):
+    # EasyXXX helpers do not allow embedding album art or RG tags, reopen as normal mutagen file
+    mf.save()
+    mf = mutagen.File(track_filepath)
 
+  if cover_data is not None:
     # embed album art
     embed_album_art(mf, cover_data)
 
