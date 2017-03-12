@@ -53,8 +53,6 @@ def normalize_title_tag(title, artist, album):
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
-  if album is not None:
-    expressions.append(album.lower())
   expressions.sort(key=len, reverse=True)
 
   # detect and remove  'taken from album xxx, out on yyy' suffix
@@ -95,6 +93,9 @@ def normalize_title_tag(title, artist, album):
           loop = True
           break
 
+    if loop:
+      continue
+
     # detect and remove artist prefix
     if startslike(title, artist):
       new_title = title[len(artist):]
@@ -110,9 +111,16 @@ def normalize_title_tag(title, artist, album):
         loop = True
 
     # detect and remove album prefix
-    elif (album is not None) and startslike(title, album):
+    elif startslike(title, album):
       new_title = title[len(album):]
       new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      if new_title:
+        title = new_title
+        loop = True
+
+    # detect and remove album suffix
+    if endslike(title, album.lower()):
+      new_title = rclean(rmsuffix(title, album.lower()))
       if new_title:
         title = new_title
         loop = True
