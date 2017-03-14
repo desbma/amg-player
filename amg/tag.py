@@ -152,6 +152,7 @@ def normalize_title_tag(title, artist, album):
 
 def tag(track_filepath, review, cover_data):
   """ Tag an audio file. """
+  logging.getLogger().info("Tagging file '%s'" % (track_filepath))
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.mp3.MP3):
     mf = mutagen.easyid3.EasyID3(track_filepath)
@@ -183,6 +184,7 @@ def tag(track_filepath, review, cover_data):
 
 def get_r128_loudness(audio_filepath):
   """ Get R128 loudness level and peak, in dbFS. """
+  logging.getLogger().info("Analyzing loudness of file '%s'" % (audio_filepath))
   cmd = ("ffmpeg",
          "-hide_banner", "-nostats",
          "-i", audio_filepath,
