@@ -35,8 +35,6 @@ def normalize_title_tag(title, artist, album):
   def rmsuffix(s, e):
     return s.rstrip(string.punctuation)[:-len(e)]
 
-  title = rclean(title.strip(string.whitespace))
-
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new")
@@ -62,6 +60,15 @@ def normalize_title_tag(title, artist, album):
     new_title = rclean(title[:match.start(0)])
     if new_title:
       title = new_title
+
+  # detect and remove  '[xxx music]' suffix
+  match = re.search("\[.* music\]$", title, re.IGNORECASE)
+  if match:
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
+  title = rclean(title.strip(string.whitespace))
 
   loop = True
   while loop:

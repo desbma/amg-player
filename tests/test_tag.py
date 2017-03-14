@@ -186,7 +186,11 @@ class TestTag(unittest.TestCase):
                   ("\"This Mortal Road\" Official Stream",
                    "Rozamov",
                    "This Mortal Road",
-                   "This Mortal Road"))
+                   "This Mortal Road"),
+                  ("ANTROPOFAGUS - SPAWN OF CHAOS (OFFICIAL TRACK PREMIERE 2017) [COMATOSE MUSIC]",
+                   "Antropofagus",
+                   "Methods of Resurrection through Evisceration",
+                   "Spawn of Chaos"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
