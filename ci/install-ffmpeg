@@ -3,7 +3,7 @@
 set -o pipefail
 
 readonly FFMPEG_VERSION=${1:?}
-readonly PROC_COUNT=$([ $(which getconf) ] && getconf _NPROCESSORS_ONLN || grep -cE '^processor' /proc/cpuinfo)
+readonly PROC_COUNT=$(grep -c '^processor' /proc/cpuinfo)
 
 
 configure() {
@@ -15,7 +15,6 @@ configure() {
               --disable-debug
 }
 
-# clone
 repo_dir=$HOME/FFmpeg/$FFMPEG_VERSION
 if [ "$FFMPEG_VERSION" = "master" ]
 then
@@ -23,6 +22,7 @@ then
 else
   branch_name=release/$FFMPEG_VERSION
 fi
+
 if [ -d $repo_dir ]
 then
   # repo dir already exists

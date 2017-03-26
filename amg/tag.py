@@ -54,8 +54,8 @@ def normalize_title_tag(title, artist, album):
     expressions.append(str(y))
   expressions.sort(key=len, reverse=True)
 
-  # detect and remove  'taken from album xxx, out on yyy' suffix
-  match = re.search("taken from .*, out on", title, re.IGNORECASE)
+  # detect and remove  'taken from album xxx, out (on) yyy' suffix
+  match = re.search("taken from .*, out ", title, re.IGNORECASE)
   if match:
     new_title = rclean(title[:match.start(0)])
     if new_title:

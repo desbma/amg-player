@@ -190,7 +190,15 @@ class TestTag(unittest.TestCase):
                   ("ANTROPOFAGUS - SPAWN OF CHAOS (OFFICIAL TRACK PREMIERE 2017) [COMATOSE MUSIC]",
                    "Antropofagus",
                    "Methods of Resurrection through Evisceration",
-                   "Spawn of Chaos"))
+                   "Spawn of Chaos"),
+                  ("Demonic Resurrection - Matsya - The Fish (Official Lyric Video)",
+                   "Demonic Resurrection",
+                   "Dashavatar",
+                   "Matsya - The Fish"),
+                  ("King of Asgard - Death And A New Sun [taken from \":taudr:\", out March 17th 2017]",
+                   "King of Asgard",
+                   ":taudr:",
+                   "Death and a New Sun"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
