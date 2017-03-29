@@ -198,7 +198,11 @@ class TestTag(unittest.TestCase):
                   ("King of Asgard - Death And A New Sun [taken from \":taudr:\", out March 17th 2017]",
                    "King of Asgard",
                    ":taudr:",
-                   "Death and a New Sun"))
+                   "Death and a New Sun"),
+                  ("DIĜIR GIDIM - Conversing with The Ethereal",
+                   "Digir Gidim",
+                   "I Thought There Was The Sun Awaiting My Awakening",
+                   "Conversing with the Ethereal"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

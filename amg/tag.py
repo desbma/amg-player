@@ -9,6 +9,7 @@ import subprocess
 import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
+import unidecode
 
 from amg import HAS_FFMPEG, sanitize
 
@@ -29,9 +30,9 @@ def normalize_title_tag(title, artist, album):
   def rclean(s):
     return s.rstrip(rclean_chars)
   def startslike(s, l):
-    return s.lower().startswith(l.lower())
+    return unidecode.unidecode_expect_ascii(s).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
   def endslike(s, l):
-    return s.rstrip(string.punctuation).lower().endswith(l)
+    return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower().endswith(unidecode.unidecode_expect_ascii(l).lower())
   def rmsuffix(s, e):
     return s.rstrip(string.punctuation)[:-len(e)]
 

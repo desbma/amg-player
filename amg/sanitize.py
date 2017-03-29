@@ -1,5 +1,6 @@
 import string
-import unicodedata
+
+import unidecode
 
 
 VALID_PATH_CHARS = frozenset("-_.()!#$%%&'@^{}~ %s%s" % (string.ascii_letters,
@@ -12,7 +13,7 @@ TAG_LOWERCASE_WORDS = frozenset(("a", "an", "and", "at", "for", "from", "in",
 def sanitize_for_path(s):
   """ Sanitize a string to be FAT/NTFS friendly when used in file path. """
   s = s.translate(str.maketrans("/\\|*", "---x"))
-  s = "".join(c for c in unicodedata.normalize("NFKD", s) if c in VALID_PATH_CHARS)
+  s = "".join(c for c in unidecode.unidecode_expect_ascii(s) if c in VALID_PATH_CHARS)
   s = s.strip()
   s = s.rstrip(".")  # this if for FAT on Android
   return s
