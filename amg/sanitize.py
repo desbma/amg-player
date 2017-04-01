@@ -7,7 +7,8 @@ VALID_PATH_CHARS = frozenset("-_.()!#$%%&'@^{}~ %s%s" % (string.ascii_letters,
                                                          string.digits))
 TAG_LOWERCASE_WORDS = frozenset(("a", "an", "and", "at", "for", "from", "in",
                                  "of", "on", "or", "over", "the", "to", "with",
-                                 "de", "des", "du", "le", "la", "les"))
+                                 "de", "des", "du", "le", "la", "les",
+                                 "by"))
 
 
 def sanitize_for_path(s):
