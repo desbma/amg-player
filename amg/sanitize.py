@@ -22,7 +22,7 @@ def sanitize_for_path(s):
 
 def normalize_tag_case(s):
   """ Normalize case of an audio tag string. """
-  old_words = s.split(" ")
+  old_words = s.split()
   new_words = []
   prev_word = None
   roman_letters = frozenset("IVXLCDM")

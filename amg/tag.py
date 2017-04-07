@@ -39,8 +39,8 @@ def normalize_title_tag(title, artist, album):
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new")
-  words2 = ("", "video", "music", "track", "lyric", "album", "promo", "stream", "single")
-  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single")
+  words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual")
+  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -54,6 +54,9 @@ def normalize_title_tag(title, artist, album):
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
   expressions.sort(key=len, reverse=True)
+
+  # remove consecutive spaces
+  title = " ".join(title.split())
 
   # detect and remove  'taken from album xxx, out (on) yyy' suffix
   match = re.search("taken from .*, out ", title, re.IGNORECASE)

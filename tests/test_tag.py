@@ -210,7 +210,15 @@ class TestTag(unittest.TestCase):
                   ("FALLS OF RAUROS - White Granite (Official single 2017)",
                    "Falls of Rauros",
                    "Vigilance Perennial",
-                   "White Granite"))
+                   "White Granite"),
+                  ("VESCERA feat.Michael Vescera  - Beyond The Fight - album/tour  teaser 2017",
+                   "Vescera",
+                   "Beyond the Fight",
+                   "feat.Michael Vescera"),  # the source string here is broken beyond any hope of salvation
+                  ("Horte:  9  (Official Visual Presentation)",
+                   "Horte",
+                   "Horte",
+                   "9"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
