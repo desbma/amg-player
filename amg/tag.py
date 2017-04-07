@@ -39,8 +39,8 @@ def normalize_title_tag(title, artist, album):
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new")
-  words2 = ("", "video", "music", "track", "lyric", "album", "promo", "stream")
-  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream")
+  words2 = ("", "video", "music", "track", "lyric", "album", "promo", "stream", "single")
+  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -78,8 +78,13 @@ def normalize_title_tag(title, artist, album):
     # detect and remove 'xxx records' suffix
     expression = "records"
     if endslike(title, expression):
-      new_title = rclean(rmsuffix(title, expression))
-      new_title = rclean(" ".join(new_title.split()[:-1]))
+      match = re.search("[\(\[][a-z ]*%s$" % (expression), title.rstrip(string.punctuation), re.IGNORECASE)
+      if match:
+        # '(xxx yyy records)' suffix
+        new_title = rclean(title[:match.start(0)])
+      else:
+        new_title = rclean(rmsuffix(title, expression))
+        new_title = rclean(" ".join(new_title.split()[:-1]))
       if new_title:
         title = new_title
         loop = True

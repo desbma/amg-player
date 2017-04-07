@@ -35,8 +35,8 @@ matrix:
 addons:
   apt:
     packages:
-    - yasm
-    - pandoc
+      - yasm
+      - pandoc
 before_install:
   - "[ \"$FFMPEG_VERSION\" ] && ./ci/install-ffmpeg $FFMPEG_VERSION || true"
   - "pip install -U pip"

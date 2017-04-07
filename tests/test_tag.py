@@ -202,7 +202,15 @@ class TestTag(unittest.TestCase):
                   ("DIĜIR GIDIM - Conversing with The Ethereal",
                    "Digir Gidim",
                    "I Thought There Was The Sun Awaiting My Awakening",
-                   "Conversing with the Ethereal"))
+                   "Conversing with the Ethereal"),
+                  ("EMERALD - Reckoning Day (PURE STEEL RECORDS)",
+                   "Emerald",
+                   "Reckoning Day",
+                   "Reckoning Day"),
+                  ("FALLS OF RAUROS - White Granite (Official single 2017)",
+                   "Falls of Rauros",
+                   "Vigilance Perennial",
+                   "White Granite"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
