@@ -24,11 +24,17 @@ def normalize_title_tag(title, artist, album):
 
   # basic string funcs
   rclean_chars = list(string.punctuation)
+  lclean_chars = rclean_chars.copy()
   for c in "!?)":
     rclean_chars.remove(c)
+  for c in "(":
+    lclean_chars.remove(c)
   rclean_chars = str(rclean_chars) + string.whitespace
+  lclean_chars = str(lclean_chars) + string.whitespace
   def rclean(s):
     return s.rstrip(rclean_chars)
+  def lclean(s):
+    return s.lstrip(lclean_chars)
   def startslike(s, l):
     return unidecode.unidecode_expect_ascii(s).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
   def endslike(s, l):
@@ -104,7 +110,7 @@ def normalize_title_tag(title, artist, album):
       # detect and remove common prefixes
       if startslike(title, expression):
         new_title = title[len(expression):]
-        new_title = new_title.lstrip(string.punctuation + string.whitespace)
+        new_title = lclean(new_title)
         if new_title:
           title = new_title
           loop = True
@@ -116,13 +122,13 @@ def normalize_title_tag(title, artist, album):
     # detect and remove artist prefix
     if startslike(title, artist):
       new_title = title[len(artist):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      new_title = lclean(new_title)
       if new_title:
         title = new_title
         loop = True
     elif startslike(title, artist.replace(" ", "")):
       new_title = title[len(artist.replace(" ", "")):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      new_title = lclean(new_title)
       if new_title:
         title = new_title
         loop = True
@@ -130,7 +136,7 @@ def normalize_title_tag(title, artist, album):
     # detect and remove album prefix
     elif startslike(title, album):
       new_title = title[len(album):]
-      new_title = new_title.lstrip(string.punctuation + string.whitespace)
+      new_title = lclean(new_title)
       if new_title:
         title = new_title
         loop = True
@@ -142,13 +148,27 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
 
-  # detect unpaired chars
-  char_pairs = ("()", "\"" * 2, "'" * 2)
-  for c1, c2 in char_pairs:
-    if title.endswith(c2) and (c1 not in title[:-1]):
-      title = title[:-1]
-    elif title.startswith(c1) and (c2 not in title[1:]):
-      title = title[1:]
+  # detect and remove unpaired chars
+  char_pairs = (("()", False),
+                ("\"" * 2, False),
+                ("'" * 2, True))
+  for (c1, c2), only_at_edges in char_pairs:
+    if only_at_edges:
+      if title.endswith(c2) and (c1 not in title[:-1]):
+        title = title[:-1]
+      elif title.startswith(c1) and (c2 not in title[1:]):
+        title = title[1:]
+    else:
+      if c1 != c2:
+        if (title.count(c1) + title.count(c2)) == 1:
+          title = title.translate(string.maketrans("", "", c1 + c2))
+      else:
+        if title.count(c1) == 1:
+          title = title.translate(str.maketrans("", "", c1))
+
+  # detect and remove parenthesis at start and end
+  if title.startswith("(") and title.endswith(")"):
+    title = title[1:-1]
 
   # normalize case
   title = sanitize.normalize_tag_case(title)

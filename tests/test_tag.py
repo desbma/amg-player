@@ -218,7 +218,11 @@ class TestTag(unittest.TestCase):
                   ("Horte:  9  (Official Visual Presentation)",
                    "Horte",
                    "Horte",
-                   "9"))
+                   "9"),
+                  ("Trial (swe) \"Juxtaposed\" (OFFICIAL)",
+                   "Trial",
+                   "Motherless",
+                   "(swe) Juxtaposed"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
