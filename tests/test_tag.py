@@ -37,7 +37,7 @@ class TestTag(unittest.TestCase):
     download("https://people.xiph.org/~giles/2012/opus/ehren-paper_lights-64.opus",
              opus_filepath)
     mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
-    download("http://www.stephaniequinn.com/Music/Vivaldi%20-%20Spring%20from%20Four%20Seasons.mp3",
+    download("https://allthingsaudio.wikispaces.com/file/view/Shuffle%20for%20K.M.mp3/139190697/Shuffle%20for%20K.M.mp3",
              mp3_filepath)
     m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
     download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
@@ -54,6 +54,9 @@ class TestTag(unittest.TestCase):
     self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
     self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
     self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
+    mf = mutagen.File(self.mp3_filepath)
+    mf.tags.delall("APIC")
+    mf.save()
     self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
     mf = mutagen.File(self.m4a_filepath)
     del mf["covr"]
@@ -235,7 +238,7 @@ class TestTag(unittest.TestCase):
   def test_get_r128_loudness(self):
     refs = ((self.vorbis_filepath, -7.7, 2.6),
             (self.opus_filepath, -14.7, 1.1),
-            (self.mp3_filepath, -19, -4.2),
+            (self.mp3_filepath, -15.3, -0.1),
             (self.m4a_filepath, -20.6, 0.1))
     for filepath, level_ref, peak_ref in refs:
       level, peak = amg.tag.get_r128_loudness(filepath)
@@ -290,8 +293,8 @@ class TestTag(unittest.TestCase):
     ref_tags = {"TPE1": [artist],
                 "TALB": [album]}
     if amg.HAS_FFMPEG:
-      ref_tags.update({"TXXX:REPLAYGAIN_TRACK_GAIN": ["5.00 dB"],
-                       "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.616595"]})
+      ref_tags.update({"TXXX:REPLAYGAIN_TRACK_GAIN": ["1.30 dB"],
+                       "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.988553"]})
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k].text, v)
