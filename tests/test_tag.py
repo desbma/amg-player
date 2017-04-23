@@ -222,7 +222,11 @@ class TestTag(unittest.TestCase):
                   ("Trial (swe) \"Juxtaposed\" (OFFICIAL)",
                    "Trial",
                    "Motherless",
-                   "(swe) Juxtaposed"))
+                   "(swe) Juxtaposed"),
+                  ("TEHOM - Voices From The Darkside (Full song)",
+                   "Tehom",
+                   "The Merciless Light",
+                   "Voices from the Darkside"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
