@@ -7,4 +7,4 @@ Pillow>=3.4.2
 requests>=2.6.0
 unidecode>=0.4.20
 web_cache>=1.0.2
-youtube-dl>=2017.04.03
+youtube-dl>=2017.04.17
