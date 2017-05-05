@@ -1,4 +1,5 @@
 import base64
+import calendar
 import datetime
 import logging
 import operator
@@ -36,11 +37,13 @@ def normalize_title_tag(title, artist, album):
   def lclean(s):
     return s.lstrip(lclean_chars)
   def startslike(s, l):
-    return unidecode.unidecode_expect_ascii(s).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
+    return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
   def endslike(s, l):
     return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower().endswith(unidecode.unidecode_expect_ascii(l).lower())
   def rmsuffix(s, e):
     return s.rstrip(string.punctuation)[:-len(e)]
+  def rmprefix(s, e):
+    return s.lstrip(string.punctuation)[len(e):]
 
   # build list of common useless expressions
   expressions = []
@@ -59,6 +62,9 @@ def normalize_title_tag(title, artist, album):
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
+    for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
+      expressions.append("%s %u" % (month_name, y))
+      expressions.append("%s %u" % (month_abbr, y))
   expressions.sort(key=len, reverse=True)
 
   # remove consecutive spaces
@@ -72,7 +78,7 @@ def normalize_title_tag(title, artist, album):
       title = new_title
 
   # detect and remove  '[xxx music]' suffix
-  match = re.search("\[.* music\]$", title, re.IGNORECASE)
+  match = re.search("[\[\( ][a-z]* music$", title.rstrip(string.punctuation), re.IGNORECASE)
   if match:
     new_title = rclean(title[:match.start(0)])
     if new_title:
@@ -98,6 +104,14 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
 
+    # detect and remove '- xxx metal' suffix
+    match = re.search("[ \-|\(\[]+[a-z/-]+[ ]*metal$", title.rstrip(string.punctuation), re.IGNORECASE)
+    if match:
+      new_title = rclean(title[:match.start(0)])
+      if new_title:
+        title = new_title
+        loop = True
+
     for expression in expressions:
       # detect and remove common suffixes
       if endslike(title, expression):
@@ -109,8 +123,7 @@ def normalize_title_tag(title, artist, album):
 
       # detect and remove common prefixes
       if startslike(title, expression):
-        new_title = title[len(expression):]
-        new_title = lclean(new_title)
+        new_title = lclean(rmprefix(title, expression))
         if new_title:
           title = new_title
           loop = True
@@ -121,29 +134,26 @@ def normalize_title_tag(title, artist, album):
 
     # detect and remove artist prefix
     if startslike(title, artist):
-      new_title = title[len(artist):]
-      new_title = lclean(new_title)
+      new_title = lclean(rmprefix(title, artist))
       if new_title:
         title = new_title
         loop = True
     elif startslike(title, artist.replace(" ", "")):
-      new_title = title[len(artist.replace(" ", "")):]
-      new_title = lclean(new_title)
+      new_title = lclean(rmprefix(title, artist.replace(" ", "")))
       if new_title:
         title = new_title
         loop = True
 
     # detect and remove album prefix
     elif startslike(title, album):
-      new_title = title[len(album):]
-      new_title = lclean(new_title)
+      new_title = lclean(rmprefix(title, album))
       if new_title:
         title = new_title
         loop = True
 
     # detect and remove album suffix
-    if endslike(title, album.lower()):
-      new_title = rclean(rmsuffix(title, album.lower()))
+    elif endslike(title, album):
+      new_title = rclean(rmsuffix(title, album))
       if new_title:
         title = new_title
         loop = True
@@ -161,7 +171,7 @@ def normalize_title_tag(title, artist, album):
     else:
       if c1 != c2:
         if (title.count(c1) + title.count(c2)) == 1:
-          title = title.translate(string.maketrans("", "", c1 + c2))
+          title = title.translate(str.maketrans("", "", c1 + c2))
       else:
         if title.count(c1) == 1:
           title = title.translate(str.maketrans("", "", c1))
@@ -304,3 +314,8 @@ def embed_album_art(mf, cover_data):
   elif isinstance(mf, mutagen.mp4.MP4):
     mf["covr"] = [mutagen.mp4.MP4Cover(cover_data,
                                        imageformat=mutagen.mp4.AtomDataType.JPEG)]
+
+
+# copy month names before changing locale
+MONTH_NAMES = calendar.month_name[1:]
+MONTH_NAMES_ABBR = calendar.month_abbr[1:]

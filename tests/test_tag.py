@@ -229,7 +229,16 @@ class TestTag(unittest.TestCase):
                   ("TEHOM - Voices From The Darkside (Full song)",
                    "Tehom",
                    "The Merciless Light",
-                   "Voices from the Darkside"))
+                   "Voices from the Darkside"),
+                  ("DISTILLATOR - Summoning the Malicious (OFFICIAL VIDEO) | THRASH METAL [2017]",
+                   "Distillator",
+                   "Summoning the Malicious",
+                   "Summoning the Malicious"),
+                  ("Doublestone - Solen Sover (Studio Session) | May 2017 | Ripple Music",
+                   "Doublestone",
+                   "Devil’s Own",
+                   "Solen Sover (Studio Session)"))
+
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
