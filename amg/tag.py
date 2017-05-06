@@ -41,9 +41,9 @@ def normalize_title_tag(title, artist, album):
   def endslike(s, l):
     return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower().endswith(unidecode.unidecode_expect_ascii(l).lower())
   def rmsuffix(s, e):
-    return s.rstrip(string.punctuation)[:-len(e)]
+    return s.rstrip(string.punctuation)[:-len(unidecode.unidecode_expect_ascii(e))]
   def rmprefix(s, e):
-    return s.lstrip(string.punctuation)[len(e):]
+    return s.lstrip(string.punctuation)[len(unidecode.unidecode_expect_ascii(e)):]
 
   # build list of common useless expressions
   expressions = []

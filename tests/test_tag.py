@@ -237,7 +237,11 @@ class TestTag(unittest.TestCase):
                   ("Doublestone - Solen Sover (Studio Session) | May 2017 | Ripple Music",
                    "Doublestone",
                    "Devil’s Own",
-                   "Solen Sover (Studio Session)"))
+                   "Solen Sover (Studio Session)"),
+                  ("Slaegt - I Smell Blood",
+                   "Slægt",
+                   "Domus Mysterium",
+                   "I Smell Blood"))
 
 
     for before, artist, album, after in references:
