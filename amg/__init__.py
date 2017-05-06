@@ -76,7 +76,8 @@ def fetch_page(url, *, http_cache=None):
     page = http_cache[url]
   else:
     logging.getLogger().debug("Fetching '%s'..." % (url))
-    response = requests.get(url, timeout=TCP_TIMEOUT)
+    headers = {"User-Agent": "Mozilla/5.0"}
+    response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT)
     response.raise_for_status()
     page = response.content
     if http_cache is not None:
@@ -87,7 +88,8 @@ def fetch_page(url, *, http_cache=None):
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug("Fetching '%s'..." % (url))
-  with contextlib.closing(requests.get(url, timeout=TCP_TIMEOUT, stream=True)) as response:
+  headers = {"User-Agent": "Mozilla/5.0"}
+  with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
     with open(dest_filepath, "wb") as dest_file:
       for chunk in response.iter_content(2 ** 14):
