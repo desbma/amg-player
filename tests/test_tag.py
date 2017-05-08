@@ -241,7 +241,11 @@ class TestTag(unittest.TestCase):
                   ("Slaegt - I Smell Blood",
                    "Slægt",
                    "Domus Mysterium",
-                   "I Smell Blood"))
+                   "I Smell Blood"),
+                  ("God Dethroned \"The World Ablaze\" (OFFICIAL VIDEO in 4k)",
+                   "God Dethroned",
+                   "The World Ablaze",
+                   "The World Ablaze"))
 
 
     for before, artist, album, after in references:
