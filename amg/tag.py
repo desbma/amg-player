@@ -49,7 +49,8 @@ def normalize_title_tag(title, artist, album):
   expressions = []
   words1 = ("", "official", "new", "full")
   words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual")
-  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation", "song", "in 4k")
+  words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
+            "song", "in 4k")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -105,9 +106,16 @@ def normalize_title_tag(title, artist, album):
         loop = True
 
     # detect and remove '- xxx metal' suffix
-    match = re.search("[ \-|\(\[]+[a-z/-]+[ ]*metal$", title.rstrip(string.punctuation), re.IGNORECASE)
+    match = re.search("[\-|\(\[/]+[ ]*[a-z/-]+[ ]*metal$", title.rstrip(string.punctuation), re.IGNORECASE)
     if match:
       new_title = rclean(title[:match.start(0)])
+      if new_title:
+        title = new_title
+        loop = True
+
+    # detect and remove starting parenthesis expression
+    if title.startswith("(") and (title.rfind(")") != (len(title) - 1)):
+      new_title = lclean(title[title.rfind(")") + 1:])
       if new_title:
         title = new_title
         loop = True

@@ -225,7 +225,7 @@ class TestTag(unittest.TestCase):
                   ("Trial (swe) \"Juxtaposed\" (OFFICIAL)",
                    "Trial",
                    "Motherless",
-                   "(swe) Juxtaposed"),
+                   "Juxtaposed"),
                   ("TEHOM - Voices From The Darkside (Full song)",
                    "Tehom",
                    "The Merciless Light",
@@ -245,7 +245,11 @@ class TestTag(unittest.TestCase):
                   ("God Dethroned \"The World Ablaze\" (OFFICIAL VIDEO in 4k)",
                    "God Dethroned",
                    "The World Ablaze",
-                   "The World Ablaze"))
+                   "The World Ablaze"),
+                  ("ASSAULT (Singapore) - The Fallen Reich OFFICIAL VIDEO (Death Metal/Thrash Metal)",
+                   "Assault",
+                   "The Fallen Reich",
+                   "The Fallen Reich"))
 
 
     for before, artist, album, after in references:
