@@ -35,8 +35,8 @@ then
     git pull
 
     # cleanup
-    make clean
-    make distclean
+    make clean || true
+    make distclean || true
 
     # (re)configure
     configure
