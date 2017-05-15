@@ -83,7 +83,7 @@ class AmgMenu(cursesmenu.CursesMenu):
     sep = "\t"
     for i, line in enumerate(lines):
       lines[i] = "%s%s" % (" " if i < 9 else "",
-                           sep.join(s.ljust(max_len) for s, max_len in zip(line, max_lens)))
+                           sep.join(s.ljust(max_len + 1) for s, max_len in zip(line, max_lens)))
     return lines
 
   @staticmethod

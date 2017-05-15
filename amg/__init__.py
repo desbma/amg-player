@@ -512,7 +512,7 @@ def cl_main():
         while input_loop:
           c = None
           while c not in frozenset("pdrsq"):
-            c = input("Play (p) / Download (d) / Go to review (r) / Skip to next track (s) / Exit (q) ? ").lower()
+            c = input("[P]lay / [D]ownload / Go to [R]eview / [S]kip to next track / Exit [Q] ? ").lower()
           if c == "p":
             known_reviews.setLastPlayed(review.url)
             play(review, track_urls, merge_with_picture=audio_only)
