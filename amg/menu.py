@@ -10,7 +10,7 @@ class AmgMenu(cursesmenu.CursesMenu):
 
   """ Custom menu to choose review/track. """
 
-  UserAction = enum.Enum("ReviewAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
+  UserAction = enum.Enum("UserAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
 
   def __init__(self, *, reviews, known_reviews, http_cache, mode, selected_idx):
     menu_subtitle = {amg.PlayerMode.MANUAL: "Select a track",
@@ -18,9 +18,9 @@ class AmgMenu(cursesmenu.CursesMenu):
     super().__init__("AMG Player v%s" % (amg.__version__),
                      "%s mode: %s "
                      "(ENTER to play, "
-                     "d to download audio, "
-                     "r to open review, "
-                     "q to exit)" % (mode.name.capitalize(),
+                     "D to download audio, "
+                     "R to open review, "
+                     "Q to exit)" % (mode.name.capitalize(),
                                      menu_subtitle[mode]),
                      True)
     if selected_idx is not None:
