@@ -217,7 +217,7 @@ class TestTag(unittest.TestCase):
                   ("VESCERA feat.Michael Vescera  - Beyond The Fight - album/tour  teaser 2017",
                    "Vescera",
                    "Beyond the Fight",
-                   "feat.Michael Vescera"),  # the source string here is broken beyond any hope of salvation
+                   "feat.Michael"),  # the source string here is broken beyond any hope of salvation
                   ("Horte:  9  (Official Visual Presentation)",
                    "Horte",
                    "Horte",
@@ -249,8 +249,11 @@ class TestTag(unittest.TestCase):
                   ("ASSAULT (Singapore) - The Fallen Reich OFFICIAL VIDEO (Death Metal/Thrash Metal)",
                    "Assault",
                    "The Fallen Reich",
-                   "The Fallen Reich"))
-
+                   "The Fallen Reich"),
+                  ("My Leviathan - Morass Of Molasses",
+                   "Morass of Molasses",
+                   "These Paths We Tread",
+                   "My Leviathan"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

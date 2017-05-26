@@ -152,6 +152,18 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
 
+    # detect and remove artist suffix
+    elif endslike(title, artist):
+      new_title = rclean(rmsuffix(title, artist))
+      if new_title:
+        title = new_title
+        loop = True
+    elif endslike(title, artist.replace(" ", "")):
+      new_title = rclean(rmsuffix(title, artist.replace(" ", "")))
+      if new_title:
+        title = new_title
+        loop = True
+
     # detect and remove album prefix
     elif startslike(title, album):
       new_title = lclean(rmprefix(title, album))
