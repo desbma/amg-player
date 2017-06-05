@@ -253,7 +253,11 @@ class TestTag(unittest.TestCase):
                   ("My Leviathan - Morass Of Molasses",
                    "Morass of Molasses",
                    "These Paths We Tread",
-                   "My Leviathan"))
+                   "My Leviathan"),
+                  ("Rapheumets Well - Ghost Walkers Exodus (360 Video)",
+                   "Rapheumets Well",
+                   "Enders Door",
+                   "Ghost Walkers Exodus"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

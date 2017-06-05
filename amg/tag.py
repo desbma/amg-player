@@ -48,7 +48,7 @@ def normalize_title_tag(title, artist, album):
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new", "full")
-  words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual")
+  words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual", "360")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
             "song", "in 4k")
   for w1 in words1:
