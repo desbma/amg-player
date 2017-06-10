@@ -257,7 +257,19 @@ class TestTag(unittest.TestCase):
                   ("Rapheumets Well - Ghost Walkers Exodus (360 Video)",
                    "Rapheumets Well",
                    "Enders Door",
-                   "Ghost Walkers Exodus"))
+                   "Ghost Walkers Exodus"),
+                  ("SUFFOCATION - Your Last Breaths (360 VISUALIZER OFFICIAL VIDEO)",
+                   "Suffocation",
+                   "…of the Dark Light",
+                   "Your Last Breaths"),
+                  ("Völur - Breaker of Skulls [taken from \"Ancestors\"]",
+                   "Völur",
+                   "Ancestors",
+                   "Breaker of Skulls"),
+                  ("Horrid - The Black March (From the Album Beyond The Dark Border)'",
+                   "Horrid",
+                   "Beyond The Dark Border",
+                   "The Black March"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

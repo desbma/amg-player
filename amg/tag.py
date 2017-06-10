@@ -50,7 +50,7 @@ def normalize_title_tag(title, artist, album):
   words1 = ("", "official", "new", "full")
   words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual", "360")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-            "song", "in 4k")
+            "song", "in 4k", "visualizer")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -177,6 +177,12 @@ def normalize_title_tag(title, artist, album):
       if new_title:
         title = new_title
         loop = True
+        # detect and remove album suffix's prefix
+        for suffix in ("taken from", "from the album"):
+          if endslike(title, suffix):
+            new_title = rclean(rmsuffix(title, suffix))
+            if new_title:
+              title = new_title
 
   # detect and remove unpaired chars
   char_pairs = (("()", False),
