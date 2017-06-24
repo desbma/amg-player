@@ -55,7 +55,7 @@ def normalize_title_tag(title, artist, album):
     for w2 in words2:
       for w3 in words3:
         if (w1 or w2) and (w3 != w2):
-          for rsep in (" ", ""):
+          for rsep in (" ", "-", ""):
             rpart = rsep.join((w2, w3)).strip()
             expressions.append(" ".join((w1, rpart)).strip())
   expressions.extend(("pre-orders available", "preorders available", "hd",

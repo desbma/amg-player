@@ -269,7 +269,11 @@ class TestTag(unittest.TestCase):
                   ("Horrid - The Black March (From the Album Beyond The Dark Border)'",
                    "Horrid",
                    "Beyond The Dark Border",
-                   "The Black March"))
+                   "The Black March"),
+                  ("APOSENTO - Partially Deceased Syndrome (Official Video-clip) [2017]",
+                   "Aposento",
+                   "Bleed to Death",
+                   "Partially Deceased Syndrome"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
