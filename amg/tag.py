@@ -48,16 +48,20 @@ def normalize_title_tag(title, artist, album):
   # build list of common useless expressions
   expressions = []
   words1 = ("", "official", "new", "full")
-  words2 = ("", "video", "music", "track", "lyric", "album", "album/tour", "promo", "stream", "single", "visual", "360")
+  words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
+            "visual", "360")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
             "song", "in 4k", "visualizer")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
-        if (w1 or w2) and (w3 != w2):
-          for rsep in (" ", "-", ""):
-            rpart = rsep.join((w2, w3)).strip()
-            expressions.append(" ".join((w1, rpart)).strip())
+        if w3 != w2:
+          if w1 or w2:
+            for rsep in (" ", "-", ""):
+              rpart = rsep.join((w2, w3)).strip()
+              expressions.append(" ".join((w1, rpart)).strip())
+          else:
+            expressions.append(w3)
   expressions.extend(("pre-orders available", "preorders available", "hd",
                       "official", "pre-listening", "prelistening"))
   year = datetime.datetime.today().year

@@ -273,7 +273,15 @@ class TestTag(unittest.TestCase):
                   ("APOSENTO - Partially Deceased Syndrome (Official Video-clip) [2017]",
                    "Aposento",
                    "Bleed to Death",
-                   "Partially Deceased Syndrome"))
+                   "Partially Deceased Syndrome"),
+                  ("Conveyer - Disgrace (Audio)",
+                   "Conveyer",
+                   "No Future",
+                   "Disgrace"),
+                  ("DESULTORY \"Our Departure\" Lyrics Video",
+                   "Desultory",
+                   "Through Aching Aeons",
+                   "Our Departure"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
