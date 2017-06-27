@@ -295,7 +295,7 @@ def add_rg_or_r128_tag(track_filepath, mf):
   elif isinstance(mf, mutagen.oggopus.OggOpus):
     # https://wiki.xiph.org/OggOpus#Comment_Header
     # for now, use ReplayGain -14 dBFS as reference loudness
-    # this is what foobar2000 and GMMP do
+    # this is what foobar2000 does
     fp = encode_float_to_fixed_point_7dot8(RG_REF_LOUDNESS_DBFS - level)
     assert(-32768 <= fp <= 32767)
     mf["R128_TRACK_GAIN"] = str(fp)
