@@ -13,7 +13,7 @@ class TestSanitize(unittest.TestCase):
                   "Just A Bunch Of Letters": "Just a Bunch of Letters",
                   "Episode VI": "Episode VI",
                   "EPISODE VIA": "Episode Via",
-                  "VI VI VI": "Vi Vi VI",
+                  "VI VI VI": "VI VI VI",
                   "Episode VI: name": "Episode VI: Name",
                   "Matsya - The Fish": "Matsya - The Fish"}
     for before, after in references.items():
