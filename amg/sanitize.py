@@ -40,10 +40,12 @@ def normalize_tag_case(s):
         new_word = old_word
     elif (i != 0) and (old_word.lower() in TAG_LOWERCASE_WORDS):
       new_word = old_word.lower()
-    elif (((old_word is old_words[-1]) or
-           (old_word.strip(string.punctuation) != old_word)) and
-          all(map(roman_letters.__contains__,
-                  old_word.strip(string.punctuation)))):
+    # elif (((old_word is old_words[-1]) or
+    #        (old_word.strip(string.punctuation) != old_word)) and
+    #       all(map(roman_letters.__contains__,
+    #               old_word.strip(string.punctuation)))):
+    elif all(map(roman_letters.__contains__,
+                 old_word.strip(string.punctuation))):
       new_word = old_word
     else:
       new_word = old_word.capitalize()

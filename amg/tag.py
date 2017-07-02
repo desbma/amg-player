@@ -47,11 +47,11 @@ def normalize_title_tag(title, artist, album):
 
   # build list of common useless expressions
   expressions = []
-  words1 = ("", "official", "new", "full")
+  words1 = ("", "official", "new", "full", "the new")
   words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
-            "visual", "360")
+            "visual", "360", "studio")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-            "song", "in 4k", "visualizer")
+            "song", "in 4k", "visualizer", "album")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -77,6 +77,13 @@ def normalize_title_tag(title, artist, album):
 
   # detect and remove  'taken from album xxx, out (on) yyy' suffix
   match = re.search("taken from .*, out ", title, re.IGNORECASE)
+  if match:
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
+  # detect and remove  'xxx out: yy.zz.aa' suffix
+  match = re.search(" [^ ]* out: [0-9]*.[0-9]*.[0-9]*", title, re.IGNORECASE)
   if match:
     new_title = rclean(title[:match.start(0)])
     if new_title:

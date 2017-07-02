@@ -281,7 +281,15 @@ class TestTag(unittest.TestCase):
                   ("DESULTORY \"Our Departure\" Lyrics Video",
                    "Desultory",
                    "Through Aching Aeons",
-                   "Our Departure"))
+                   "Our Departure"),
+                  ("Chant VI - La Vieillesse",
+                   "Les Chants du Hasard",
+                   "Les Chants du Hasard",
+                   "Chant VI - La Vieillesse"),
+                  ("Manilla Road - To Kill A King (The New Studio Album) MiniMix OUT: 30.06.17",
+                   "Manilla Road",
+                   "To Kill a King",
+                   "To Kill a King"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
