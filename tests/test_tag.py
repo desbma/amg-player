@@ -289,7 +289,15 @@ class TestTag(unittest.TestCase):
                   ("Manilla Road - To Kill A King (The New Studio Album) MiniMix OUT: 30.06.17",
                    "Manilla Road",
                    "To Kill a King",
-                   "To Kill a King"))
+                   "To Kill a King"),
+                  ("WEAPÖNIZER - Malefactor (from 'Lawless Age' LP 2017)",
+                   "Weapönizer",
+                   "Lawless Age",
+                   "Malefactor"),
+                  ("Sator Malus \"Endless Cycles Of Life & Death\" from \"Dark Matters\" Album",
+                   "Sator Malus",
+                   "Dark Matters",
+                   "Endless Cycles of Life & Death"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

@@ -82,6 +82,20 @@ def normalize_title_tag(title, artist, album):
     if new_title:
       title = new_title
 
+  # detect and remove  'from xxx LP' suffix
+  match = re.search("from .* LP", title, re.IGNORECASE)
+  if match:
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
+  # detect and remove  'from xxx album' suffix
+  match = re.search("from .* album", title, re.IGNORECASE)
+  if match:
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
   # detect and remove  'xxx out: yy.zz.aa' suffix
   match = re.search(" [^ ]* out: [0-9]*.[0-9]*.[0-9]*", title, re.IGNORECASE)
   if match:
