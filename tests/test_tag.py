@@ -297,7 +297,15 @@ class TestTag(unittest.TestCase):
                   ("Sator Malus \"Endless Cycles Of Life & Death\" from \"Dark Matters\" Album",
                    "Sator Malus",
                    "Dark Matters",
-                   "Endless Cycles of Life & Death"))
+                   "Endless Cycles of Life & Death"),
+                  ("HERESIARCH - Storming upon Knaves (2017) Dark Descent Records",
+                   "Heresiarch",
+                   "Death Ordinance",
+                   "Storming Upon Knaves"),
+                  ("Stallion - Waiting For A Sign (Album: From The Dead 2017 - Track 4) Official",
+                   "Stallion",
+                   "From the Dead",
+                   "Waiting for a Sign"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
