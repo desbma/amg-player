@@ -305,7 +305,23 @@ class TestTag(unittest.TestCase):
                   ("Stallion - Waiting For A Sign (Album: From The Dead 2017 - Track 4) Official",
                    "Stallion",
                    "From the Dead",
-                   "Waiting for a Sign"))
+                   "Waiting for a Sign"),
+                  ("Dystopia -Vanishing Point-",
+                   "Boris",
+                   "Dear",
+                   "Dystopia -Vanishing Point-"),
+                  ("DEADSONG",
+                   "Boris",
+                   "Dear",
+                   "Deadsong"),
+                  ("D.O.W.N -Domination of Waiting Noise-",
+                   "Boris",
+                   "Dear",
+                   "D.O.W.N -Domination of Waiting Noise-"),
+                  ("OBSCURITY - WAS UNS BLEIBT (OFFICIAL LYRIC VIDEO) | TROLLZORN",
+                   "Obscurity",
+                   "Streitmacht",
+                   "Was Uns Bleibt"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

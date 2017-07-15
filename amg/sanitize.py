@@ -28,10 +28,10 @@ def normalize_tag_case(s):
   roman_letters = frozenset("IVXLCDM")
   for i, old_word in enumerate(old_words):
     if (((prev_word is not None) and
-         ((prev_word[-1] in string.punctuation) and old_word[0].isupper())) or
-        ("." in old_word)):
+            ((prev_word[-1] in string.punctuation) and old_word[0].isupper())) or
+            ("." in old_word)):
       new_word = old_word
-    elif old_word[0] == "(":
+    elif old_word[0] in "(-":
       new_word = old_word
     elif old_word.find("'") == 1:
       if i > 0:

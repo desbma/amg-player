@@ -26,20 +26,26 @@ def normalize_title_tag(title, artist, album):
   # basic string funcs
   rclean_chars = list(string.punctuation)
   lclean_chars = rclean_chars.copy()
-  for c in "!?)":
+  for c in "!?)-":
     rclean_chars.remove(c)
   for c in "(":
     lclean_chars.remove(c)
   rclean_chars = str(rclean_chars) + string.whitespace
   lclean_chars = str(lclean_chars) + string.whitespace
   def rclean(s):
-    return s.rstrip(rclean_chars)
+    r = s.rstrip(rclean_chars)
+    if r.endswith(" -"):
+      r = r[:-2].rstrip(rclean_chars)
+    return r
   def lclean(s):
     return s.lstrip(lclean_chars)
   def startslike(s, l):
     return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
   def endslike(s, l):
-    return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower().endswith(unidecode.unidecode_expect_ascii(l).lower())
+    norm_s = unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower()
+    norm_l = unidecode.unidecode_expect_ascii(l).lower()
+    trunc = norm_s[:-len(norm_l)]
+    return (norm_s.endswith(norm_l) and ((not trunc) or (not norm_s[:-len(norm_l)][-1].isalnum())))
   def rmsuffix(s, e):
     return s.rstrip(string.punctuation)[:-len(unidecode.unidecode_expect_ascii(e))]
   def rmprefix(s, e):
@@ -63,7 +69,7 @@ def normalize_title_tag(title, artist, album):
           else:
             expressions.append(w3)
   expressions.extend(("pre-orders available", "preorders available", "hd",
-                      "official", "pre-listening", "prelistening"))
+                      "official", "pre-listening", "prelistening", "trollzorn"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
