@@ -8,6 +8,7 @@ __license__ = "GPLv3"
 
 import argparse
 import collections
+import concurrent.futures
 import contextlib
 import datetime
 import enum
@@ -336,14 +337,20 @@ def download_audio(review, track_urls):
     else:
       cover_data = None
 
-    # add tags & embed cover
-    for track_filepath in track_filepaths:
-      try:
-        tag.tag(track_filepath, review, cover_data)
-      except Exception as e:
-        # raise
-        logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
-                                                                             e.__class__.__qualname__))
+    # add tags & embed cover (using thread pool because R128 scan is CPU intensive)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+      futures = {}
+
+      for track_filepath in track_filepaths:
+        futures[track_filepath] = executor.submit(tag.tag, track_filepath, review, cover_data)
+
+      for track_filepath, future in futures.items():
+        try:
+          future.result()
+        except Exception as e:
+          # raise
+          logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
+                                                                               e.__class__.__qualname__))
 
     # move tracks
     for track_filepath in track_filepaths:
