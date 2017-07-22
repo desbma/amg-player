@@ -66,6 +66,7 @@ REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
+REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 9.1
 
@@ -161,6 +162,7 @@ def get_embedded_track(page, http_cache):
         yt_prefix = "https://www.youtube.com/embed/"
         bc_prefix = "https://bandcamp.com/EmbeddedPlayer/"
         sc_prefix = "https://w.soundcloud.com/player/"
+        rn_prefix = "https://www.reverbnation.com/widget_code/"
         if iframe_url.startswith(yt_prefix):
           yt_id = iframe_url[len(yt_prefix):]
           urls = ("https://www.youtube.com/watch?v=%s" % (yt_id),)
@@ -179,6 +181,17 @@ def get_embedded_track(page, http_cache):
           audio_only = True
         elif iframe_url.startswith(sc_prefix):
           urls = (iframe_url.split("&", 1)[0],)
+          audio_only = True
+        elif iframe_url.startswith(rn_prefix):
+          iframe_page = fetch_page(iframe_url, http_cache=http_cache)
+          scripts = REVERBNATION_SCRIPT_SELECTOR(iframe_page)
+          js_prefix = "var configuration = "
+          for script in scripts:
+            if (script.text) and (js_prefix in script.text):
+              js = script.text[script.text.find(js_prefix) + len(js_prefix):].splitlines()[0].rstrip(";")
+              js = json.loads(js)
+              break
+          urls = (js["PLAYLIST"][0]["url"],)
           audio_only = True
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))

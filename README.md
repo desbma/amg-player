@@ -22,7 +22,7 @@ I created this because:
 ## Features
 
 * Can work either in interactive mode (manually select tracks) or totally automatic (play new tracks like a radio)
-* Supports embedded tracks from: YouTube, Bandcamp, SoundCloud
+* Supports embedded tracks from: YouTube, Bandcamp, SoundCloud, ReverbNation
 * Play YouTube video if available, or generate a video on the fly with the cover image + audio track(s) (requires FFmpeg)
 * Can download tracks (with embedded album art) to play later
 
