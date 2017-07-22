@@ -49,6 +49,9 @@ class TestAmg(unittest.TestCase):
              True),
             "https://www.angrymetalguy.com/hornss-telepath-review/":
             (("https://hornss.bandcamp.com/track/atrophic",),
+             True),
+            "https://www.angrymetalguy.com/auditory-armory-dark-matter-review/":
+            (("https://www.reverbnation.com/open_graph/song/28202104?pwc%5Bbranded%5D=1",),
              True)}
     for review_url, (expected_track_url, expected_audio_only) in urls.items():
       review_page = amg.fetch_page(review_url)

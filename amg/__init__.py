@@ -191,7 +191,11 @@ def get_embedded_track(page, http_cache):
               js = script.text[script.text.find(js_prefix) + len(js_prefix):].splitlines()[0].rstrip(";")
               js = json.loads(js)
               break
-          urls = (js["PLAYLIST"][0]["url"],)
+          url = js["PLAYLIST"][0]["url"]
+          url = urllib.parse.urlsplit(url)
+          url = ("https",) + url[1:]
+          url = urllib.parse.urlunsplit(url)
+          urls = (url,)
           audio_only = True
   except Exception as e:
     logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
