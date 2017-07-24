@@ -125,7 +125,7 @@ def normalize_title_tag(title, artist, album):
     # detect and remove 'xxx records' suffix
     expression = "records"
     if endslike(title, expression):
-      match = re.search("[\)\(\[][a-z ]*%s$" % (expression), title.rstrip(string.punctuation), re.IGNORECASE)
+      match = re.search("[|\)\(\[][0-9a-z ]*%s$" % (expression), title.rstrip(string.punctuation), re.IGNORECASE)
       if match:
         # '(xxx yyy records)' suffix
         new_title = rclean(title[:match.start(0)])

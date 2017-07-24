@@ -321,7 +321,11 @@ class TestTag(unittest.TestCase):
                   ("OBSCURITY - WAS UNS BLEIBT (OFFICIAL LYRIC VIDEO) | TROLLZORN",
                    "Obscurity",
                    "Streitmacht",
-                   "Was Uns Bleibt"))
+                   "Was Uns Bleibt"),
+                  ("Kabbalah - Phantasmal Planetoid (Official Music Video) | 2017 Twin Earth Records",
+                   "Kabbalah",
+                   "Spectral Ascent",
+                   "Phantasmal Planetoid"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
