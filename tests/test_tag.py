@@ -325,7 +325,11 @@ class TestTag(unittest.TestCase):
                   ("Kabbalah - Phantasmal Planetoid (Official Music Video) | 2017 Twin Earth Records",
                    "Kabbalah",
                    "Spectral Ascent",
-                   "Phantasmal Planetoid"))
+                   "Phantasmal Planetoid"),
+                  ("PATHOLOGY 'Pathology' promo (Lamentation)",
+                   "Pathology",
+                   "Pathology",
+                   "Lamentation"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
