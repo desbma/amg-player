@@ -38,7 +38,12 @@ def normalize_title_tag(title, artist, album):
       r = r[:-2].rstrip(rclean_chars)
     return r
   def lclean(s):
-    return s.lstrip(lclean_chars)
+    r = s.lstrip(lclean_chars)
+    c = unidecode.unidecode_expect_ascii(r).lstrip(lclean_chars)
+    if c != r:
+      r = c
+    return r
+
   def startslike(s, l):
     return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
   def endslike(s, l):
@@ -77,6 +82,9 @@ def normalize_title_tag(title, artist, album):
       expressions.append("%s %u" % (month_name, y))
       expressions.append("%s %u" % (month_abbr, y))
   expressions.sort(key=len, reverse=True)
+  expressions_suffix = expressions
+  expressions_prefix = expressions.copy()
+  expressions_prefix.remove("song")
 
   # remove consecutive spaces
   title = " ".join(title.split())
@@ -137,12 +145,13 @@ def normalize_title_tag(title, artist, album):
         loop = True
 
     # detect and remove '- xxx metal' suffix
-    match = re.search("[\-|\(\[/]+[ ]*[a-z/-]+[ ]*metal$", title.rstrip(string.punctuation), re.IGNORECASE)
-    if match:
-      new_title = rclean(title[:match.start(0)])
-      if new_title:
-        title = new_title
-        loop = True
+    if endslike(title, "metal"):  # performance optimization
+      match = re.search("[\-|\(\[/]+[ ]*(?:[a-z/-]+[ ]*)+metal$", title.rstrip(string.punctuation), re.IGNORECASE)
+      if match:
+        new_title = rclean(title[:match.start(0)])
+        if new_title:
+          title = new_title
+          loop = True
 
     # detect and remove  'album: xxx track yy' suffix
     match = re.search("album: .* track [0-9]*$", title.rstrip(string.punctuation), re.IGNORECASE)
@@ -159,7 +168,7 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
 
-    for expression in expressions:
+    for expression in expressions_suffix:
       # detect and remove common suffixes
       if endslike(title, expression):
         new_title = rclean(rmsuffix(title, expression))
@@ -168,6 +177,7 @@ def normalize_title_tag(title, artist, album):
           loop = True
           break
 
+    for expression in expressions_prefix:
       # detect and remove common prefixes
       if startslike(title, expression):
         new_title = lclean(rmprefix(title, expression))

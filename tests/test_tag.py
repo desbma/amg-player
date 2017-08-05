@@ -329,7 +329,27 @@ class TestTag(unittest.TestCase):
                   ("PATHOLOGY 'Pathology' promo (Lamentation)",
                    "Pathology",
                    "Pathology",
-                   "Lamentation"))
+                   "Lamentation"),
+                  ("Hexenklad - A Path to Ruin (Canadian Folk Influenced Black Metal)",
+                   "Hexenklad",
+                   "Spirit of the Stone",
+                   "A Path to Ruin"),
+                  ("Song Of Fire And Ice",
+                   "Bloodnut",
+                   "St. Ranga",
+                   "Song of Fire and Ice"),
+                  ("IIII: Here, At The Disposition Of Time (Inverting A Solar Giant)",
+                   "Tchornobog",
+                   "Tchornobog",
+                   "IIII: Here, At the Disposition of Time (Inverting a Solar Giant)"),
+                  ("II: Hallucinatory Black Breath Of Possession (Mountain-Eye Amalgamation)",
+                   "Tchornobog",
+                   "Tchornobog",
+                   "II: Hallucinatory Black Breath of Possession (Mountain-Eye Amalgamation)"),
+                  ("Temple of Void – \"Graven Desires\" (Lords of Death)",
+                   "Temple of Void",
+                   "Lords of Death",
+                   "Graven Desires"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
