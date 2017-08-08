@@ -264,7 +264,7 @@ def get_cover_data(review):
   cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
   cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
 
-  with mkstemp_ctx.mkstemp(suffix=".%s" % (cover_ext)) as filepath:
+  with mkstemp_ctx.mkstemp(prefix="amg_", suffix=".%s" % (cover_ext)) as filepath:
     fetch_ressource(cover_url, filepath)
 
     if cover_ext == "png":
@@ -323,7 +323,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
-  with tempfile.TemporaryDirectory() as tmp_dir:
+  with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
     logging.getLogger().info("Downloading audio for track(s) %s" % (" ".join(track_urls)))
     ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                         ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
@@ -381,12 +381,12 @@ def play(review, track_urls, *, merge_with_picture):
   # TODO support other players (vlc, avplay, ffplay...)
   merge_with_picture = merge_with_picture and HAS_FFMPEG
   if merge_with_picture:
-    with mkstemp_ctx.mkstemp(suffix=".jpg") as cover_filepath:
+    with mkstemp_ctx.mkstemp(prefix="amg_", suffix=".jpg") as cover_filepath:
       cover_data = get_cover_data(review)
       with open(cover_filepath, "wb") as f:
         f.write(cover_data)
 
-      with tempfile.TemporaryDirectory() as tmp_dir,\
+      with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir,\
               download_and_merge(review, track_urls, tmp_dir, cover_filepath) as merge_process:
         if merge_process is None:
           return
