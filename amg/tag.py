@@ -265,7 +265,7 @@ def normalize_title_tag(title, artist, album):
 
 
 def tag(track_filepath, review, cover_data):
-  """ Tag an audio file. """
+  """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
   logging.getLogger().info("Tagging file '%s'" % (track_filepath))
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.mp3.MP3):
@@ -280,6 +280,7 @@ def tag(track_filepath, review, cover_data):
     mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
   except KeyError:
     pass
+  tags = dict(mf)
 
   if isinstance(mf, mutagen.easyid3.EasyID3) or isinstance(mf, mutagen.easymp4.EasyMP4):
     # EasyXXX helpers do not allow embedding album art or RG tags, reopen as normal mutagen file
@@ -294,6 +295,8 @@ def tag(track_filepath, review, cover_data):
   add_rg_or_r128_tag(track_filepath, mf)
 
   mf.save()
+
+  return tags
 
 
 def get_r128_loudness(audio_filepath):

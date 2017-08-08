@@ -355,6 +355,7 @@ def download_audio(review, track_urls):
       cover_data = None
 
     # add tags & embed cover (using thread pool because R128 scan is CPU intensive)
+    files_tags = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
       futures = {}
 
@@ -363,15 +364,29 @@ def download_audio(review, track_urls):
 
       for track_filepath, future in futures.items():
         try:
-          future.result()
+          file_tags = future.result()
         except Exception as e:
           # raise
           logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
                                                                                e.__class__.__qualname__))
+        else:
+          files_tags[track_filepath] = file_tags
 
     # move tracks
     for track_filepath in track_filepaths:
-      shutil.move(track_filepath, os.getcwd())
+      dest_filename = os.path.basename(track_filepath)
+      # add title tag in filename if available
+      try:
+        file_tags = files_tags[track_filepath]
+      except KeyError:
+        pass
+      else:
+        filename, ext = os.path.splitext(dest_filename)
+        filename = " - ".join((filename, sanitize.sanitize_for_path(file_tags["title"][0])))
+        dest_filename = "".join((filename, ext))
+      dest_filepath = os.path.join(os.getcwd(), dest_filename)
+      logging.getLogger().debug("Moving %s to %s" % (repr(track_filepath), repr(dest_filepath)))
+      shutil.move(track_filepath, dest_filepath)
 
     return True
 
