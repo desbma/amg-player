@@ -285,7 +285,7 @@ def get_cover_data(review):
 
 
 def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
-  """ Download track, and return ffmpeg process that outputs merged audio & album art, ot None if download failed. """
+  """ Download track, merge audio & album art, and return merged filepath. """
   # fetch audio
   # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
   ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
@@ -307,18 +307,21 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
       concat_file.write("file %s\n" % (audio_filepath))
 
   # merge
+  merged_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".mkv")
   cmd = ("ffmpeg",
          "-loglevel", "quiet",
-         "-loop", "1", "-framerate", "1", "-i", cover_filepath,
+         "-loop", "1", "-framerate", "0.05", "-i", cover_filepath,
          "-f", "concat", "-i", concat_filepath,
          "-map", "0:v", "-map", "1:a",
          "-filter:v", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
          "-c:a", "copy",
          "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
          "-shortest",
-         "-f", "matroska", "-")
+         "-f", "matroska", merged_filepath)
   logging.getLogger().debug("Merging Audio and image with command: %s" % (subprocess.list2cmdline(cmd)))
-  return subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=tmp_dir)
+  subprocess.check_call(cmd, cwd=tmp_dir)
+
+  return merged_filepath
 
 
 def download_audio(review, track_urls):
@@ -401,14 +404,13 @@ def play(review, track_urls, *, merge_with_picture):
       with open(cover_filepath, "wb") as f:
         f.write(cover_data)
 
-      with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir,\
-              download_and_merge(review, track_urls, tmp_dir, cover_filepath) as merge_process:
-        if merge_process is None:
+      with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
+        merged_filepath = download_and_merge(review, track_urls, tmp_dir, cover_filepath)
+        if merged_filepath is None:
           return
-        cmd = ("mpv", "--force-seekable=yes", "-")
+        cmd = ("mpv", merged_filepath)
         logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
-        subprocess.check_call(cmd, stdin=merge_process.stdout)
-        merge_process.terminate()
+        subprocess.check_call(cmd)
 
   else:
     for track_url in track_urls:
