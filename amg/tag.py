@@ -15,7 +15,7 @@ import unidecode
 from amg import HAS_FFMPEG, sanitize
 
 
-R128_REF_LOUDNESS_DBFS = -23
+R128_REF_LOUDNESS_DBFS = -18  # standard is -23, but de facto standard is -18 to match ReplayGain
 RG_REF_LOUDNESS_DBFS = -14
 
 
@@ -342,9 +342,7 @@ def add_rg_or_r128_tag(track_filepath, mf):
     mf["REPLAYGAIN_TRACK_PEAK"] = "%.8f" % (10 ** (peak / 20))
   elif isinstance(mf, mutagen.oggopus.OggOpus):
     # https://wiki.xiph.org/OggOpus#Comment_Header
-    # for now, use ReplayGain -14 dBFS as reference loudness
-    # this is what foobar2000 does
-    fp = encode_float_to_fixed_point_7dot8(RG_REF_LOUDNESS_DBFS - level)
+    fp = encode_float_to_fixed_point_7dot8(R128_REF_LOUDNESS_DBFS - level)
     assert(-32768 <= fp <= 32767)
     mf["R128_TRACK_GAIN"] = str(fp)
   elif isinstance(mf, mutagen.mp3.MP3):
