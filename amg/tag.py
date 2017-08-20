@@ -15,8 +15,7 @@ import unidecode
 from amg import HAS_FFMPEG, sanitize
 
 
-R128_REF_LOUDNESS_DBFS = -18  # standard is -23, but de facto standard is -18 to match ReplayGain
-RG_REF_LOUDNESS_DBFS = -14
+RG_R128_REF_LOUDNESS_DBFS = -18
 
 
 def normalize_title_tag(title, artist, album):
@@ -306,8 +305,8 @@ def get_r128_loudness(audio_filepath):
          "-hide_banner", "-nostats",
          "-i", audio_filepath,
          "-map", "a",
-         "-filter_complex", "ebur128=peak=true",
-         "-f", "null", "-")
+         "-filter:a", "ebur128=peak=true",
+         "-f", "null", "/dev/null")
   output = subprocess.check_output(cmd,
                                    stdin=subprocess.DEVNULL,
                                    stderr=subprocess.STDOUT,
@@ -337,19 +336,19 @@ def add_rg_or_r128_tag(track_filepath, mf):
 
   if isinstance(mf, mutagen.oggvorbis.OggVorbis):
     # https://wiki.xiph.org/VorbisComment#Replay_Gain
-    mf["REPLAYGAIN_TRACK_GAIN"] = "%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)
+    mf["REPLAYGAIN_TRACK_GAIN"] = "%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)
     # peak_dbfs = 20 * log10(max_sample) <=> max_sample = 10^(peak_dbfs / 20)
     mf["REPLAYGAIN_TRACK_PEAK"] = "%.8f" % (10 ** (peak / 20))
   elif isinstance(mf, mutagen.oggopus.OggOpus):
     # https://wiki.xiph.org/OggOpus#Comment_Header
-    fp = encode_float_to_fixed_point_7dot8(R128_REF_LOUDNESS_DBFS - level)
-    assert(-32768 <= fp <= 32767)
-    mf["R128_TRACK_GAIN"] = str(fp)
+    q78 = encode_float_to_fixed_point_7dot8(RG_R128_REF_LOUDNESS_DBFS - level)
+    assert(-32768 <= q78 <= 32767)
+    mf["R128_TRACK_GAIN"] = str(q78)
   elif isinstance(mf, mutagen.mp3.MP3):
     # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
     mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
                                  desc="REPLAYGAIN_TRACK_GAIN",
-                                 text="%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)))
+                                 text="%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)))
     mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
                                  desc="REPLAYGAIN_TRACK_PEAK",
                                  text="%.6f" % (10 ** (peak / 20))))
@@ -358,7 +357,7 @@ def add_rg_or_r128_tag(track_filepath, mf):
     # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RVA2
   elif isinstance(mf, mutagen.mp4.MP4):
     # https://github.com/xbmc/xbmc/blob/9e855967380ef3a5d25718ff2e6db5e3dd2e2829/xbmc/music/tags/TagLoaderTagLib.cpp#L806-L812
-    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"] = mutagen.mp4.MP4FreeForm(("%.2f dB" % (RG_REF_LOUDNESS_DBFS - level)).encode())
+    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"] = mutagen.mp4.MP4FreeForm(("%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)).encode())
     mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"] = mutagen.mp4.MP4FreeForm(("%.6f" % (10 ** (peak / 20))).encode())
 
 

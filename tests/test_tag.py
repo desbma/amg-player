@@ -386,7 +386,7 @@ class TestTag(unittest.TestCase):
     ref_tags = {"artist": [artist],
                 "album": [album]}
     if amg.HAS_FFMPEG:
-      ref_tags.update({"REPLAYGAIN_TRACK_GAIN": ["-6.30 dB"],
+      ref_tags.update({"REPLAYGAIN_TRACK_GAIN": ["-10.30 dB"],
                        "REPLAYGAIN_TRACK_PEAK": ["1.34896288"]})
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
@@ -404,7 +404,7 @@ class TestTag(unittest.TestCase):
     ref_tags = {"artist": [artist],
                 "album": [album]}
     if amg.HAS_FFMPEG:
-      ref_tags["R128_TRACK_GAIN"] = ["179"]
+      ref_tags["R128_TRACK_GAIN"] = ["-845"]
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
       self.assertEqual(tags[k], v)
@@ -421,7 +421,7 @@ class TestTag(unittest.TestCase):
     ref_tags = {"TPE1": [artist],
                 "TALB": [album]}
     if amg.HAS_FFMPEG:
-      ref_tags.update({"TXXX:REPLAYGAIN_TRACK_GAIN": ["1.30 dB"],
+      ref_tags.update({"TXXX:REPLAYGAIN_TRACK_GAIN": ["-2.70 dB"],
                        "TXXX:REPLAYGAIN_TRACK_PEAK": ["0.988553"]})
     for k, v in ref_tags.items():
       self.assertIn(k, tags)
@@ -443,7 +443,7 @@ class TestTag(unittest.TestCase):
     if amg.HAS_FFMPEG:
       self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN", tags)
       self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"]), 1)
-      self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"][0]), b"6.60 dB")
+      self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"][0]), b"2.60 dB")
       self.assertIn("----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK", tags)
       self.assertEqual(len(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"]), 1)
       self.assertEqual(bytes(tags["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"][0]), b"1.011579")
