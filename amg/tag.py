@@ -45,7 +45,7 @@ def normalize_title_tag(title, artist, album):
     return r
 
   def startslike(s, l):
-    return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).lower())
+    return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).rstrip(string.punctuation).lower())
   def endslike(s, l):
     norm_s = unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower()
     norm_l = unidecode.unidecode_expect_ascii(l).lower()
@@ -60,9 +60,9 @@ def normalize_title_tag(title, artist, album):
   expressions = []
   words1 = ("", "official", "new", "full", "the new")
   words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
-            "visual", "360", "studio")
+            "visual", "360", "studio", "audio")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-            "song", "in 4k", "visualizer", "album", "promo")
+            "song", "in 4k", "visualizer", "album", "promo", "only")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:

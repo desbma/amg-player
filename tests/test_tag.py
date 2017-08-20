@@ -349,7 +349,15 @@ class TestTag(unittest.TestCase):
                   ("Temple of Void – \"Graven Desires\" (Lords of Death)",
                    "Temple of Void",
                    "Lords of Death",
-                   "Graven Desires"))
+                   "Graven Desires"),
+                  ("THE NECROMANCERS - Salem Girl Pt.1 (AUDIO ONLY)",
+                   "The Necromancers",
+                   "Servants of the Salem Girl",
+                   "Salem Girl Pt.1"),
+                  ("VENOM INC - Dein Fleisch (OFFICIAL MUSIC VIDEO)",
+                   "Venom Inc.",
+                   "Avé",
+                   "Dein Fleisch"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
