@@ -357,7 +357,11 @@ class TestTag(unittest.TestCase):
                   ("VENOM INC - Dein Fleisch (OFFICIAL MUSIC VIDEO)",
                    "Venom Inc.",
                    "Avé",
-                   "Dein Fleisch"))
+                   "Dein Fleisch"),
+                  ("Akercocke - Disappear (from Renaissance in Extremis)",
+                   "Akercocke",
+                   "Renaissance In Extremis",
+                   "Disappear"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

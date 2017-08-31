@@ -226,7 +226,7 @@ def normalize_title_tag(title, artist, album):
         title = new_title
         loop = True
         # detect and remove album suffix's prefix
-        for suffix in ("taken from", "from the album"):
+        for suffix in ("taken from", "from the album", "from"):
           if endslike(title, suffix):
             new_title = rclean(rmsuffix(title, suffix))
             if new_title:
