@@ -366,17 +366,6 @@ class TestTag(unittest.TestCase):
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
 
-  @unittest.skipUnless(amg.HAS_FFMPEG, "FFmpeg is not installed")
-  def test_get_r128_loudness(self):
-    refs = ((self.vorbis_filepath, -7.7, 2.6),
-            (self.opus_filepath, -14.7, 1.1),
-            (self.mp3_filepath, -15.3, -0.1),
-            (self.m4a_filepath, -20.6, 0.1))
-    for filepath, level_ref, peak_ref in refs:
-      level, peak = amg.tag.get_r128_loudness(filepath)
-      self.assertAlmostEqual(level, level_ref, msg=filepath)
-      self.assertAlmostEqual(peak, peak_ref, msg=filepath)
-
   def test_tag(self):
     artist = "Artist"
     album = "Album"

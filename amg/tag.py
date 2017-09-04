@@ -10,12 +10,10 @@ import subprocess
 import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
+import r128gain
 import unidecode
 
 from amg import HAS_FFMPEG, sanitize
-
-
-RG_R128_REF_LOUDNESS_DBFS = -18
 
 
 def normalize_title_tag(title, artist, album):
@@ -281,84 +279,22 @@ def tag(track_filepath, review, cover_data):
     pass
   tags = dict(mf)
 
-  if isinstance(mf, mutagen.easyid3.EasyID3) or isinstance(mf, mutagen.easymp4.EasyMP4):
-    # EasyXXX helpers do not allow embedding album art or RG tags, reopen as normal mutagen file
-    mf.save()
-    mf = mutagen.File(track_filepath)
-
   if cover_data is not None:
+    if isinstance(mf, mutagen.easyid3.EasyID3) or isinstance(mf, mutagen.easymp4.EasyMP4):
+      # EasyXXX helpers do not allow embedding album art, reopen as normal mutagen file
+      mf.save()
+      mf = mutagen.File(track_filepath)
+
     # embed album art
     embed_album_art(mf, cover_data)
 
-  # RG/R128
-  add_rg_or_r128_tag(track_filepath, mf)
-
   mf.save()
 
+  # RG/R128
+  if HAS_FFMPEG:
+    r128gain.process((track_filepath, ))
+
   return tags
-
-
-def get_r128_loudness(audio_filepath):
-  """ Get R128 loudness level and peak, in dbFS. """
-  logging.getLogger().info("Analyzing loudness of file '%s'" % (audio_filepath))
-  cmd = ("ffmpeg",
-         "-hide_banner", "-nostats",
-         "-i", audio_filepath,
-         "-map", "a",
-         "-filter:a", "ebur128=peak=true",
-         "-f", "null", "/dev/null")
-  output = subprocess.check_output(cmd,
-                                   stdin=subprocess.DEVNULL,
-                                   stderr=subprocess.STDOUT,
-                                   universal_newlines=True)
-  output = output.splitlines()
-  for i in reversed(range(len(output))):
-    line = output[i]
-    if line.startswith("[Parsed_ebur128") and line.endswith("Summary:"):
-      break
-  output = filter(None, map(str.strip, output[i:]))
-  r128_stats = dict(tuple(map(str.strip, line.split(":", 1))) for line in output if not line.endswith(":"))
-  r128_stats = {k: float(v.split(" ", 1)[0]) for k, v in r128_stats.items()}
-  return r128_stats["I"], r128_stats["Peak"]
-
-
-def encode_float_to_fixed_point_7dot8(f):
-  """ Encode float f to a fixed point Q7.8 integer. """
-  # https://en.wikipedia.org/wiki/Q_(number_format)#Float_to_Q
-  return int(round(f * (2 ** 8), 0))
-
-
-def add_rg_or_r128_tag(track_filepath, mf):
-  """ Add ReplayGain/R128 tags to file. """
-  if not HAS_FFMPEG:
-    return
-  level, peak = get_r128_loudness(track_filepath)
-
-  if isinstance(mf, mutagen.oggvorbis.OggVorbis):
-    # https://wiki.xiph.org/VorbisComment#Replay_Gain
-    mf["REPLAYGAIN_TRACK_GAIN"] = "%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)
-    # peak_dbfs = 20 * log10(max_sample) <=> max_sample = 10^(peak_dbfs / 20)
-    mf["REPLAYGAIN_TRACK_PEAK"] = "%.8f" % (10 ** (peak / 20))
-  elif isinstance(mf, mutagen.oggopus.OggOpus):
-    # https://wiki.xiph.org/OggOpus#Comment_Header
-    q78 = encode_float_to_fixed_point_7dot8(RG_R128_REF_LOUDNESS_DBFS - level)
-    assert(-32768 <= q78 <= 32767)
-    mf["R128_TRACK_GAIN"] = str(q78)
-  elif isinstance(mf, mutagen.mp3.MP3):
-    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_2.0_specification#ID3v2
-    mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
-                                 desc="REPLAYGAIN_TRACK_GAIN",
-                                 text="%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)))
-    mf.tags.add(mutagen.id3.TXXX(encoding=mutagen.id3.Encoding.LATIN1,
-                                 desc="REPLAYGAIN_TRACK_PEAK",
-                                 text="%.6f" % (10 ** (peak / 20))))
-    # other legacy formats:
-    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RGAD
-    # http://wiki.hydrogenaud.io/index.php?title=ReplayGain_legacy_metadata_formats#ID3v2_RVA2
-  elif isinstance(mf, mutagen.mp4.MP4):
-    # https://github.com/xbmc/xbmc/blob/9e855967380ef3a5d25718ff2e6db5e3dd2e2829/xbmc/music/tags/TagLoaderTagLib.cpp#L806-L812
-    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_GAIN"] = mutagen.mp4.MP4FreeForm(("%.2f dB" % (RG_R128_REF_LOUDNESS_DBFS - level)).encode())
-    mf["----:COM.APPLE.ITUNES:REPLAYGAIN_TRACK_PEAK"] = mutagen.mp4.MP4FreeForm(("%.6f" % (10 ** (peak / 20))).encode())
 
 
 def has_embedded_album_art(filepath):
