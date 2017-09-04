@@ -38,7 +38,7 @@ Playing a track:
 
 ## Installation
 
-Angry Metal Guy Player requires [Python](https://www.python.org/downloads/) >= 3.3.
+Angry Metal Guy Player requires [Python](https://www.python.org/downloads/) >= 3.4.
 Some features are only available if [FFmpeg](https://ffmpeg.org/download.html) >= 2.3 is installed.
 
 ### From PyPI (with PIP)
