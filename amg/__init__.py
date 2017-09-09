@@ -368,7 +368,7 @@ def download_audio(review, track_urls):
                                                                                 e))
     # RG/R128
     if HAS_FFMPEG:
-      r128gain.process(track_filepaths, album_gain=True)
+      r128gain.process(track_filepaths, album_gain=len(track_filepaths) > 1)
 
     # move tracks
     for track_filepath in track_filepaths:
