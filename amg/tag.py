@@ -5,15 +5,13 @@ import logging
 import operator
 import re
 import string
-import subprocess
 
 import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
-import r128gain
 import unidecode
 
-from amg import HAS_FFMPEG, sanitize
+from amg import sanitize
 
 
 def normalize_title_tag(title, artist, album):
@@ -289,10 +287,6 @@ def tag(track_filepath, review, cover_data):
     embed_album_art(mf, cover_data)
 
   mf.save()
-
-  # RG/R128
-  if HAS_FFMPEG:
-    r128gain.process((track_filepath, ))
 
   return tags
 

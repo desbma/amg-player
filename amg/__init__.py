@@ -8,7 +8,6 @@ __license__ = "GPLv3"
 
 import argparse
 import collections
-import concurrent.futures
 import contextlib
 import datetime
 import enum
@@ -39,8 +38,8 @@ from amg import tag
 import appdirs
 import lxml.cssselect
 import lxml.etree
-
 import PIL.Image
+import r128gain
 import requests
 import web_cache
 import youtube_dl
@@ -357,23 +356,19 @@ def download_audio(review, track_urls):
     else:
       cover_data = None
 
-    # add tags & embed cover (using thread pool because R128 scan is CPU intensive)
+    # add tags & embed cover
     files_tags = {}
-    with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-      futures = {}
-
-      for track_filepath in track_filepaths:
-        futures[track_filepath] = executor.submit(tag.tag, track_filepath, review, cover_data)
-
-      for track_filepath, future in futures.items():
-        try:
-          file_tags = future.result()
-        except Exception as e:
-          # raise
-          logging.getLogger().warning("Failed to add tags to file '%s': %s" % (track_filepath,
-                                                                               e.__class__.__qualname__))
-        else:
-          files_tags[track_filepath] = file_tags
+    for track_filepath in track_filepaths:
+      try:
+        files_tags[track_filepath] = tag.tag(track_filepath, review, cover_data)
+      except Exception as e:
+        # raise
+        logging.getLogger().warning("Failed to add tags to file '%s': %s %s" % (track_filepath,
+                                                                                e.__class__.__qualname__,
+                                                                                e))
+    # RG/R128
+    if HAS_FFMPEG:
+      r128gain.process(track_filepaths, album_gain=True)
 
     # move tracks
     for track_filepath in track_filepaths:
