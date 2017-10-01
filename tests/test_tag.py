@@ -361,7 +361,11 @@ class TestTag(unittest.TestCase):
                   ("Akercocke - Disappear (from Renaissance in Extremis)",
                    "Akercocke",
                    "Renaissance In Extremis",
-                   "Disappear"))
+                   "Disappear"),
+                  ("SYN ZE SASE TRI - \"TĂRÎMU' DE LUMINĂ\"",
+                   "Syn Ze Șase Tri",
+                   "Zăul moș",
+                   "Tarimu' de Lumina"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
