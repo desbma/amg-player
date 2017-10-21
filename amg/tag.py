@@ -140,13 +140,16 @@ def normalize_title_tag(title, artist, album):
         loop = True
 
     # detect and remove '- xxx metal' suffix
-    if endslike(title, "metal"):  # performance optimization
-      match = re.search("[\-|\(\[/]+[ ]*(?:[a-z/-]+[ ]*)+metal$", title.rstrip(string.punctuation), re.IGNORECASE)
-      if match:
-        new_title = rclean(title[:match.start(0)])
-        if new_title:
-          title = new_title
-          loop = True
+    for genre in ("metal", "grind"):
+      if endslike(title, genre):  # performance optimization
+        match = re.search("[\-|\(\[/]+[ ]*(?:[a-z/-]+[ ]*)+" + genre + "$",
+                          title.rstrip(string.punctuation),
+                          re.IGNORECASE)
+        if match:
+          new_title = rclean(title[:match.start(0)])
+          if new_title:
+            title = new_title
+            loop = True
 
     # detect and remove  'album: xxx track yy' suffix
     match = re.search("album: .* track [0-9]*$", title.rstrip(string.punctuation), re.IGNORECASE)

@@ -365,7 +365,11 @@ class TestTag(unittest.TestCase):
                   ("SYN ZE SASE TRI - \"TĂRÎMU' DE LUMINĂ\"",
                    "Syn Ze Șase Tri",
                    "Zăul moș",
-                   "Tarimu' de Lumina"))
+                   "Tarimu' de Lumina"),
+                  ("GUTSLIT (India) - Brazen Bull (Brutal Death Metal/Grind)",
+                   "Gutslit",
+                   "Amputheatre",
+                   "Brazen Bull"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
