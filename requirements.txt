@@ -8,4 +8,4 @@ r128gain>=0.5.0
 requests>=2.6.0
 unidecode>=0.4.20
 web_cache>=1.0.2
-youtube-dl>=2017.09.15
+youtube-dl>=2017.10.20
