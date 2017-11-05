@@ -217,7 +217,7 @@ class TestTag(unittest.TestCase):
                   ("VESCERA feat.Michael Vescera  - Beyond The Fight - album/tour  teaser 2017",
                    "Vescera",
                    "Beyond the Fight",
-                   "feat.Michael"),  # the source string here is broken beyond any hope of salvation
+                   "feat.Michael Vescera"),  # the source string here is broken beyond any hope of salvation
                   ("Horte:  9  (Official Visual Presentation)",
                    "Horte",
                    "Horte",
@@ -369,7 +369,11 @@ class TestTag(unittest.TestCase):
                   ("GUTSLIT (India) - Brazen Bull (Brutal Death Metal/Grind)",
                    "Gutslit",
                    "Amputheatre",
-                   "Brazen Bull"))
+                   "Brazen Bull"),
+                  ("VAULTWRAITH \"The Vaultwraith\"",
+                   "Vaultwraith",
+                   "Death Is Proof of Satan’s Power",
+                   "The Vaultwraith"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

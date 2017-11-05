@@ -121,6 +121,7 @@ def normalize_title_tag(title, artist, album):
 
   title = rclean(title.strip(string.whitespace))
 
+  artist_removed = False
   loop = True
   while loop:
     loop = False
@@ -187,29 +188,34 @@ def normalize_title_tag(title, artist, album):
     if loop:
       continue
 
-    # detect and remove artist prefix
-    if startslike(title, artist):
-      new_title = lclean(rmprefix(title, artist))
-      if new_title:
-        title = new_title
-        loop = True
-    elif startslike(title, artist.replace(" ", "")):
-      new_title = lclean(rmprefix(title, artist.replace(" ", "")))
-      if new_title:
-        title = new_title
-        loop = True
+    if not artist_removed:
+      # detect and remove artist prefix
+      if startslike(title, artist):
+        new_title = lclean(rmprefix(title, artist))
+        if new_title:
+          title = new_title
+          loop = True
+          artist_removed = True
+      elif startslike(title, artist.replace(" ", "")):
+        new_title = lclean(rmprefix(title, artist.replace(" ", "")))
+        if new_title:
+          title = new_title
+          loop = True
+          artist_removed = True
 
-    # detect and remove artist suffix
-    elif endslike(title, artist):
-      new_title = rclean(rmsuffix(title, artist))
-      if new_title:
-        title = new_title
-        loop = True
-    elif endslike(title, artist.replace(" ", "")):
-      new_title = rclean(rmsuffix(title, artist.replace(" ", "")))
-      if new_title:
-        title = new_title
-        loop = True
+      # detect and remove artist suffix
+      elif endslike(title, artist):
+        new_title = rclean(rmsuffix(title, artist))
+        if new_title:
+          title = new_title
+          loop = True
+          artist_removed = True
+      elif endslike(title, artist.replace(" ", "")):
+        new_title = rclean(rmsuffix(title, artist.replace(" ", "")))
+        if new_title:
+          title = new_title
+          loop = True
+          artist_removed = True
 
     # detect and remove album prefix
     elif startslike(title, album):
