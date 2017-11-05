@@ -373,7 +373,15 @@ class TestTag(unittest.TestCase):
                   ("VAULTWRAITH \"The Vaultwraith\"",
                    "Vaultwraith",
                    "Death Is Proof of Satan’s Power",
-                   "The Vaultwraith"))
+                   "The Vaultwraith"),
+                  ("FORGOTTEN TOMB - We Owe You Nothing (UNCENSORED)",
+                   "Forgotten Tomb",
+                   "We Owe You Nothing",
+                   "We Owe You Nothing"),
+                  ("Thy Serpent's Cult/ Track 02 Diabolic Force  from New Album 'Supremacy of Chaos' LP 2016",
+                   "Thy Serpent’s Cult",
+                   "Supremacy of Chaos",
+                   "Diabolic Force"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

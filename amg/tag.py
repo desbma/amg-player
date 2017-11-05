@@ -69,7 +69,8 @@ def normalize_title_tag(title, artist, album):
           else:
             expressions.append(w3)
   expressions.extend(("pre-orders available", "preorders available", "hd",
-                      "official", "pre-listening", "prelistening", "trollzorn"))
+                      "official", "pre-listening", "prelistening", "trollzorn",
+                      "uncensored"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
@@ -152,10 +153,10 @@ def normalize_title_tag(title, artist, album):
             title = new_title
             loop = True
 
-    # detect and remove  'album: xxx track yy' suffix
-    match = re.search("album: .* track [0-9]*$", title.rstrip(string.punctuation), re.IGNORECASE)
+    # detect and remove  'album: xxx track yy'
+    match = re.search("(album: .* )?track [0-9]+", title.rstrip(string.punctuation), re.IGNORECASE)
     if match:
-      new_title = rclean(title[:match.start(0)])
+      new_title = rclean(title[:match.start(0)]) + " " + lclean(title[match.end(0):])
       if new_title:
         title = new_title
         loop = True
@@ -263,7 +264,7 @@ def normalize_title_tag(title, artist, album):
   title = sanitize.normalize_tag_case(title)
 
   if title != original_title:
-    logging.getLogger().debug("Fixed title tag: '%s' -> '%s'" % (original_title, title))
+    logging.getLogger().debug("Fixed title tag: %s -> %s" % (repr(original_title), repr(title)))
 
   return title
 
