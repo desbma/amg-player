@@ -381,7 +381,11 @@ class TestTag(unittest.TestCase):
                   ("Thy Serpent's Cult/ Track 02 Diabolic Force  from New Album 'Supremacy of Chaos' LP 2016",
                    "Thy Serpent’s Cult",
                    "Supremacy of Chaos",
-                   "Diabolic Force"))
+                   "Diabolic Force"),
+                  ("BLAZE OF PERDITION - Ashes Remain (Official Track Excerpt)",
+                   "Blaze of Perdition",
+                   "Conscious Darkness",
+                   "Ashes Remain"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
