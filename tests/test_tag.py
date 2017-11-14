@@ -385,7 +385,11 @@ class TestTag(unittest.TestCase):
                   ("BLAZE OF PERDITION - Ashes Remain (Official Track Excerpt)",
                    "Blaze of Perdition",
                    "Conscious Darkness",
-                   "Ashes Remain"))
+                   "Ashes Remain"),
+                  ("THREAT SIGNAL - Elimination Process (Official 360 VR Video)",
+                   "Threat Signal",
+                   "Disconnect",
+                   "Elimination Process"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

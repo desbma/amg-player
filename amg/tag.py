@@ -57,7 +57,7 @@ def normalize_title_tag(title, artist, album):
   words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
             "visual", "360", "studio", "audio")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-            "song", "in 4k", "visualizer", "album", "promo", "only", "excerpt")
+            "song", "in 4k", "visualizer", "album", "promo", "only", "excerpt", "vr")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
