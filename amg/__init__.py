@@ -90,7 +90,7 @@ def fetch_page(url, *, http_cache=None):
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug("Fetching '%s'..." % (url))
-  headers = {"User-Agent": ""}
+  headers = {"User-Agent": USER_AGENT}
   with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
     with open(dest_filepath, "wb") as dest_file:
