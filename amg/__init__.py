@@ -68,6 +68,7 @@ BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 9.1
+USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
 
 
 def fetch_page(url, *, http_cache=None):
@@ -77,7 +78,7 @@ def fetch_page(url, *, http_cache=None):
     page = http_cache[url]
   else:
     logging.getLogger().debug("Fetching '%s'..." % (url))
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": USER_AGENT}
     response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT)
     response.raise_for_status()
     page = response.content
@@ -89,7 +90,7 @@ def fetch_page(url, *, http_cache=None):
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug("Fetching '%s'..." % (url))
-  headers = {"User-Agent": "Mozilla/5.0"}
+  headers = {"User-Agent": USER_AGENT}
   with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
     with open(dest_filepath, "wb") as dest_file:
