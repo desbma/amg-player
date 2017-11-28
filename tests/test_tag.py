@@ -389,7 +389,11 @@ class TestTag(unittest.TestCase):
                   ("THREAT SIGNAL - Elimination Process (Official 360 VR Video)",
                    "Threat Signal",
                    "Disconnect",
-                   "Elimination Process"))
+                   "Elimination Process"),
+                  ("Death Toll 80k - Cause / Avoid (2017 - Grindcore)",
+                   "Death Toll 80k",
+                   "Step Down",
+                   "Cause / Avoid"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
