@@ -393,7 +393,11 @@ class TestTag(unittest.TestCase):
                   ("Death Toll 80k - Cause / Avoid (2017 - Grindcore)",
                    "Death Toll 80k",
                    "Step Down",
-                   "Cause / Avoid"))
+                   "Cause / Avoid"),
+                  ("Loch Vostok - Summer (Official lyric)",
+                   "Loch Vostok",
+                   "Strife",
+                   "Summer"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
