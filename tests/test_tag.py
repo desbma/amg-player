@@ -397,7 +397,11 @@ class TestTag(unittest.TestCase):
                   ("Loch Vostok - Summer (Official lyric)",
                    "Loch Vostok",
                    "Strife",
-                   "Summer"))
+                   "Summer"),
+                  ("SEA GOAT - Friends (Song Stream) // [Record Label: Swan Lake Records]",
+                   "Sea Goat",
+                   "Tata",
+                   "Friends"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)

@@ -120,6 +120,13 @@ def normalize_title_tag(title, artist, album):
     if new_title:
       title = new_title
 
+  # detect and remove 'record label xxx' suffix
+  match = re.search("record label:? [a-z0-9 ]*$", title.rstrip(string.punctuation), re.IGNORECASE)
+  if match:
+    new_title = rclean(title[:match.start(0)])
+    if new_title:
+      title = new_title
+
   title = rclean(title.strip(string.whitespace))
 
   artist_removed = False
