@@ -149,7 +149,7 @@ def normalize_title_tag(title, artist, album):
         loop = True
 
     # detect and remove '- xxx metal' suffix
-    for genre in ("metal", "grindcore", "grind"):
+    for genre in ("metal", "crust", "grindcore", "grind"):
       if endslike(title, genre):  # performance optimization
         match = re.search("[\-|\(\[/]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "$",
                           title.rstrip(string.punctuation),

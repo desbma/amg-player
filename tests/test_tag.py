@@ -401,7 +401,11 @@ class TestTag(unittest.TestCase):
                   ("SEA GOAT - Friends (Song Stream) // [Record Label: Swan Lake Records]",
                    "Sea Goat",
                    "Tata",
-                   "Friends"))
+                   "Friends"),
+                  ("MARGINAL (Belgium) - Delirium Tremens (Grindcore/Crust) Transcending Obscurity Records",
+                   "Marginal",
+                   "Total Destruction",
+                   "Delirium Tremens"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
