@@ -55,9 +55,9 @@ def normalize_title_tag(title, artist, album):
   expressions = []
   words1 = ("", "official", "new", "full", "the new")
   words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
-            "visual", "360", "studio", "audio")
+            "visual", "360", "studio", "audio", "song")
   words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-            "song", "in 4k", "visualizer", "album", "promo", "only", "excerpt", "vr", "lyric")
+            "song", "in 4k", "4k", "visualizer", "album", "promo", "only", "excerpt", "vr", "lyric")
   for w1 in words1:
     for w2 in words2:
       for w3 in words3:
@@ -70,7 +70,7 @@ def normalize_title_tag(title, artist, album):
             expressions.append(w3)
   expressions.extend(("pre-orders available", "preorders available", "hd",
                       "official", "pre-listening", "prelistening", "trollzorn",
-                      "uncensored"))
+                      "uncensored", "s/t"))
   year = datetime.datetime.today().year
   for y in range(year - 5, year + 1):
     expressions.append(str(y))
@@ -78,9 +78,9 @@ def normalize_title_tag(title, artist, album):
       expressions.append("%s %u" % (month_name, y))
       expressions.append("%s %u" % (month_abbr, y))
   expressions.sort(key=len, reverse=True)
+  expressions.remove("song")
   expressions_suffix = expressions
   expressions_prefix = expressions.copy()
-  expressions_prefix.remove("song")
 
   # remove consecutive spaces
   title = " ".join(title.split())
@@ -133,6 +133,14 @@ def normalize_title_tag(title, artist, album):
   loop = True
   while loop:
     loop = False
+
+    # detect and remove track number prefix
+    match = re.search("^[0-9]+ - ", title, re.IGNORECASE)
+    if match:
+      new_title = lclean(title[match.end(0):])
+      if new_title:
+        title = new_title
+        loop = True
 
     # detect and remove 'xxx records' suffix
     expression = "records"

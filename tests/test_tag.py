@@ -405,7 +405,19 @@ class TestTag(unittest.TestCase):
                   ("MARGINAL (Belgium) - Delirium Tremens (Grindcore/Crust) Transcending Obscurity Records",
                    "Marginal",
                    "Total Destruction",
-                   "Delirium Tremens"))
+                   "Delirium Tremens"),
+                  ("Scars Of Armageddon   Lockdown 4K",
+                   "Scars of Armageddon",
+                   "Dead End",
+                   "Lockdown"),
+                  ("Satan's Hallow - S/T [2017] - 9 - Beyond The Bells",
+                   "Satan’s Hallow",
+                   "Satan’s Hallow",
+                   "Beyond the Bells"),
+                  ("PRISTINE - The Rebel Song (OFFICIAL VIDEO)",
+                   "Pristine",
+                   "Ninja",
+                   "The Rebel Song"))
 
     for before, artist, album, after in references:
       self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
