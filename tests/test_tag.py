@@ -419,8 +419,9 @@ class TestTag(unittest.TestCase):
                    "Ninja",
                    "The Rebel Song"))
 
-    for before, artist, album, after in references:
-      self.assertEqual(amg.tag.normalize_title_tag(before, artist, album), after)
+    for source, artist, album, expected_result in references:
+      with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
+        self.assertEqual(amg.tag.normalize_title_tag(source, artist, album), expected_result)
 
   def test_tag(self):
     artist = "Artist"
