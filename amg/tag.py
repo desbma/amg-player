@@ -2,6 +2,7 @@ import abc
 import base64
 import calendar
 import datetime
+import functools
 import logging
 import operator
 import re
@@ -21,6 +22,8 @@ class TitleNormalizer:
 
   def __init__(self, artist, album):
     self.cleaners = []
+
+    # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
 
     # remove consecutive spaces
     self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), execute_once=True))
@@ -197,14 +200,22 @@ class TitleCleanerBase:
       r = c
     return r
 
+  @functools.lru_cache(maxsize=32768)
+  def rnorm(self, s):
+    return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower()
+
+  @functools.lru_cache(maxsize=32768)
+  def lnorm(self, s):
+    return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower()
+
   def startslike(self, s, l):
     """ Return True if start of string s is similar to l. """
-    return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower().startswith(unidecode.unidecode_expect_ascii(l).rstrip(string.punctuation).lower())
+    return self.lnorm(s).startswith(self.rnorm(l))
 
   def endslike(self, s, l):
     """ Return True if end of string s is similar to l. """
-    norm_s = unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower()
-    norm_l = unidecode.unidecode_expect_ascii(l).lower()
+    norm_s = self.rnorm(s)
+    norm_l = self.rnorm(l)
     trunc = norm_s[:-len(norm_l)]
     return (norm_s.endswith(norm_l) and ((not trunc) or (not norm_s[:-len(norm_l)][-1].isalnum())))
 
