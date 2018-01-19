@@ -59,6 +59,10 @@ class TitleNormalizer:
     for genre in ("metal", "crust", "grindcore", "grind"):
       self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "$", suffix=genre))
 
+    # detect and remove 'xxx metal' prefix
+    for genre in ("death",):
+      self.registerCleaner(RegexPrefixCleaner("^" + genre + "[a-z- ]* metal "))
+
     # build list of common useless expressions
     expressions = []
     words1 = ("", "official", "new", "full", "the new")

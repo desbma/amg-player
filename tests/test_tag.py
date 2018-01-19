@@ -417,7 +417,11 @@ class TestTag(unittest.TestCase):
                   ("PRISTINE - The Rebel Song (OFFICIAL VIDEO)",
                    "Pristine",
                    "Ninja",
-                   "The Rebel Song"))
+                   "The Rebel Song"),
+                  ("Death Doom Metal - DRUID LORD \"House of Dripping Gore\"",
+                   "Druid Lord",
+                   "Grotesque Offerings",
+                   "House of Dripping Gore"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
