@@ -82,7 +82,8 @@ class TitleNormalizer:
               expressions.append(w3)
     expressions.extend(("pre-orders available", "preorders available", "hd",
                         "official", "pre-listening", "prelistening", "trollzorn",
-                        "uncensored", "s/t"))
+                        "uncensored", "s/t",
+                        "transcending obscurity india"))  # crappy label suffixes TODO how to handle that?
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):
       expressions.append(str(y))
@@ -279,11 +280,15 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
       return SimplePrefixCleaner.cleanup(self, title, artist)
     elif self.startslike(title, artist.replace(" ", "")):
       return SimplePrefixCleaner.cleanup(self, title, artist.replace(" ", ""))
+    elif self.startslike(title, artist.replace("and", "&")):
+      return SimplePrefixCleaner.cleanup(self, title, artist.replace("and", "&"))
     # detect and remove artist suffix
     elif self.endslike(title, artist):
       return SimpleSuffixCleaner.cleanup(self, title, artist)
     elif self.endslike(title, artist.replace(" ", "")):
       return SimpleSuffixCleaner.cleanup(self, title, artist.replace(" ", ""))
+    elif self.endslike(title, artist.replace("and", "&")):
+      return SimpleSuffixCleaner.cleanup(self, title, artist.replace("and", "&"))
     return title
 
 

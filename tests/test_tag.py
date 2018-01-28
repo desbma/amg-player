@@ -421,7 +421,11 @@ class TestTag(unittest.TestCase):
                   ("Death Doom Metal - DRUID LORD \"House of Dripping Gore\"",
                    "Druid Lord",
                    "Grotesque Offerings",
-                   "House of Dripping Gore"))
+                   "House of Dripping Gore"),
+                  ("DJINN & MISKATONIC (India) - Frost And Steel (Doom Metal) Transcending Obscurity India HD",
+                   "Djinn and Miskatonic",
+                   "Even Gods Must Die",
+                   "Frost and Steel"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
