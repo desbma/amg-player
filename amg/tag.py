@@ -275,20 +275,16 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   def cleanup(self, title, artist):
     """ See TitleCleanerBase.cleanup. """
-    # detect and remove artist prefix
-    if self.startslike(title, artist):
-      return SimplePrefixCleaner.cleanup(self, title, artist)
-    elif self.startslike(title, artist.replace(" ", "")):
-      return SimplePrefixCleaner.cleanup(self, title, artist.replace(" ", ""))
-    elif self.startslike(title, artist.replace("and", "&")):
-      return SimplePrefixCleaner.cleanup(self, title, artist.replace("and", "&"))
-    # detect and remove artist suffix
-    elif self.endslike(title, artist):
-      return SimpleSuffixCleaner.cleanup(self, title, artist)
-    elif self.endslike(title, artist.replace(" ", "")):
-      return SimpleSuffixCleaner.cleanup(self, title, artist.replace(" ", ""))
-    elif self.endslike(title, artist.replace("and", "&")):
-      return SimpleSuffixCleaner.cleanup(self, title, artist.replace("and", "&"))
+    for s in (artist,
+              artist.replace(" ", ""),
+              artist.replace("and", "&"),
+              artist.replace("’", "")):
+      # detect and remove artist prefix
+      if self.startslike(title, s):
+        return SimplePrefixCleaner.cleanup(self, title, s)
+      # detect and remove artist suffix
+      elif self.endslike(title, s):
+        return SimpleSuffixCleaner.cleanup(self, title, s)
     return title
 
 

@@ -425,7 +425,11 @@ class TestTag(unittest.TestCase):
                   ("DJINN & MISKATONIC (India) - Frost And Steel (Doom Metal) Transcending Obscurity India HD",
                    "Djinn and Miskatonic",
                    "Even Gods Must Die",
-                   "Frost and Steel"))
+                   "Frost and Steel"),
+                  ("Harms Way \"Call My Name\" (OFFICIAL)",
+                   "Harm’s Way",
+                   "Posthuman",
+                   "Call My Name"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
