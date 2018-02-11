@@ -65,10 +65,10 @@ class TitleNormalizer:
 
     # build list of common useless expressions
     expressions = []
-    words1 = ("", "official", "new", "full", "the new")
+    words1 = ("", "official", "new", "full", "the new", "stop motion")
     words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
               "visual", "360", "studio", "audio", "song")
-    words3 = ("video", "track", "premiere", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
+    words3 = ("video", "track", "premiere", "premier", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
               "song", "in 4k", "4k", "visualizer", "album", "promo", "only", "excerpt", "vr", "lyric")
     for w1 in words1:
       for w2 in words2:

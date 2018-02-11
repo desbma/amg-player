@@ -429,7 +429,11 @@ class TestTag(unittest.TestCase):
                   ("Harms Way \"Call My Name\" (OFFICIAL)",
                    "Harm’s Way",
                    "Posthuman",
-                   "Call My Name"))
+                   "Call My Name"),
+                  ("Marriage + Cancer - 'GOD IS TAN' Stop Motion Video Premier",
+                   "Marriage + Cancer",
+                   "Marriage + Cancer",
+                   "God Is Tan"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
