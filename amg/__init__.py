@@ -59,8 +59,10 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
 ROOT_URL = "https://www.angrymetalguy.com/"
 LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
-REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.category-review, "  # .tag-review is sometimes missing
+REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.category-review, "
                                                    "article.category-reviews, "
+                                                   "article.tag-review, "
+                                                   "article.tag-reviews, "
                                                    "article[class*=tag-things-you-might-have-missed-]")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
