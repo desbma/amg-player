@@ -41,10 +41,16 @@ class TitleNormalizer:
     self.registerCleaner(RegexSuffixCleaner("from .* album", execute_once=True))
 
     # detect and remove 'xxx out: yy.zz.aa' suffix
-    self.registerCleaner(RegexSuffixCleaner(" [^ ]* out: [0-9]*.[0-9]*.[0-9]*", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(" [^ ]* out: [0-9]+.[0-9]+.[0-9]+", execute_once=True))
+
+    # detect and remove 'out yy.zz' suffix
+    self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+", execute_once=True))
 
     # detect and remove '[xxx music]' suffix
     self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z]* music$", execute_once=True))
+
+    # detect and remove 'xxx entertainment' suffix
+    self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z]+ entertainment$", execute_once=True))
 
     # detect and remove 'record label xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]*$", execute_once=True))
@@ -365,7 +371,7 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
   """ Cleaner to remove record suffix. """
 
   def __init__(self, **kwargs):
-    super().__init__("[|\)\(\[][0-9a-z ]*records$", suffix="records", **kwargs)
+    super().__init__("[|\)\(\[][0-9a-z ]+records$", suffix="records", **kwargs)
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """

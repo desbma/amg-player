@@ -433,7 +433,15 @@ class TestTag(unittest.TestCase):
                   ("Marriage + Cancer - 'GOD IS TAN' Stop Motion Video Premier",
                    "Marriage + Cancer",
                    "Marriage + Cancer",
-                   "God Is Tan"))
+                   "God Is Tan"),
+                  ("THAUROROD - 24601 (2018) // official lyric video // Drakkar Entertainment",
+                   "Thaurorod",
+                   "Coast of Gold",
+                   "24601"),
+                  ("Blackwülf - New Album out 2/24",
+                   "Blackwülf",
+                   "Sinister Sides",
+                   "Blackwülf"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
