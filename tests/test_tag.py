@@ -445,7 +445,11 @@ class TestTag(unittest.TestCase):
                   ("ARMORED DAWN - Barbarians In Black // Album Trailer (2018) //  AFM Records",
                    "Armored Dawn",
                    "Barbarians in Black",
-                   "Barbarians in Black"))
+                   "Barbarians in Black"),
+                  ("Conjurer - The Mire (Official Video)",
+                   "Conjurer",
+                   "Mire",
+                   "The Mire"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

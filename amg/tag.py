@@ -271,7 +271,9 @@ class SimpleSuffixCleaner(TitleCleanerBase):
   def cleanup(self, title, suffix):
     """ See TitleCleanerBase.cleanup. """
     if self.endslike(title, suffix):
-      title = self.rclean(self.rmsuffix(title, suffix))
+      new_title = self.rclean(self.rmsuffix(title, suffix))
+      if new_title.lower() != "the":
+        title = new_title
     return title
 
 
