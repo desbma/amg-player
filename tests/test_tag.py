@@ -449,7 +449,11 @@ class TestTag(unittest.TestCase):
                   ("Conjurer - The Mire (Official Video)",
                    "Conjurer",
                    "Mire",
-                   "The Mire"))
+                   "The Mire"),
+                  ("Angra \"War Horns\" Official Music Video - New Album \"ØMNI\" out February 16th, 2018",
+                   "Angra",
+                   "ØMNI",
+                   "War Horns"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

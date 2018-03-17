@@ -46,6 +46,9 @@ class TitleNormalizer:
     # detect and remove 'out yy.zz' suffix
     self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+", execute_once=True))
 
+    # detect and remove 'out month xxth' suffix
+    self.registerCleaner(RegexSuffixCleaner(" out [a-z]+ [0-9]+th", execute_once=True))
+
     # detect and remove '[xxx music]' suffix
     self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z]* music$", execute_once=True))
 
