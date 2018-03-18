@@ -91,7 +91,7 @@ class TitleNormalizer:
               expressions.append(w3)
     expressions.extend(("pre-orders available", "preorders available", "hd",
                         "official", "pre-listening", "prelistening", "trollzorn",
-                        "uncensored", "s/t",
+                        "uncensored", "s/t", "sw exclusive",
                         "transcending obscurity india"))  # crappy label suffixes TODO how to handle that?
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):

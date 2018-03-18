@@ -453,7 +453,11 @@ class TestTag(unittest.TestCase):
                   ("Angra \"War Horns\" Official Music Video - New Album \"ØMNI\" out February 16th, 2018",
                    "Angra",
                    "ØMNI",
-                   "War Horns"))
+                   "War Horns"),
+                  ("PESTILENT REIGN - GUTTER'S FILTH [SINGLE] (2018) SW EXCLUSIVE",
+                   "Pestilent Reign",
+                   "Pyres",
+                   "Gutter's Filth"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
