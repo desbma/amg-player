@@ -457,7 +457,11 @@ class TestTag(unittest.TestCase):
                   ("PESTILENT REIGN - GUTTER'S FILTH [SINGLE] (2018) SW EXCLUSIVE",
                    "Pestilent Reign",
                    "Pyres",
-                   "Gutter's Filth"))
+                   "Gutter's Filth"),
+                  ("MELTED SPACE LYRIC VIDEO - THE DAWN OF MAN (I'M ALIVE!)",
+                   "Melted Space",
+                   "Darkening Light",
+                   "The Dawn of Man (I'm Alive!)"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

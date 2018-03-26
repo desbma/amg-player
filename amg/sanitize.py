@@ -47,6 +47,7 @@ def normalize_tag_case(s):
       new_word = old_word
     else:
       new_word = old_word.capitalize()
+    new_word = new_word.replace("I'M", "I'm")
     new_words.append(new_word)
     prev_word = old_word
   return " ".join(new_words)

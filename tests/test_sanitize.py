@@ -15,6 +15,7 @@ class TestSanitize(unittest.TestCase):
                   "EPISODE VIA": "Episode Via",
                   "VI VI VI": "VI VI VI",
                   "Episode VI: name": "Episode VI: Name",
-                  "Matsya - The Fish": "Matsya - The Fish"}
+                  "Matsya - The Fish": "Matsya - The Fish",
+                  "I'M ALIVE!": "I'm Alive!"}
     for before, after in references.items():
       self.assertEqual(sanitize.normalize_tag_case(before), after)
