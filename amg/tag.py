@@ -38,7 +38,7 @@ class TitleNormalizer:
     self.registerCleaner(RegexSuffixCleaner("from .* LP", execute_once=True))
 
     # detect and remove 'from xxx album' suffix
-    self.registerCleaner(RegexSuffixCleaner("from .* album", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("from .*album", execute_once=True))
 
     # detect and remove 'xxx out: yy.zz.aa' suffix
     self.registerCleaner(RegexSuffixCleaner(" [^ ]* out: [0-9]+.[0-9]+.[0-9]+", execute_once=True))

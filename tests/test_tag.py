@@ -461,7 +461,11 @@ class TestTag(unittest.TestCase):
                   ("MELTED SPACE LYRIC VIDEO - THE DAWN OF MAN (I'M ALIVE!)",
                    "Melted Space",
                    "Darkening Light",
-                   "The Dawn of Man (I'm Alive!)"))
+                   "The Dawn of Man (I'm Alive!)"),
+                  ("Altars of Grief - Desolation [From album; Iris; 2018]",
+                   "Altars of Grief",
+                   "Iris",
+                   "Desolation"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
