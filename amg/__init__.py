@@ -2,7 +2,7 @@
 
 """ Browse & play embedded tracks from Angry Metal Guy music reviews. """
 
-__version__ = "0.4.18"
+__version__ = "0.4.19"
 __author__ = "desbma"
 __license__ = "GPLv3"
 
@@ -346,6 +346,7 @@ def download_audio(review, track_urls):
       with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download(track_urls)
     except youtube_dl.utils.DownloadError as e:
+      raise e
       # already logged
       # logging.getLogger().warning("Download error : %s" % (e))
       pass
