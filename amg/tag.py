@@ -92,7 +92,8 @@ class TitleNormalizer:
     expressions.extend(("pre-orders available", "preorders available", "hd",
                         "official", "pre-listening", "prelistening", "trollzorn",
                         "uncensored", "s/t", "sw exclusive",
-                        "transcending obscurity india"))  # crappy label suffixes TODO how to handle that?
+                        "transcending obscurity india",  # crappy label suffixes TODO how to handle that?
+                        "trailer for the upcoming album"))
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):
       expressions.append(str(y))
@@ -122,6 +123,9 @@ class TitleNormalizer:
 
     # normalize case
     self.registerCleaner(FunctionCleaner(sanitize.normalize_tag_case, execute_once=True))
+
+    # post normalize case fix
+    self.registerCleaner(FunctionCleaner(lambda x: x.replace("PT.", "pt."), execute_once=True))
 
   def registerCleaner(self, cleaner, args=()):
     assert(isinstance(cleaner, TitleCleanerBase))

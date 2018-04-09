@@ -26,11 +26,12 @@ def normalize_tag_case(s):
   new_words = []
   prev_word = None
   roman_letters = frozenset("IVXLCDM")
+  punct_followed_all_uppercase = set(".-")
   punct_followed_uppercase = set(string.punctuation)
   punct_followed_uppercase.remove("'")
   for i, old_word in enumerate(old_words):
     if (((prev_word is not None) and
-            ((prev_word[-1] in punct_followed_uppercase) and old_word[0].isupper())) or
+            ((prev_word[-1] in punct_followed_all_uppercase) and old_word[0].isupper())) or
             ("." in old_word)):
       new_word = old_word
     elif old_word[0] in "(-":
@@ -40,7 +41,7 @@ def normalize_tag_case(s):
         new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
       else:
         new_word = old_word
-    elif (i != 0) and (old_word.lower() in TAG_LOWERCASE_WORDS):
+    elif (i != 0) and (old_word.lower() in TAG_LOWERCASE_WORDS) and (prev_word[-1] not in punct_followed_uppercase):
       new_word = old_word.lower()
     elif all(map(roman_letters.__contains__,
                  old_word.strip(string.punctuation))):

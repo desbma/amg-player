@@ -465,7 +465,15 @@ class TestTag(unittest.TestCase):
                   ("Altars of Grief - Desolation [From album; Iris; 2018]",
                    "Altars of Grief",
                    "Iris",
-                   "Desolation"))
+                   "Desolation"),
+                  ("MONOTHEIST - MARK OF THE BEAST PT. 2: SCION OF DARKNESS",
+                   "Monotheist",
+                   "Scourge",
+                   "Mark of the Beast pt. 2: Scion of Darkness"),
+                  ("SHADOWKEEP - Trailer for the upcoming album \"ShadowKeep\" (PURE STEEL RECORDS)",
+                   "Shadowkeep",
+                   "Shadowkeep",
+                   "Shadowkeep"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
