@@ -274,6 +274,8 @@ def get_cover_data(review):
     if cover_ext == "png":
       # convert to JPEG
       img = PIL.Image.open(filepath)
+      if img.mode != "RGB":
+        img = img.convert("RGB")
       f = io.BytesIO()
       img.save(f, format="JPEG", quality=90, optimize=True)
       f.seek(0)
