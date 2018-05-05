@@ -348,7 +348,8 @@ def download_audio(review, track_urls):
       with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         ydl.download(track_urls)
     except youtube_dl.utils.DownloadError as e:
-      raise e
+      #raise e
+      # TODO catch timeout and retry
       # already logged
       # logging.getLogger().warning("Download error : %s" % (e))
       pass
