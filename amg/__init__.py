@@ -20,6 +20,7 @@ import operator
 import os
 import shutil
 import shelve
+import socket
 import string
 import subprocess
 import tempfile
@@ -72,7 +73,8 @@ PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
-TCP_TIMEOUT = 30.1 if IS_TRAVIS else 9.1
+TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
+YDL_MAX_DOWNLOAD_TRIES = 5
 USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
 MAX_COVER_SIZE = 768
 
@@ -335,26 +337,27 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 def download_audio(review, track_urls):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
-    logging.getLogger().info("Downloading audio for track(s) %s" % (" ".join(track_urls)))
-    ydl_opts = {"outtmpl": os.path.join(tmp_dir,
-                                        ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
-                                        r"%(autonumber)s" +
-                                        (". %s - %s" % (sanitize.sanitize_for_path(review.artist.replace(os.sep, "_")),
-                                                        sanitize.sanitize_for_path(review.album.replace(os.sep, "_")))) +
-                                        r".%(ext)s"),
-                "format": "opus/vorbis/bestaudio",
-                "postprocessors": [{"key": "FFmpegExtractAudio"},
-                                   {"key": "FFmpegMetadata"}],
-                "socket_timeout": TCP_TIMEOUT}
-    try:
-      with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-        ydl.download(track_urls)
-    except youtube_dl.utils.DownloadError as e:
-      #raise e
-      # TODO catch timeout and retry
-      # already logged
-      # logging.getLogger().warning("Download error : %s" % (e))
-      pass
+    for try_idx in range(1, YDL_MAX_DOWNLOAD_TRIES + 1):
+      logging.getLogger().info("Downloading audio for track(s) %s (%u/%u)" % (" ".join(track_urls), try_idx, YDL_MAX_DOWNLOAD_TRIES))
+      ydl_opts = {"outtmpl": os.path.join(tmp_dir,
+                                          ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
+                                          r"%(autonumber)s" +
+                                          (". %s - %s" % (sanitize.sanitize_for_path(review.artist.replace(os.sep, "_")),
+                                                          sanitize.sanitize_for_path(review.album.replace(os.sep, "_")))) +
+                                          r".%(ext)s"),
+                  "format": "opus/vorbis/bestaudio",
+                  "postprocessors": [{"key": "FFmpegExtractAudio"},
+                                     {"key": "FFmpegMetadata"}],
+                  "socket_timeout": TCP_TIMEOUT}
+      try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+          ydl.download(track_urls)
+      except youtube_dl.utils.DownloadError as e:
+        if isinstance(e.exc_info[1], socket.timeout):
+          continue
+        # already logged
+        # logging.getLogger().warning("Download error : %s" % (e))
+      break
     track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
                                 os.listdir(tmp_dir)))
     if not track_filepaths:
