@@ -39,6 +39,7 @@ import appdirs
 import lxml.cssselect
 import lxml.etree
 import PIL.Image
+import PIL.ImageFilter
 import r128gain
 import requests
 import web_cache
@@ -73,6 +74,7 @@ REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 9.1
 USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
+MAX_COVER_SIZE = 768
 
 
 def fetch_page(url, *, http_cache=None):
@@ -362,6 +364,30 @@ def download_audio(review, track_urls):
     if not all(map(tag.has_embedded_album_art, track_filepaths)):
       # get cover
       cover_data = get_cover_data(review)
+
+      # post process cover
+      in_bytes = io.BytesIO(cover_data)
+      img = PIL.Image.open(in_bytes)
+      if img.mode != "RGB":
+        img = img.convert("RGB")
+      # resize covers above MAX_COVER_SIZExMAX_COVER_SIZE
+      if (img.size[0] > MAX_COVER_SIZE) or (img.size[1] > MAX_COVER_SIZE):
+        logging.getLogger().info("Resizing cover...")
+
+        # resize
+        img.thumbnail((MAX_COVER_SIZE, MAX_COVER_SIZE), PIL.Image.LANCZOS)
+
+        # apply unsharp filter to remove resize blur (equivalent to (images/graphics)magick -unsharp 1.5x1+0.7+0.02)
+        # we don't use PIL.ImageFilter.SHARPEN or PIL.ImageEnhance.Sharpness because we want precise control over
+        # parameters
+        unsharper = PIL.ImageFilter.UnsharpMask(radius=1.5, percent=70, threshold=5)
+        img = img.filter(unsharper)
+
+        # get bytes
+        out_bytes = io.BytesIO()
+        img.save(out_bytes, format="JPEG", quality=90, optimize=True)
+        cover_data = out_bytes.getvalue()
+
     else:
       cover_data = None
 
