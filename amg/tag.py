@@ -58,6 +58,9 @@ class TitleNormalizer:
     # detect and remove 'record label xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]*$", execute_once=True))
 
+    # detect and remove 'record label xxx' suffix
+    self.registerCleaner(RegexSuffixCleaner("next concert: .*$", execute_once=True))
+
     # detect and remove track number prefix
     self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - "))
 
