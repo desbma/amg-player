@@ -477,7 +477,11 @@ class TestTag(unittest.TestCase):
                   ("WHYZDOM (Symphonic Metal) - Armageddon. Next concert: Paris 26/5/18 La Boule Noire !",
                    "Whyzdom",
                    "As Time Turns to Dust",
-                   "Armageddon"))
+                   "Armageddon"),
+                  ("LORDI - Naked In My Cellar [Explicit Version] (2018) // Official Music Video // AFM Records",
+                   "Lordi",
+                   "Sexorcism",
+                   "Naked in My Cellar"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
