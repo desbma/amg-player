@@ -481,7 +481,11 @@ class TestTag(unittest.TestCase):
                   ("LORDI - Naked In My Cellar [Explicit Version] (2018) // Official Music Video // AFM Records",
                    "Lordi",
                    "Sexorcism",
-                   "Naked in My Cellar"))
+                   "Naked in My Cellar"),
+                  ("PANEGYRIST - Ophidian Crucifix (2018) I, Voidhanger Records",
+                   "Panegyrist",
+                   "Hierurgy",
+                   "Ophidian Crucifix"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

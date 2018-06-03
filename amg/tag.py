@@ -383,7 +383,7 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
   """ Cleaner to remove record suffix. """
 
   def __init__(self, **kwargs):
-    super().__init__("[|\)\(\[][0-9a-z ]+records$", suffix="records", **kwargs)
+    super().__init__("[|\)\(\[][0-9a-z, ]+records$", suffix="records", **kwargs)
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """
