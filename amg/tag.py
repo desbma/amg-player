@@ -65,7 +65,8 @@ class TitleNormalizer:
     self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - "))
 
     # detect and remove 'xxx records' suffix
-    self.registerCleaner(RecordsSuffixCleaner())
+    self.registerCleaner(RecordsSuffixCleaner("recordings"))
+    self.registerCleaner(RecordsSuffixCleaner("records"))
 
     # detect and remove '- xxx metal' suffix
     for genre in ("metal", "crust", "grindcore", "grind"):
@@ -382,8 +383,9 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
 
   """ Cleaner to remove record suffix. """
 
-  def __init__(self, **kwargs):
-    super().__init__("[|\)\(\[][0-9a-z, ]+records$", suffix="records", **kwargs)
+  def __init__(self, record_word, **kwargs):
+    self.record_word = record_word
+    super().__init__("[|\)\(\[][0-9a-z,/ ]+" + record_word + "$", suffix=record_word, **kwargs)
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """
@@ -393,7 +395,7 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
       # '(xxx yyy records)' suffix
       title = self.rclean(title[:match.start(0)])
     else:
-      title = SimpleSuffixCleaner.cleanup(self, title, "records")
+      title = SimpleSuffixCleaner.cleanup(self, title, self.record_word)
       title = self.rclean(" ".join(title.split()[:-1]))
     return title
 

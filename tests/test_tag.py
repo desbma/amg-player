@@ -485,7 +485,11 @@ class TestTag(unittest.TestCase):
                   ("PANEGYRIST - Ophidian Crucifix (2018) I, Voidhanger Records",
                    "Panegyrist",
                    "Hierurgy",
-                   "Ophidian Crucifix"))
+                   "Ophidian Crucifix"),
+                  ("ABSTRACTER - Ashen Reign (2018) I, Voidhanger Records/Sentient Ruin Laboratories/Daymare Recordings",
+                   "Abstracter",
+                   "Cinereous Incarnate",
+                   "Ashen Reign"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
