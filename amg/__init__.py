@@ -76,7 +76,7 @@ IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
 YDL_MAX_DOWNLOAD_TRIES = 5
 USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
-MAX_COVER_SIZE = 768
+MAX_COVER_SIZE = 1500
 
 
 def fetch_page(url, *, http_cache=None):
