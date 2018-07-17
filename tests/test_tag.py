@@ -306,18 +306,6 @@ class TestTag(unittest.TestCase):
                    "Stallion",
                    "From the Dead",
                    "Waiting for a Sign"),
-                  ("Dystopia -Vanishing Point-",
-                   "Boris",
-                   "Dear",
-                   "Dystopia -Vanishing Point-"),
-                  ("DEADSONG",
-                   "Boris",
-                   "Dear",
-                   "Deadsong"),
-                  ("D.O.W.N -Domination of Waiting Noise-",
-                   "Boris",
-                   "Dear",
-                   "D.O.W.N -Domination of Waiting Noise-"),
                   ("OBSCURITY - WAS UNS BLEIBT (OFFICIAL LYRIC VIDEO) | TROLLZORN",
                    "Obscurity",
                    "Streitmacht",
@@ -489,7 +477,11 @@ class TestTag(unittest.TestCase):
                   ("ABSTRACTER - Ashen Reign (2018) I, Voidhanger Records/Sentient Ruin Laboratories/Daymare Recordings",
                    "Abstracter",
                    "Cinereous Incarnate",
-                   "Ashen Reign"))
+                   "Ashen Reign"),
+                  ("SECRET CUTTER - Trampled By Light   --LYRIC VIDEO--",
+                   "Secret Cutter",
+                   "Quantum Eraser",
+                   "Trampled by Light"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

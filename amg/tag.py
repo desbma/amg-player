@@ -125,6 +125,9 @@ class TitleNormalizer:
     # fix paired chars
     self.registerCleaner(PairedCharCleaner(execute_once=True))
 
+    # remove some punctuation
+    self.registerCleaner(FunctionCleaner(lambda x: x.strip("-"), execute_once=True))
+
     # normalize case
     self.registerCleaner(FunctionCleaner(sanitize.normalize_tag_case, execute_once=True))
 
