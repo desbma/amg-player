@@ -481,7 +481,11 @@ class TestTag(unittest.TestCase):
                   ("SECRET CUTTER - Trampled By Light   --LYRIC VIDEO--",
                    "Secret Cutter",
                    "Quantum Eraser",
-                   "Trampled by Light"))
+                   "Trampled by Light"),
+                  ("SATHANAS (US) - Harbinger of Death (Black/Thrash/Death Metal) Transcending Obscurity",
+                   "Sathanas",
+                   "Necrohymns",
+                   "Harbinger of Death"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

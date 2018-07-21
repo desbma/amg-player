@@ -96,7 +96,7 @@ class TitleNormalizer:
     expressions.extend(("pre-orders available", "preorders available", "hd",
                         "official", "pre-listening", "prelistening", "trollzorn",
                         "uncensored", "s/t", "sw exclusive",
-                        "transcending obscurity india",  # crappy label suffixes TODO how to handle that?
+                        "transcending obscurity india", "transcending obscurity",
                         "trailer for the upcoming album"))
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):
@@ -410,8 +410,8 @@ class StartParenthesesCleaner(TitleCleanerBase):
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """
     # detect and remove starting parenthesis expression
-    if title.startswith("(") and (title.rfind(")") != (len(title) - 1)):
-      return self.lclean(title[title.rfind(")") + 1:])
+    if title.startswith("(") and (title.find(")") != (len(title) - 1)):
+      return self.lclean(title[title.find(")") + 1:])
     return title
 
 
