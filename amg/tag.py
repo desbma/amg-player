@@ -55,6 +55,9 @@ class TitleNormalizer:
     # detect and remove 'xxx entertainment' suffix
     self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z]+ entertainment$", execute_once=True))
 
+    # detect and remove 'xxx productions' suffix
+    self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z ]+ productions$"))
+
     # detect and remove 'record label xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]*$", execute_once=True))
 

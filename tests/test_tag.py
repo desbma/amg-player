@@ -485,7 +485,11 @@ class TestTag(unittest.TestCase):
                   ("SATHANAS (US) - Harbinger of Death (Black/Thrash/Death Metal) Transcending Obscurity",
                    "Sathanas",
                    "Necrohymns",
-                   "Harbinger of Death"))
+                   "Harbinger of Death"),
+                  ("DALKHU - The Dead Sleep With Their Eyes Open (2018) Godz ov War Productions - PROMO/LYRIC VIDEO'",
+                   "Dalkhu",
+                   "Lamentation and Ardent Fire",
+                   "The Dead Sleep with Their Eyes Open"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
