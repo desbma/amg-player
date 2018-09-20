@@ -37,7 +37,7 @@ class TestTag(unittest.TestCase):
     download("https://people.xiph.org/~giles/2012/opus/ehren-paper_lights-64.opus",
              opus_filepath)
     mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
-    download("https://allthingsaudio.wikispaces.com/file/view/Shuffle%20for%20K.M.mp3/139190697/Shuffle%20for%20K.M.mp3",
+    download("https://www.dropbox.com/s/mtac0y8azs5hqxo/Shuffle%2520for%2520K.M.mp3?dl=1",
              mp3_filepath)
     m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
     download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
