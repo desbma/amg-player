@@ -19,7 +19,7 @@ with open("requirements.txt", "rt") as f:
 
 try:
   import pypandoc
-  readme = pypandoc.convert("README.md", "rst")
+  readme = pypandoc.convert_file("README.md", "rst")
 except ImportError:
   with open("README.md", "rt") as f:
     readme = f.read()
