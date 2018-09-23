@@ -64,6 +64,9 @@ class TitleNormalizer:
     # detect and remove 'record label xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("next concert: .*$", execute_once=True))
 
+    # detect and remove 'feat.xxx' suffix
+    self.registerCleaner(RegexSuffixCleaner("feat\..*$"))
+
     # detect and remove track number prefix
     self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - "))
 
@@ -156,6 +159,7 @@ class TitleNormalizer:
           continue
 
         remove_cur_cleaner = False
+        restart_loop = False
 
         new_title = cleaner.cleanup(cur_title, *args)
         if new_title and (new_title != cur_title):
@@ -164,8 +168,8 @@ class TitleNormalizer:
                                                                         repr(new_title)))
           # update string and remove this cleaner to avoid calling it several times
           cur_title = new_title
-          remove_cur_cleaner = True
-          start_index = 0
+          remove_cur_cleaner = not cleaner.doKeep()
+          restart_loop = True
 
         elif cleaner.execute_once:
           remove_cur_cleaner = True
@@ -174,6 +178,9 @@ class TitleNormalizer:
 
         if remove_cur_cleaner:
           to_del_idx = i
+        if restart_loop:
+          start_index = 0
+        if remove_cur_cleaner or restart_loop:
           break
 
       else:
@@ -205,7 +212,11 @@ class TitleCleanerBase:
     self.execute_once = execute_once
 
   def doSkip(self, title, *args):
-    """ Return True if this cleanup can be skipped for this title string. """
+    """ Return True if this cleaner can be skipped for this title string. """
+    return False
+
+  def doKeep(self):
+    """ Return True if this cleaner should not be removed even if it matched. """
     return False
 
   @abc.abstractmethod
@@ -298,6 +309,15 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   """ Cleaner to remove artist prefix/suffix. """
 
+  def __init__(self, *args, **kwargs):
+    self.prefix_removed = False
+    self.suffix_removed = False
+    super().__init__(*args, **kwargs)
+
+  def doKeep(self):
+    """ See TitleCleanerBase.doKeep. """
+    return not self.suffix_removed
+
   def cleanup(self, title, artist):
     """ See TitleCleanerBase.cleanup. """
     for s in (artist,
@@ -305,11 +325,15 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
               artist.replace("and", "&"),
               artist.replace("’", "")):
       # detect and remove artist prefix
-      if self.startslike(title, s):
-        return SimplePrefixCleaner.cleanup(self, title, s)
+      if (not self.prefix_removed) and self.startslike(title, s):
+        r = SimplePrefixCleaner.cleanup(self, title, s)
+        self.prefix_removed = True
+        return r
       # detect and remove artist suffix
-      elif self.endslike(title, s):
-        return SimpleSuffixCleaner.cleanup(self, title, s)
+      elif (not self.suffix_removed) and self.endslike(title, s):
+        r = SimpleSuffixCleaner.cleanup(self, title, s)
+        self.suffix_removed = True
+        return r
     return title
 
 

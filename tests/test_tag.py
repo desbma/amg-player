@@ -217,7 +217,7 @@ class TestTag(unittest.TestCase):
                   ("VESCERA feat.Michael Vescera  - Beyond The Fight - album/tour  teaser 2017",
                    "Vescera",
                    "Beyond the Fight",
-                   "feat.Michael Vescera"),  # the source string here is broken beyond any hope of salvation
+                   "Vescera"),
                   ("Horte:  9  (Official Visual Presentation)",
                    "Horte",
                    "Horte",
@@ -489,7 +489,11 @@ class TestTag(unittest.TestCase):
                   ("DALKHU - The Dead Sleep With Their Eyes Open (2018) Godz ov War Productions - PROMO/LYRIC VIDEO'",
                    "Dalkhu",
                    "Lamentation and Ardent Fire",
-                   "The Dead Sleep with Their Eyes Open"))
+                   "The Dead Sleep with Their Eyes Open"),
+                  ("Dunbarrow - On Your Trail | Dunbarrow II | Ridingeasy Records",
+                   "Dunbarrow",
+                   "II",
+                   "On Your Trail"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
