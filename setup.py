@@ -17,12 +17,8 @@ with open(os.path.join("amg", "__init__.py"), "rt") as f:
 with open("requirements.txt", "rt") as f:
   requirements = f.read().splitlines()
 
-try:
-  import pypandoc
-  readme = pypandoc.convert_file("README.md", "rst")
-except ImportError:
-  with open("README.md", "rt") as f:
-    readme = f.read()
+with open("README.md", "rt") as f:
+  readme = f.read()
 
 setup(name="amg-player",
       version=version,
@@ -33,6 +29,7 @@ setup(name="amg-player",
       install_requires=requirements,
       description="Browse & play embedded tracks from Angry Metal Guy music reviews",
       long_description=readme,
+      long_description_content_type="text/markdown",
       url="https://github.com/desbma/amg-player",
       download_url="https://github.com/desbma/amg-player/archive/%s.tar.gz" % (version),
       keywords=["music", "metal", "extreme", "angry", "guy", "player", "youtube", "bandcamp", "soundcloud"],
