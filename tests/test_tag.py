@@ -493,7 +493,11 @@ class TestTag(unittest.TestCase):
                   ("Dunbarrow - On Your Trail | Dunbarrow II | Ridingeasy Records",
                    "Dunbarrow",
                    "II",
-                   "On Your Trail"))
+                   "On Your Trail"),
+                  ("LEAH - Lion Arises [Official Lyric Video] Symphonic Fantasy Metal Song",
+                   "Leah",
+                   "The Quest",
+                   "Lion Arises"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

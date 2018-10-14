@@ -76,7 +76,8 @@ class TitleNormalizer:
 
     # detect and remove '- xxx metal' suffix
     for genre in ("metal", "crust", "grindcore", "grind"):
-      self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "$", suffix=genre))
+      self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "( song)?$",
+                                              suffixes=(genre, " ".join((genre, "song")))))
 
     # detect and remove 'xxx metal' prefix
     for genre in ("death",):
@@ -379,14 +380,14 @@ class RegexSuffixCleaner(RegexCleaner):
 
   """ Cleaner to remove a regex suffix match. """
 
-  def __init__(self, regex, *, suffix=None, **kwargs):
+  def __init__(self, regex, *, suffixes=(), **kwargs):
     super().__init__(regex, **kwargs)
-    self.suffix = suffix
+    self.suffixes = suffixes
 
   def doSkip(self, title, *args):
     """ See TitleCleanerBase.doSkip. """
-    if self.suffix is not None:
-      return not self.endslike(title, self.suffix)
+    if self.suffixes:
+      return not any(self.endslike(title, suffix) for suffix in self.suffixes)
     return super().doSkip(title, *args)
 
   def cleanup(self, title):
@@ -415,7 +416,9 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
 
   def __init__(self, record_word, **kwargs):
     self.record_word = record_word
-    super().__init__("[|\)\(\[][0-9a-z,/ ]+" + record_word + "$", suffix=record_word, **kwargs)
+    super().__init__("[|\)\(\[][0-9a-z,/ ]+" + record_word + "$",
+                     suffixes=(record_word,),
+                     **kwargs)
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """
