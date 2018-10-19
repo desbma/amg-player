@@ -5,12 +5,15 @@ import datetime
 import functools
 import logging
 import operator
-import re
 import string
 
 import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
+try:
+  import re2 as re
+except ImportError:
+  import re
 import unidecode
 
 from amg import sanitize
@@ -32,7 +35,7 @@ class TitleNormalizer:
     self.registerCleaner(RegexSuffixCleaner("taken from .*, out ", execute_once=True))
 
     # detect and remove 'album: xxx track yy'
-    self.registerCleaner(RegexCleaner("(album: .* )?track [0-9]+"))
+    self.registerCleaner(RegexCleaner("(album: .* )?track [0-9]+", execute_once=True))
 
     # detect and remove 'from xxx LP' suffix
     self.registerCleaner(RegexSuffixCleaner("from .* LP", execute_once=True))
@@ -55,9 +58,6 @@ class TitleNormalizer:
     # detect and remove 'xxx entertainment' suffix
     self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z]+ entertainment$", execute_once=True))
 
-    # detect and remove 'xxx productions' suffix
-    self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z ]+ productions$"))
-
     # detect and remove 'record label xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]*$", execute_once=True))
 
@@ -65,7 +65,21 @@ class TitleNormalizer:
     self.registerCleaner(RegexSuffixCleaner("next concert: .*$", execute_once=True))
 
     # detect and remove 'feat.xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner("feat\..*$"))
+    self.registerCleaner(RegexSuffixCleaner("feat\..*$", execute_once=True))
+
+    # detect and remove '- xxx metal' suffix
+    for genre in ("metal", "crust", "grindcore", "grind"):
+      self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "( song)?$",
+                                              suffixes=(genre, " ".join((genre, "song"))),
+                                              execute_once=True))
+
+    # detect and remove 'xxx metal' prefix
+    for genre in ("death",):
+      self.registerCleaner(RegexPrefixCleaner("^" + genre + "[a-z- ]* metal ",
+                                              execute_once=True))
+
+    # detect and remove 'xxx productions' suffix
+    self.registerCleaner(RegexSuffixCleaner("[\[\( ][a-z ]+ productions$"))
 
     # detect and remove track number prefix
     self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - "))
@@ -73,15 +87,6 @@ class TitleNormalizer:
     # detect and remove 'xxx records' suffix
     self.registerCleaner(RecordsSuffixCleaner("recordings"))
     self.registerCleaner(RecordsSuffixCleaner("records"))
-
-    # detect and remove '- xxx metal' suffix
-    for genre in ("metal", "crust", "grindcore", "grind"):
-      self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "( song)?$",
-                                              suffixes=(genre, " ".join((genre, "song")))))
-
-    # detect and remove 'xxx metal' prefix
-    for genre in ("death",):
-      self.registerCleaner(RegexPrefixCleaner("^" + genre + "[a-z- ]* metal "))
 
     # build list of common useless expressions
     expressions = []
@@ -124,10 +129,10 @@ class TitleNormalizer:
     self.registerCleaner(ArtistCleaner(), (artist,))
 
     # detect and remove starting parenthesis expression
-    self.registerCleaner(StartParenthesesCleaner())
+    self.registerCleaner(StartParenthesesCleaner(execute_once=True))
 
     # detect and remove album prefix or suffix
-    self.registerCleaner(AlbumCleaner(), (album,))
+    self.registerCleaner(AlbumCleaner(execute_once=True), (album,))
 
     # fix paired chars
     self.registerCleaner(PairedCharCleaner(execute_once=True))
