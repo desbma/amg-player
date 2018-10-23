@@ -167,12 +167,13 @@ def get_embedded_track(page, http_cache):
     else:
       iframe_url = iframe.get("src")
       if iframe_url is not None:
-        yt_prefix = "https://www.youtube.com/embed/"
+        yt_prefixes = ("https://www.youtube.com/embed/",
+                       "https://www.youtube-nocookie.com/embed/")
         bc_prefix = "https://bandcamp.com/EmbeddedPlayer/"
         sc_prefix = "https://w.soundcloud.com/player/"
         rn_prefix = "https://www.reverbnation.com/widget_code/"
-        if iframe_url.startswith(yt_prefix):
-          yt_id = iframe_url[len(yt_prefix):]
+        if any(map(iframe_url.startswith, yt_prefixes)):
+          yt_id = urllib.parse.urlparse(iframe_url).path.rsplit("/", 1)[-1]
           urls = ("https://www.youtube.com/watch?v=%s" % (yt_id),)
         elif iframe_url.startswith(bc_prefix):
           iframe_page = fetch_page(iframe_url, http_cache=http_cache)
