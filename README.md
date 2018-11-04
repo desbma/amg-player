@@ -43,7 +43,7 @@ Some features are only available if [FFmpeg](https://ffmpeg.org/download.html) >
 
 ### From PyPI (with PIP)
 
-1. If you don't already have it, [install pip](https://pip.pypa.io/en/stable/installing/) for Python 3 (not needed if you are using Python >= 3.4)
+1. If you don't already have it, [install pip](https://pip.pypa.io/en/stable/installing/) for Python 3
 2. Install Angry Metal Guy Player: `pip3 install amg-player`
 
 ### From source
