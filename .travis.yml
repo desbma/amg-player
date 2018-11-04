@@ -32,7 +32,6 @@ addons:
   apt:
     packages:
       - yasm
-      - pandoc
 before_install:
   - "if [ \"$FFMPEG_VERSION\" ]; then ./ci/install-ffmpeg $FFMPEG_VERSION; fi"
   - "pip install -U pip"
@@ -44,9 +43,6 @@ script:
   - "TEST_DL_CACHE_DIR=$HOME/.cache/ci/amg-player/test coverage run --source=amg setup.py test"
 after_success:
   - "coveralls"
-before_deploy:
-  - "pip install pypandoc"
-  - "pip install restructuredtext_lint && t=$(mktemp --suffix=.rst) && pandoc README.md -o $t && rst-lint $t"
 deploy:
   provider: pypi
   user: desbma
