@@ -48,7 +48,7 @@ import youtube_dl
 
 
 PlayerMode = enum.Enum("PlayerMode",
-                       ("MANUAL", "RADIO", "DISCOVER"))
+                       ("MANUAL", "RADIO", "DISCOVER", "DISCOVER_DOWNLOAD"))
 ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                         ("url",
                                          "artist",
@@ -478,7 +478,8 @@ def cl_main():
                                   "radio" let you select the first one, and then plays all tracks by chronological
                                   order.
                                   "discover" automatically plays all tracks by chronological order from the first non
-                                  played one.""")
+                                  played one.
+                                  "discover_download" like "discover" but downloads tracks.""")
   arg_parser.add_argument("-i",
                           "--interactive",
                           action="store_true",
@@ -555,12 +556,12 @@ def cl_main():
         to_play = reviews[0:reviews.index(review) + 1]
         to_play.reverse()
         to_play = iter(to_play)
-    elif args.mode is PlayerMode.DISCOVER:
+    elif args.mode in (PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD):
       # auto play all non played tracks
       if to_play is None:
         to_play = filter(lambda x: not known_reviews.isKnownUrl(x.url),
                          reversed(reviews))
-    if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER):
+    if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD):
       try:
         review = next(to_play)
       except StopIteration:
@@ -604,8 +605,9 @@ def cl_main():
             track_loop = False
       else:
         known_reviews.setLastPlayed(review.url)
-        if ((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
-                (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)):
+        if (((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
+                (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)) or
+                (args.mode is PlayerMode.DISCOVER_DOWNLOAD)):
           download_audio(review, track_urls)
         else:
           play(review, track_urls, merge_with_picture=audio_only)
