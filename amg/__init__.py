@@ -2,7 +2,7 @@
 
 """ Browse & play embedded tracks from Angry Metal Guy music reviews. """
 
-__version__ = "0.4.21"
+__version__ = "2018.20.6.0"
 __author__ = "desbma"
 __license__ = "GPLv3"
 
