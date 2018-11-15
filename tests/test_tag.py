@@ -497,7 +497,11 @@ class TestTag(unittest.TestCase):
                   ("LEAH - Lion Arises [Official Lyric Video] Symphonic Fantasy Metal Song",
                    "Leah",
                    "The Quest",
-                   "Lion Arises"))
+                   "Lion Arises"),
+                  ("\"Drowning City\" by Vouna",
+                   "Vouna",
+                   "Vouna",
+                   "Drowning City"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

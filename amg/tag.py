@@ -3,6 +3,7 @@ import base64
 import calendar
 import datetime
 import functools
+import itertools
 import logging
 import operator
 import string
@@ -326,12 +327,15 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   def cleanup(self, title, artist):
     """ See TitleCleanerBase.cleanup. """
-    for s in (artist,
-              artist.replace(" ", ""),
-              artist.replace("and", "&"),
-              artist.replace("’", "")):
+    for s, suffix_only in itertools.zip_longest(("by " + artist,
+                                                 artist,
+                                                 artist.replace(" ", ""),
+                                                 artist.replace("and", "&"),
+                                                 artist.replace("’", "")),
+                                                (True,),
+                                                fillvalue=False):
       # detect and remove artist prefix
-      if (not self.prefix_removed) and self.startslike(title, s):
+      if (not suffix_only) and (not self.prefix_removed) and self.startslike(title, s):
         r = SimplePrefixCleaner.cleanup(self, title, s)
         self.prefix_removed = True
         return r
