@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 sudo: false
 language: python
 cache:
@@ -11,6 +11,7 @@ python:
   - "3.5-dev"
   - "3.6"
   - "3.6-dev"
+  - "3.7"
   - "3.7-dev"
 env:
   - FFMPEG_VERSION=
