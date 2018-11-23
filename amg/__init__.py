@@ -76,7 +76,6 @@ IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
 YDL_MAX_DOWNLOAD_TRIES = 5
 USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
-MAX_COVER_SIZE = 1500
 
 
 def fetch_page(url, *, http_cache=None):
@@ -335,7 +334,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return merged_filepath
 
 
-def download_audio(review, track_urls):
+def download_audio(review, track_urls, *, max_cover_size):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
     for try_idx in range(1, YDL_MAX_DOWNLOAD_TRIES + 1):
@@ -374,12 +373,12 @@ def download_audio(review, track_urls):
       img = PIL.Image.open(in_bytes)
       if img.mode != "RGB":
         img = img.convert("RGB")
-      # resize covers above MAX_COVER_SIZExMAX_COVER_SIZE
-      if (img.size[0] > MAX_COVER_SIZE) or (img.size[1] > MAX_COVER_SIZE):
+      # resize covers above threshold
+      if (img.size[0] > max_cover_size) or (img.size[1] > max_cover_size):
         logging.getLogger().info("Resizing cover...")
 
         # resize
-        img.thumbnail((MAX_COVER_SIZE, MAX_COVER_SIZE), PIL.Image.LANCZOS)
+        img.thumbnail((max_cover_size, max_cover_size), PIL.Image.LANCZOS)
 
         # apply unsharp filter to remove resize blur (equivalent to (images/graphics)magick -unsharp 1.5x1+0.7+0.02)
         # we don't use PIL.ImageFilter.SHARPEN or PIL.ImageEnhance.Sharpness because we want precise control over
@@ -389,7 +388,7 @@ def download_audio(review, track_urls):
 
         # get bytes
         out_bytes = io.BytesIO()
-        img.save(out_bytes, format="JPEG", quality=90, optimize=True)
+        img.save(out_bytes, format="JPEG", quality=85, optimize=True)
         cover_data = out_bytes.getvalue()
 
     else:
@@ -486,6 +485,11 @@ def cl_main():
                           default=False,
                           dest="interactive",
                           help="Before playing each track, ask user confirmation, and allow opening review URL.")
+  arg_parser.add_argument("-s",
+                          "--max-embedded-cover-size",
+                          type=int,
+                          default=1024,
+                          help="Maximum size of embedded cover art for downloaded tracks, above which image will be downsized.")
   arg_parser.add_argument("-v",
                           "--verbosity",
                           choices=("warning", "normal", "debug"),
@@ -594,7 +598,7 @@ def cl_main():
             play(review, track_urls, merge_with_picture=audio_only)
             input_loop = False
           elif c == "d":
-            download_audio(review, track_urls)
+            download_audio(review, track_urls, max_cover_size=args.max_embedded_cover_size)
             input_loop = False
           elif c == "r":
             webbrowser.open_new_tab(review.url)
@@ -608,7 +612,7 @@ def cl_main():
         if (((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
                 (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)) or
                 (args.mode is PlayerMode.DISCOVER_DOWNLOAD)):
-          download_audio(review, track_urls)
+          download_audio(review, track_urls, max_cover_size=args.max_embedded_cover_size)
         else:
           play(review, track_urls, merge_with_picture=audio_only)
 
