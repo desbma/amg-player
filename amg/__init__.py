@@ -59,12 +59,11 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                          "tags"))
 
 ROOT_URL = "https://www.angrymetalguy.com/"
+REVIEW_URL = "%scategory/reviews/" % (ROOT_URL)
 LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.category-review, "
                                                    "article.category-reviews, "
-                                                   "article.tag-review, "
-                                                   "article.tag-reviews, "
                                                    "article[class*=tag-things-you-might-have-missed-]")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
@@ -145,7 +144,9 @@ def get_reviews():
   """ Parse site and yield ReviewMetadata objects. """
   previous_review = None
   for i in itertools.count():
-    url = ROOT_URL if (i == 0) else "%spage/%u" % (ROOT_URL, i + 1)
+    url = REVIEW_URL
+    if i > 0:
+      url += "page/%u" % (i + 1)
     page = fetch_page(url)
     for review in REVIEW_BLOCK_SELECTOR(page):
       r = parse_review_block(review)
