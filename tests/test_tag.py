@@ -501,7 +501,11 @@ class TestTag(unittest.TestCase):
                   ("\"Drowning City\" by Vouna",
                    "Vouna",
                    "Vouna",
-                   "Drowning City"))
+                   "Drowning City"),
+                  ("SAD EYES (ESP) - RIgescVnt - SINGLE - \"vIV0\" ALBUM (01.11.2018)",
+                   "Sad Eyes",
+                   "vIV0",
+                   "Rigescvnt"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
