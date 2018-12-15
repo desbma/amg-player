@@ -1,3 +1,4 @@
+import itertools
 import string
 
 import unidecode
@@ -23,6 +24,13 @@ def sanitize_for_path(s):
 def normalize_tag_case(s):
   """ Normalize case of an audio tag string. """
   old_words = s.split()
+  def split_sep_char(w, c):
+    parts = w.split(c, 1)
+    if len(parts) > 1:
+      parts[1] = c + parts[1]
+    parts = tuple(filter(None, parts))
+    return parts
+  old_words = tuple(itertools.chain.from_iterable(split_sep_char(w, "(") for w in old_words))
   new_words = []
   prev_word = None
   roman_letters = frozenset("IVXLCDM")

@@ -505,7 +505,11 @@ class TestTag(unittest.TestCase):
                   ("SAD EYES (ESP) - RIgescVnt - SINGLE - \"vIV0\" ALBUM (01.11.2018)",
                    "Sad Eyes",
                    "vIV0",
-                   "Rigescvnt"))
+                   "Rigescvnt"),
+                  ("薄氷(Thin Ice)",
+                   "Asu no Jokei",
+                   "Awakening",
+                   "薄氷 (Thin Ice)"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
