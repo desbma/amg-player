@@ -30,6 +30,8 @@ def normalize_tag_case(s):
       parts[1] = c + parts[1]
     parts = tuple(filter(None, parts))
     return parts
+  def remove_punct(s):
+    return "".join(c for c in s if c not in string.punctuation)
   old_words = tuple(itertools.chain.from_iterable(split_sep_char(w, "(") for w in old_words))
   new_words = []
   prev_word = None
@@ -52,7 +54,7 @@ def normalize_tag_case(s):
     elif (i != 0) and (old_word.lower() in TAG_LOWERCASE_WORDS) and (prev_word[-1] not in punct_followed_uppercase):
       new_word = old_word.lower()
     elif all(map(roman_letters.__contains__,
-                 old_word.strip(string.punctuation))):
+                 remove_punct(old_word))):
       new_word = old_word
     else:
       new_word = old_word.capitalize()

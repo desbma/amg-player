@@ -19,6 +19,7 @@ class TestSanitize(unittest.TestCase):
                   "I'M ALIVE!": "I'm Alive!",
                   "MARK OF THE BEAST PT. 2: SCION OF DARKNESS": "Mark of the Beast PT. 2: Scion of Darkness",
                   "BZZ: THE": "Bzz: The",
-                  "薄氷(Thin Ice)": "薄氷 (Thin Ice)"}
+                  "薄氷(Thin Ice)": "薄氷 (Thin Ice)",
+                  "III-III: Imha Tarikatı (Sect of Destruction)": "III-III: Imha Tarikatı (Sect of Destruction)"}
     for before, after in references.items():
       self.assertEqual(sanitize.normalize_tag_case(before), after)

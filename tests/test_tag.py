@@ -509,7 +509,11 @@ class TestTag(unittest.TestCase):
                   ("薄氷(Thin Ice)",
                    "Asu no Jokei",
                    "Awakening",
-                   "薄氷 (Thin Ice)"))
+                   "薄氷 (Thin Ice)"),
+                  ("III-III: Imha Tarikatı (Sect of Destruction)",
+                   "Imha Tarikat",
+                   "Kara Ihlas",
+                   "III-III: Imha Tarikatı (Sect of Destruction)"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
