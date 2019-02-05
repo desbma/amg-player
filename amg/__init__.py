@@ -419,7 +419,7 @@ def download_audio(review, track_urls, *, max_cover_size):
         pass
       else:
         filename, ext = os.path.splitext(dest_filename)
-        filename = " - ".join((filename, sanitize.sanitize_for_path(file_tags["title"][0])))
+        filename = " - ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
         dest_filename = "".join((filename, ext))
       dest_filepath = os.path.join(os.getcwd(), dest_filename)
       logging.getLogger().debug("Moving %s to %s" % (repr(track_filepath), repr(dest_filepath)))

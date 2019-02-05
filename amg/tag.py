@@ -504,7 +504,7 @@ def tag(track_filepath, review, cover_data):
   mf["artist"] = sanitize.normalize_tag_case(review.artist)
   mf["album"] = sanitize.normalize_tag_case(review.album)
   try:
-    mf["title"] = normalize_title_tag(mf["title"][0], review.artist, review.album)
+    mf["title"] = normalize_title_tag(mf["title"][-1], review.artist, review.album)
   except KeyError:
     pass
   tags = dict(mf)
