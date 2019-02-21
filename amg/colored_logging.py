@@ -26,5 +26,5 @@ class ColoredFormatter(logging.Formatter):
       except KeyError:
         pass
       else:
-        message = "\033[%u;%um%s\033[0m" % (int(bold), 30 + color_code, message)
+        message = f"\033[{bold:d};{30 + color_code}m{message}\033[0m"
     return message

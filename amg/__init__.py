@@ -61,7 +61,7 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                          "tags"))
 
 ROOT_URL = "https://www.angrymetalguy.com/"
-REVIEW_URL = "%scategory/reviews/" % (ROOT_URL)
+REVIEW_URL = f"{ROOT_URL}category/reviews/"
 LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.category-review, "
@@ -75,17 +75,17 @@ BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
-YDL_MAX_DOWNLOAD_TRIES = 5
-USER_AGENT = "Mozilla/5.0 AMG-Player/{}".format(__version__)
+YDL_MAX_DOWNLOAD_ATTEMPTS = 5
+USER_AGENT = f"Mozilla/5.0 AMG-Player/{__version__}"
 
 
 def fetch_page(url, *, http_cache=None):
   """ Fetch page & parse it with LXML. """
   if (http_cache is not None) and (url in http_cache):
-    logging.getLogger().info("Got data for URL '%s' from cache" % (url))
+    logging.getLogger().info(f"Got data for URL '{url}' from cache")
     page = http_cache[url]
   else:
-    logging.getLogger().debug("Fetching '%s'..." % (url))
+    logging.getLogger().debug(f"Fetching '{url}'...")
     headers = {"User-Agent": USER_AGENT}
     response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT)
     response.raise_for_status()
@@ -97,7 +97,7 @@ def fetch_page(url, *, http_cache=None):
 
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
-  logging.getLogger().debug("Fetching '%s'..." % (url))
+  logging.getLogger().debug(f"Fetching '{url}'...")
   headers = {"User-Agent": USER_AGENT}
   with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
@@ -148,7 +148,7 @@ def get_reviews():
   for i in itertools.count():
     url = REVIEW_URL
     if i > 0:
-      url += "page/%u" % (i + 1)
+      url += f"page/{i + 1}"
     page = fetch_page(url)
     for review in REVIEW_BLOCK_SELECTOR(page):
       r = parse_review_block(review)
@@ -176,7 +176,7 @@ def get_embedded_track(page, http_cache):
         rn_prefix = "https://www.reverbnation.com/widget_code/"
         if any(map(iframe_url.startswith, yt_prefixes)):
           yt_id = urllib.parse.urlparse(iframe_url).path.rsplit("/", 1)[-1]
-          urls = ("https://www.youtube.com/watch?v=%s" % (yt_id),)
+          urls = (f"https://www.youtube.com/watch?v={yt_id}",)
         elif iframe_url.startswith(bc_prefix):
           iframe_page = fetch_page(iframe_url, http_cache=http_cache)
           js = BANDCAMP_JS_SELECTOR(iframe_page)[-1].text
@@ -209,9 +209,9 @@ def get_embedded_track(page, http_cache):
           urls = (url,)
           audio_only = True
   except Exception as e:
-    logging.getLogger().error("%s: %s" % (e.__class__.__qualname__, e))
+    logging.getLogger().error(f"{e.__class__.__qualname__}: {e}")
   if urls is not None:
-    logging.getLogger().debug("Track URL(s): %s" % (" ".join(urls)))
+    logging.getLogger().debug(f"Track URL(s): {' '.join(urls)}")
   return urls, audio_only
 
 
@@ -275,7 +275,7 @@ def get_cover_data(review):
   cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
   cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
 
-  with mkstemp_ctx.mkstemp(prefix="amg_", suffix=".%s" % (cover_ext)) as filepath:
+  with mkstemp_ctx.mkstemp(prefix="amg_", suffix=f".{cover_ext}") as filepath:
     fetch_ressource(cover_url, filepath)
 
     if cover_ext == "png":
@@ -327,7 +327,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
   with open(concat_filepath, "wt") as concat_file:
     for audio_filepath in audio_filepaths:
-      concat_file.write("file %s\n" % (audio_filepath))
+      concat_file.write(f"file {audio_filepath}\n")
 
   # merge
   merged_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".mkv")
@@ -341,7 +341,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
          "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
          "-shortest",
          "-f", "matroska", merged_filepath)
-  logging.getLogger().debug("Merging Audio and image with command: %s" % (subprocess.list2cmdline(cmd)))
+  logging.getLogger().debug(f"Merging Audio and image with command: {subprocess.list2cmdline(cmd)}")
   subprocess.check_call(cmd, cwd=tmp_dir)
 
   return merged_filepath
@@ -353,12 +353,12 @@ def download_audio(review, track_urls, *, max_cover_size):
     with ytdl_tqdm.ytdl_tqdm(leave=False,
                              mininterval=0.05,
                              miniters=1) as ytdl_progress:
-      ydl_opts = {"outtmpl": os.path.join(tmp_dir,
-                                          ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
-                                          r"%(autonumber)s" +
-                                          (". %s - %s" % (sanitize.sanitize_for_path(review.artist.replace(os.sep, "_")),
-                                                          sanitize.sanitize_for_path(review.album.replace(os.sep, "_")))) +
-                                          r".%(ext)s"),
+      filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
+                           r"%(autonumber)s"
+                           f". {sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
+                           f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))}"
+                           r".%(ext)s")
+      ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
                   "format": "opus/vorbis/bestaudio",
                   "postprocessors": [{"key": "FFmpegExtractAudio"},
                                      {"key": "FFmpegMetadata"}],
@@ -424,9 +424,8 @@ def download_audio(review, track_urls, *, max_cover_size):
         files_tags[track_filepath] = tag.tag(track_filepath, review, cover_data)
       except Exception as e:
         # raise
-        logging.getLogger().warning("Failed to add tags to file '%s': %s %s" % (track_filepath,
-                                                                                e.__class__.__qualname__,
-                                                                                e))
+        logging.getLogger().warning(f"Failed to add tags to file '{track_filepath}': "
+                                    f"{e.__class__.__qualname__} {e}")
     # RG/R128
     if HAS_FFMPEG:
       r128gain.process(track_filepaths, album_gain=len(track_filepaths) > 1)
@@ -444,7 +443,7 @@ def download_audio(review, track_urls, *, max_cover_size):
         filename = " - ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
         dest_filename = "".join((filename, ext))
       dest_filepath = os.path.join(os.getcwd(), dest_filename)
-      logging.getLogger().debug("Moving %s to %s" % (repr(track_filepath), repr(dest_filepath)))
+      logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
       shutil.move(track_filepath, dest_filepath)
 
     return True
@@ -465,24 +464,24 @@ def play(review, track_urls, *, merge_with_picture):
         if merged_filepath is None:
           return
         cmd = ("mpv", merged_filepath)
-        logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+        logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
         subprocess.check_call(cmd)
 
   else:
     for track_url in track_urls:
       cmd_dl = ("youtube-dl", "-o", "-", track_url)
-      logging.getLogger().debug("Downloading with command: %s" % (subprocess.list2cmdline(cmd_dl)))
+      logging.getLogger().debug(f"Downloading with command: {subprocess.list2cmdline(cmd_dl)}")
       dl_process = subprocess.Popen(cmd_dl,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL)
       cmd = ("mpv", "--force-seekable=yes", "-")
-      logging.getLogger().debug("Playing with command: %s" % (subprocess.list2cmdline(cmd)))
+      logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
       subprocess.check_call(cmd, stdin=dl_process.stdout)
 
 
 def cl_main():
   # parse args
-  arg_parser = argparse.ArgumentParser(description="AMG Player v%s. %s" % (__version__, __doc__),
+  arg_parser = argparse.ArgumentParser(description=f"AMG Player v{__version__}. {__doc__}",
                                        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
   arg_parser.add_argument("-c",
                           "--count",
@@ -558,7 +557,7 @@ def cl_main():
                                   compression=web_cache.Compression.DEFLATE)
   purged_count = http_cache.purge()
   row_count = len(http_cache)
-  logging.getLogger().debug("HTTP Cache contains %u entries (%u removed)" % (row_count, purged_count))
+  logging.getLogger().debug(f"HTTP Cache contains {row_count} entries ({purged_count} removed)")
 
   # initial menu
   if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
@@ -601,15 +600,11 @@ def cl_main():
       logging.getLogger().warning("Unable to extract embedded track")
     else:
       print("-" * (shutil.get_terminal_size()[0] - 1))
-      print("Artist: %s\n"
-            "Album: %s\n"
-            "Review URL: %s\n"
-            "Published: %s\n"
-            "Tags: %s" % (review.artist,
-                          review.album,
-                          review.url,
-                          review.date_published.strftime("%x %H:%M"),
-                          ", ".join(review.tags)))
+      print(f"Artist: {review.artist}\n"
+            f"Album: {review.album}\n"
+            f"Review URL: {review.url}\n"
+            f"Published: {review.date_published.strftime('%x %H:%M')}\n"
+            f"Tags: {', '.join(review.tags)}")
       if args.interactive:
         input_loop = True
         while input_loop:

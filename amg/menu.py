@@ -15,13 +15,12 @@ class AmgMenu(cursesmenu.CursesMenu):
   def __init__(self, *, reviews, known_reviews, http_cache, mode, selected_idx):
     menu_subtitle = {amg.PlayerMode.MANUAL: "Select a track",
                      amg.PlayerMode.RADIO: "Select track to start from"}
-    super().__init__("AMG Player v%s" % (amg.__version__),
-                     "%s mode: %s "
+    super().__init__(f"AMG Player v{amg.__version__}",
+                     f"{mode.name.capitalize()} mode: {menu_subtitle[mode]} "
                      "(ENTER to play, "
                      "D to download audio, "
                      "R to open review, "
-                     "Q to exit)" % (mode.name.capitalize(),
-                                     menu_subtitle[mode]),
+                     "Q to exit)",
                      True)
     if selected_idx is not None:
       self.current_option = selected_idx
@@ -59,9 +58,8 @@ class AmgMenu(cursesmenu.CursesMenu):
     for i, review in enumerate(reviews):
       try:
         play_count = known_reviews.getPlayCount(review.url)
-        played = "Last played: %s (%u time%s)" % (known_reviews.getLastPlayed(review.url).strftime("%x %H:%M"),
-                                                  play_count,
-                                                  "s" if play_count > 1 else "")
+        played = (f"Last played: {known_reviews.getLastPlayed(review.url).strftime('%x %H:%M')} "
+                  f"({play_count} time{'s' if play_count > 1 else ''})")
       except KeyError:
         if review.url in http_cache:
           review_page = amg.fetch_page(review.url, http_cache=http_cache)
@@ -71,8 +69,8 @@ class AmgMenu(cursesmenu.CursesMenu):
             played = "Last played: never"
         else:
           played = "Last played: never"
-      lines.append(("%s - %s" % (review.artist, review.album),
-                    "Published: %s" % (review.date_published.strftime("%x")),
+      lines.append((f"{review.artist} - {review.album}",
+                    f"Published: {review.date_published.strftime('%x')}",
                     played))
     # auto align/justify
     max_lens = [0] * len(lines[0])
@@ -82,8 +80,8 @@ class AmgMenu(cursesmenu.CursesMenu):
           max_lens[i] = len(s)
     sep = "\t"
     for i, line in enumerate(lines):
-      lines[i] = "%s%s" % (" " if i < 9 else "",
-                           sep.join(s.ljust(max_len + 1) for s, max_len in zip(line, max_lens)))
+      lines[i] = "".join((" " if i < 9 else "",
+                          sep.join(s.ljust(max_len + 1) for s, max_len in zip(line, max_lens))))
     return lines
 
   @staticmethod

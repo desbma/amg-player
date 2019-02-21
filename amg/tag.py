@@ -115,8 +115,8 @@ class TitleNormalizer:
     for y in range(year - 5, year + 1):
       expressions.append(str(y))
       for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
-        expressions.append("%s %u" % (month_name, y))
-        expressions.append("%s %u" % (month_abbr, y))
+        expressions.append(f"{month_name} {y}")
+        expressions.append(f"{month_abbr} {y}")
     expressions.sort(key=len, reverse=True)
     expressions.remove("song")
     suffix_cleaner = SimpleSuffixCleaner()
@@ -170,9 +170,8 @@ class TitleNormalizer:
 
         new_title = cleaner.cleanup(cur_title, *args)
         if new_title and (new_title != cur_title):
-          logging.getLogger().debug("%s changed title tag: %s -> %s" % (cleaner.__class__.__name__,
-                                                                        repr(cur_title),
-                                                                        repr(new_title)))
+          logging.getLogger().debug(f"{cleaner.__class__.__name__} changed title tag: "
+                                    f"{repr(cur_title)} -> {repr(new_title)}")
           # update string and remove this cleaner to avoid calling it several times
           cur_title = new_title
           remove_cur_cleaner = not cleaner.doKeep()
@@ -198,7 +197,7 @@ class TitleNormalizer:
         del self.cleaners[to_del_idx]
 
     if cur_title != title:
-      logging.getLogger().info("Fixed title tag: %s -> %s" % (repr(title), repr(cur_title)))
+      logging.getLogger().info(f"Fixed title tag: {repr(title)} -> {repr(cur_title)}")
     return cur_title
 
 
@@ -493,7 +492,7 @@ def normalize_title_tag(title, artist, album):
 
 def tag(track_filepath, review, cover_data):
   """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
-  logging.getLogger().info("Tagging file '%s'" % (track_filepath))
+  logging.getLogger().info(f"Tagging file '{track_filepath}'")
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.mp3.MP3):
     mf = mutagen.easyid3.EasyID3(track_filepath)

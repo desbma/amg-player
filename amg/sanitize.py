@@ -4,8 +4,7 @@ import string
 import unidecode
 
 
-VALID_PATH_CHARS = frozenset("-_.()!#$%%&'@^{}~ %s%s" % (string.ascii_letters,
-                                                         string.digits))
+VALID_PATH_CHARS = frozenset(f"-_.()!#$%%&'@^{{}}~ {string.ascii_letters}{string.digits}")
 TAG_LOWERCASE_WORDS = frozenset(("a", "an", "and", "at", "for", "from", "in",
                                  "of", "on", "or", "over", "the", "to", "with",
                                  "de", "des", "du", "le", "la", "les",
