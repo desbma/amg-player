@@ -6,9 +6,6 @@ cache:
   directories:
     - $HOME/.cache/ci/amg-player
 python:
-  - "3.4"
-  - "3.5"
-  - "3.5-dev"
   - "3.6"
   - "3.6-dev"
   - "3.7"
@@ -27,7 +24,6 @@ env:
   - FFMPEG_VERSION=master
 matrix:
   allow_failures:
-    - python: "3.5-dev"
     - python: "3.6-dev"
     - python: "3.7-dev"
     - python: "3.8-dev"
