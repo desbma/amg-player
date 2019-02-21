@@ -23,6 +23,7 @@ import shelve
 import socket
 import string
 import subprocess
+import sys
 import tempfile
 import urllib.parse
 import webbrowser
@@ -35,6 +36,7 @@ from amg import menu
 from amg import mkstemp_ctx
 from amg import sanitize
 from amg import tag
+from amg import ytdl_tqdm
 
 import appdirs
 import lxml.cssselect
@@ -298,15 +300,25 @@ def get_cover_data(review):
 def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   """ Download track, merge audio & album art, and return merged filepath. """
   # fetch audio
-  # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
-  ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
-  try:
-    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-      ydl.download(track_urls)
-  except youtube_dl.utils.DownloadError as e:
-    # already logged
-    # logging.getLogger().warning("Download error : %s" % (e))
-    pass
+  with ytdl_tqdm.ytdl_tqdm(leave=False,
+                           mininterval=0.05,
+                           miniters=1) as ytdl_progress:
+    # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
+    ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
+    if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
+      ytdl_progress.setup_ytdl(ydl_opts)
+
+    try:
+      with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+        ydl.download(track_urls)
+    except youtube_dl.utils.DownloadError as e:
+      msg = f"Download error: {e}"
+      if ytdl_progress:
+        ytdl_progress.tqdm.write(msg)
+      else:
+        # already logged
+        # logging.getLogger().warning(msg)
+        pass
   audio_filepaths = os.listdir(tmp_dir)
   audio_filepaths.sort()
   if not audio_filepaths:
@@ -338,8 +350,9 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 def download_audio(review, track_urls, *, max_cover_size):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
-    for try_idx in range(1, YDL_MAX_DOWNLOAD_TRIES + 1):
-      logging.getLogger().info("Downloading audio for track(s) %s (%u/%u)" % (" ".join(track_urls), try_idx, YDL_MAX_DOWNLOAD_TRIES))
+    with ytdl_tqdm.ytdl_tqdm(leave=False,
+                             mininterval=0.05,
+                             miniters=1) as ytdl_progress:
       ydl_opts = {"outtmpl": os.path.join(tmp_dir,
                                           ("%s-" % (review.date_published.strftime("%Y%m%d%H%M%S"))) +
                                           r"%(autonumber)s" +
@@ -350,15 +363,24 @@ def download_audio(review, track_urls, *, max_cover_size):
                   "postprocessors": [{"key": "FFmpegExtractAudio"},
                                      {"key": "FFmpegMetadata"}],
                   "socket_timeout": TCP_TIMEOUT}
-      try:
-        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-          ydl.download(track_urls)
-      except youtube_dl.utils.DownloadError as e:
-        if isinstance(e.exc_info[1], socket.timeout):
-          continue
-        # already logged
-        # logging.getLogger().warning("Download error : %s" % (e))
-      break
+      if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
+        ytdl_progress.setup_ytdl(ydl_opts)
+
+      for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
+        msg = f"Downloading audio for track(s) {' '.join(track_urls)} (attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
+        if ytdl_progress:
+          ytdl_progress.tqdm.write(msg)
+        else:
+          logging.getLogger().info(msg)
+
+        try:
+          with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(track_urls)
+        except youtube_dl.utils.DownloadError as e:
+          if isinstance(e.exc_info[1], socket.timeout):
+            continue
+          raise
+        break
     track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
                                 os.listdir(tmp_dir)))
     if not track_filepaths:
