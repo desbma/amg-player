@@ -6,8 +6,6 @@ cache:
   directories:
     - $HOME/.cache/ci/amg-player
 python:
-  - "3.6"
-  - "3.6-dev"
   - "3.7"
   - "3.7-dev"
   - "3.8-dev"
@@ -24,7 +22,6 @@ env:
   - FFMPEG_VERSION=master
 matrix:
   allow_failures:
-    - python: "3.6-dev"
     - python: "3.7-dev"
     - python: "3.8-dev"
   fast_finish: true
@@ -51,7 +48,7 @@ deploy:
   on:
     tags: true
     branch: master
-    python: "3.6"
+    python: "3.7"
     condition: $FFMPEG_VERSION = master
 notifications:
   email:
