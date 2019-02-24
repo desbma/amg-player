@@ -6,6 +6,14 @@ import shutil
 import tqdm
 
 
+def ltrunc(s, l):
+  """ Truncate string from left. """
+  assert(l > 0)
+  if len(s) <= l:
+    return s
+  return f"…{s[-(l - 1):]}"
+
+
 class ytdl_tqdm:
 
   def __init__(self, ytdl_opts=None, **kwargs):
@@ -58,10 +66,9 @@ class ytdl_tqdm:
       newly_downloaded_bytes = downloaded_bytes - self.prev_downloaded_bytes
 
     # update description
-    columns = shutil.get_terminal_size((80, 80))[0]
+    columns = shutil.get_terminal_size((80, 0))[0]
     filename = os.path.basename(ytdl_state["filename"])
-    truncated_filename = filename[-columns // 5:]
-    desc = f"{'…' if truncated_filename != filename else ''}{truncated_filename}"
+    desc = ltrunc(filename, columns // 5)
     self.tqdm.set_description(desc, refresh=False)
 
     # update bar
