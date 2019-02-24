@@ -138,7 +138,7 @@ def parse_review_block(review):
   else:
     cover_url = None
   published = REVIEW_DATE_SELECTOR(review)[0].get("datetime")
-  published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S+00:00")
+  published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S%z")
   return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, published, tags)
 
 
