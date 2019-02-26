@@ -513,7 +513,11 @@ class TestTag(unittest.TestCase):
                   ("III-III: Imha Tarikatı (Sect of Destruction)",
                    "Imha Tarikat",
                    "Kara Ihlas",
-                   "III-III: Imha Tarikatı (Sect of Destruction)"))
+                   "III-III: Imha Tarikatı (Sect of Destruction)"),
+                  ("CANDLEMASS ft. TONY IOMMI - Astorolus - The Great Octopus (Official Video) | Napalm Records",
+                   "Candlemass",
+                   "The Door to Doom",
+                   "Astorolus - The Great Octopus"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):

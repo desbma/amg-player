@@ -68,6 +68,9 @@ class TitleNormalizer:
     # detect and remove 'feat.xxx' suffix
     self.registerCleaner(RegexSuffixCleaner("feat\..*$", execute_once=True))
 
+    # detect and remove 'ft. xxx'
+    self.registerCleaner(RegexCleaner("[\( ]+ft\. [a-zA-Z ]+[\) ]+", execute_once=True))
+
     # detect and remove '- xxx metal' suffix
     for genre in ("metal", "crust", "grindcore", "grind"):
       self.registerCleaner(RegexSuffixCleaner("[\-|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "( song)?$",
