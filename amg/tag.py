@@ -33,19 +33,19 @@ class TitleNormalizer:
     self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), execute_once=True))
 
     # detect and remove 'taken from album xxx, out (on) yyy' suffix
-    self.registerCleaner(RegexSuffixCleaner("taken from .*, out ", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("taken from .+, out ", execute_once=True))
 
     # detect and remove 'album: xxx track yy'
-    self.registerCleaner(RegexCleaner("(album: .* )?track [0-9]+", execute_once=True))
+    self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+", execute_once=True))
 
     # detect and remove 'from xxx LP' suffix
-    self.registerCleaner(RegexSuffixCleaner("from .* LP", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("from .+ LP", execute_once=True))
 
     # detect and remove 'from xxx album' suffix
     self.registerCleaner(RegexSuffixCleaner("from .*album", execute_once=True))
 
     # detect and remove 'xxx out: yy.zz.aa' suffix
-    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]* out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]+ out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?", execute_once=True))
 
     # detect and remove 'out yy.zz' suffix
     self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+", execute_once=True))
@@ -54,19 +54,19 @@ class TitleNormalizer:
     self.registerCleaner(RegexSuffixCleaner(" out [a-z]+ [0-9]+th", execute_once=True))
 
     # detect and remove '[xxx music]' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]* music$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ music$", execute_once=True))
 
     # detect and remove 'xxx entertainment' suffix
     self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ entertainment$", execute_once=True))
 
     # detect and remove 'record label xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]*$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]+$", execute_once=True))
 
     # detect and remove 'record label xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner("next concert: .*$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("next concert: .+$", execute_once=True))
 
     # detect and remove 'feat.xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"feat\..*$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r"feat\..+$", execute_once=True))
 
     # detect and remove 'ft. xxx'
     self.registerCleaner(RegexCleaner(r"[\( ]+ft\. [a-zA-Z ]+[\) ]+", execute_once=True))
@@ -83,7 +83,7 @@ class TitleNormalizer:
 
     # detect and remove '(thrash/death from whatever)' suffix
     for genre in metal_genres + composed_genres + base_genres:
-      self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]*$",
+      self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]?$",
                                               contains=(f"{genre} from ",),
                                               execute_once=True))
 
