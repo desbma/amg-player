@@ -72,15 +72,24 @@ class TitleNormalizer:
     self.registerCleaner(RegexCleaner(r"[\( ]+ft\. [a-zA-Z ]+[\) ]+", execute_once=True))
 
     # detect and remove '- xxx metal' suffix
-    for genre in ("metal", "crust", "grindcore", "grind"):
-      self.registerCleaner(RegexSuffixCleaner(r"[\-|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)+" + genre + "( song)?$",
+    base_genres = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
+    composed_genres = tuple(genre_sep.join(pair) for pair in itertools.permutations(base_genres, 2) for genre_sep in "/- ")
+    metal_genres = tuple(f"{genre} metal" for genre in base_genres + composed_genres)
+    base_genres += ("metal",)
+    for genre in metal_genres + composed_genres + base_genres:
+      self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)*" + genre + "( song)?$",
                                               suffixes=(genre, " ".join((genre, "song"))),
                                               execute_once=True))
 
-    # detect and remove 'xxx metal' prefix
-    for genre in ("death",):
-      self.registerCleaner(RegexPrefixCleaner("^" + genre + "[a-z- ]* metal ",
+    # detect and remove '(thrash/death from whatever)' suffix
+    for genre in metal_genres + composed_genres + base_genres:
+      self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]*$",
+                                              contains=(f"{genre} from ",),
                                               execute_once=True))
+
+    # detect and remove 'xxx metal' prefix
+    for genre in metal_genres + composed_genres:
+      self.registerCleaner(SimplePrefixCleaner(execute_once=True), (genre,))
 
     # detect and remove 'xxx productions' suffix
     self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z ]+ productions$"))
@@ -375,9 +384,17 @@ class RegexCleaner(TitleCleanerBase):
 
   """ Cleaner to remove a regex match. """
 
-  def __init__(self, regex, *, flags=re.IGNORECASE, **kwargs):
+  def __init__(self, regex, *, contains=(), flags=re.IGNORECASE, **kwargs):
     super().__init__(**kwargs)
     self.regex = re.compile(regex, flags)
+    self.contains = contains
+
+  def doSkip(self, title, *args):
+    """ See TitleCleanerBase.doSkip. """
+    if self.contains:
+      lower_title = title.lower()
+      return not any(map(lower_title.__contains__, self.contains))
+    return super().doSkip(title, *args)
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """

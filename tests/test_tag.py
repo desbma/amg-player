@@ -517,7 +517,11 @@ class TestTag(unittest.TestCase):
                   ("CANDLEMASS ft. TONY IOMMI - Astorolus - The Great Octopus (Official Video) | Napalm Records",
                    "Candlemass",
                    "The Door to Doom",
-                   "Astorolus - The Great Octopus"))
+                   "Astorolus - The Great Octopus"),
+                  ("Lucifera - Sigillum Diaboli (Death/Thrash from Colombia, South America)",
+                   "Lucifera",
+                   "La Caceria De Brujas",
+                   "Sigillum Diaboli"))
 
     for source, artist, album, expected_result in references:
       with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
