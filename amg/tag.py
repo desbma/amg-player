@@ -194,9 +194,8 @@ class TitleNormalizer:
     while self.cleaners:
       to_del_idx = None
 
-      for i, (cleaner, args) in enumerate(self.cleaners):
-        if i < start_index:
-          continue
+      for i, (cleaner, args) in enumerate(itertools.islice(self.cleaners, start_index, None),
+                                          start_index):
 
         if cleaner.doSkip(cur_title, *args):
           # TODO understand why this makes processing slower instead of faster
