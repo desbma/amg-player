@@ -11,10 +11,7 @@ import string
 import mutagen
 import mutagen.easyid3
 import mutagen.easymp4
-try:
-  import re2 as re
-except ImportError:
-  import re
+import re
 import unidecode
 
 from amg import sanitize
@@ -30,46 +27,70 @@ class TitleNormalizer:
     # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
 
     # remove consecutive spaces
-    self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), execute_once=True))
+    self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), match_once=True))
 
     # detect and remove 'taken from album xxx, out (on) yyy' suffix
-    self.registerCleaner(RegexSuffixCleaner("taken from .+, out ", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("taken from .+, out ",
+                                            contains=("taken from", "out"),
+                                            match_once=True))
 
     # detect and remove 'album: xxx track yy'
-    self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+", execute_once=True))
+    self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+",
+                                      contains=("track",),
+                                      match_once=True))
 
     # detect and remove 'from xxx LP' suffix
-    self.registerCleaner(RegexSuffixCleaner("from .+ LP", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("from .+ LP",
+                                            contains=("from", "LP"),
+                                            match_once=True))
 
     # detect and remove 'from xxx album' suffix
-    self.registerCleaner(RegexSuffixCleaner("from .*album", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("from .*album",
+                                            contains=("from", "album"),
+                                            match_once=True))
 
     # detect and remove 'xxx out: yy.zz.aa' suffix
-    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]+ out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]+ out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?", match_once=True))
 
     # detect and remove 'out yy.zz' suffix
-    self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+",
+                                            contains=(" out ",),
+                                            match_once=True))
 
     # detect and remove 'out month xxth' suffix
-    self.registerCleaner(RegexSuffixCleaner(" out [a-z]+ [0-9]+th", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(" out [a-z]+ [0-9]+th",
+                                            contains=(" out ",),
+                                            match_once=True))
 
     # detect and remove '[xxx music]' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ music$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ music$",
+                                            suffixes=("music",),
+                                            match_once=True))
 
     # detect and remove 'xxx entertainment' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ entertainment$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z]+ entertainment$",
+                                            suffixes=("entertainment",),
+                                            match_once=True))
 
     # detect and remove 'record label xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]+$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("record label:? [a-z0-9 ]+$",
+                                            contains=("record label",),
+                                            match_once=True))
 
     # detect and remove 'record label xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner("next concert: .+$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner("next concert: .+$",
+                                            contains=("next concert: ",),
+                                            match_once=True))
 
     # detect and remove 'feat.xxx' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"feat\..+$", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r"feat\..+$",
+                                            contains=("feat.",),
+                                            match_once=True))
 
     # detect and remove 'ft. xxx'
-    self.registerCleaner(RegexCleaner(r"[\( ]+ft\. [a-zA-Z ]+[\) ]+", execute_once=True))
+    self.registerCleaner(RegexCleaner(r"[\( ]+ft\. [a-zA-Z ]+[\) ]+",
+                                      contains=("ft.",),
+                                      match_once=True))
 
     # detect and remove '- xxx metal' suffix
     base_genres = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
@@ -78,24 +99,27 @@ class TitleNormalizer:
     base_genres += ("metal",)
     for genre in metal_genres + composed_genres + base_genres:
       self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)*" + genre + "( song)?$",
-                                              suffixes=(genre, " ".join((genre, "song"))),
-                                              execute_once=True))
+                                              suffixes=(genre, f"{genre} song"),
+                                              match_once=True,
+                                              remove_if_skipped=False))
 
     # detect and remove '(thrash/death from whatever)' suffix
     for genre in metal_genres + composed_genres + base_genres:
       self.registerCleaner(RegexSuffixCleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]?$",
                                               contains=(f"{genre} from ",),
-                                              execute_once=True))
+                                              match_once=True))
 
     # detect and remove 'xxx metal' prefix
     for genre in metal_genres + composed_genres:
-      self.registerCleaner(SimplePrefixCleaner(execute_once=True), (genre,))
+      self.registerCleaner(SimplePrefixCleaner(match_once=True), (genre,))
 
     # detect and remove 'xxx productions' suffix
-    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z ]+ productions$"))
+    self.registerCleaner(RegexSuffixCleaner(r"[\[\( ][a-z ]+ productions$",
+                                            suffixes=(" productions",)))
 
     # detect and remove track number prefix
-    self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - "))
+    self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - ",
+                                            contains=(" - ",)))
 
     # detect and remove 'xxx records' suffix
     self.registerCleaner(RecordsSuffixCleaner("recordings"))
@@ -142,22 +166,22 @@ class TitleNormalizer:
     self.registerCleaner(ArtistCleaner(), (artist,))
 
     # detect and remove starting parenthesis expression
-    self.registerCleaner(StartParenthesesCleaner(execute_once=True))
+    self.registerCleaner(StartParenthesesCleaner(match_once=True))
 
     # detect and remove album prefix or suffix
-    self.registerCleaner(AlbumCleaner(execute_once=True), (album,))
+    self.registerCleaner(AlbumCleaner(match_once=True), (album,))
 
     # fix paired chars
-    self.registerCleaner(PairedCharCleaner(execute_once=True))
+    self.registerCleaner(PairedCharCleaner(match_once=True))
 
     # remove some punctuation
-    self.registerCleaner(FunctionCleaner(lambda x: x.strip("-"), execute_once=True))
+    self.registerCleaner(FunctionCleaner(lambda x: x.strip("-"), match_once=True))
 
     # normalize case
-    self.registerCleaner(FunctionCleaner(sanitize.normalize_tag_case, execute_once=True))
+    self.registerCleaner(FunctionCleaner(sanitize.normalize_tag_case, match_once=True))
 
     # post normalize case fix
-    self.registerCleaner(FunctionCleaner(lambda x: x.replace("PT.", "pt."), execute_once=True))
+    self.registerCleaner(FunctionCleaner(lambda x: x.replace("PT.", "pt."), match_once=True))
 
   def registerCleaner(self, cleaner, args=()):
     assert(isinstance(cleaner, TitleCleanerBase))
@@ -175,6 +199,10 @@ class TitleNormalizer:
           continue
 
         if cleaner.doSkip(cur_title, *args):
+          # TODO understand why this makes processing slower instead of faster
+          # if cleaner.remove_if_skipped and not cleaner.doKeep():
+          #   to_del_idx = i
+          #   break
           continue
 
         remove_cur_cleaner = False
@@ -189,7 +217,7 @@ class TitleNormalizer:
           remove_cur_cleaner = not cleaner.doKeep()
           restart_loop = True
 
-        elif cleaner.execute_once:
+        elif cleaner.match_once:
           remove_cur_cleaner = True
           # this cleaner did not match and we will remove it, continue from same index
           start_index = i
@@ -226,8 +254,9 @@ class TitleCleanerBase:
   RCLEAN_CHARS = str(RCLEAN_CHARS) + string.whitespace
   LCLEAN_CHARS = str(LCLEAN_CHARS) + string.whitespace
 
-  def __init__(self, *, execute_once=False):
-    self.execute_once = execute_once
+  def __init__(self, *, match_once=False, remove_if_skipped=None):
+    self.match_once = match_once
+    self.remove_if_skipped = remove_if_skipped if (remove_if_skipped is not None) else match_once
 
   def doSkip(self, title, *args):
     """ Return True if this cleaner can be skipped for this title string. """
@@ -271,10 +300,7 @@ class TitleCleanerBase:
 
   def endslike(self, s, l):
     """ Return True if end of string s is similar to l. """
-    norm_s = self.rnorm(s)
-    norm_l = self.rnorm(l)
-    trunc = norm_s[:-len(norm_l)]
-    return (norm_s.endswith(norm_l) and ((not trunc) or (not norm_s[:-len(norm_l)][-1].isalnum())))
+    return self.rnorm(s).endswith(self.rnorm(l))
 
   def rmsuffix(self, s, e):
     """ Remove string suffix. """
@@ -393,7 +419,10 @@ class RegexCleaner(TitleCleanerBase):
     """ See TitleCleanerBase.doSkip. """
     if self.contains:
       lower_title = title.lower()
-      return not any(map(lower_title.__contains__, self.contains))
+      skip = not any(map(lower_title.__contains__, self.contains))
+      if skip:
+        self.remove_if_skipped = True
+      return skip
     return super().doSkip(title, *args)
 
   def cleanup(self, title):
