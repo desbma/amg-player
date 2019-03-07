@@ -1,6 +1,7 @@
 import abc
 import base64
 import calendar
+import collections
 import datetime
 import functools
 import itertools
@@ -189,51 +190,49 @@ class TitleNormalizer:
 
   def cleanup(self, title):
     cur_title = title
-
+    to_del_indexes = collections.deque()
     start_index = 0
+
     while self.cleaners:
-      to_del_idx = None
 
       for i, (cleaner, args) in enumerate(itertools.islice(self.cleaners, start_index, None),
                                           start_index):
 
-        if cleaner.doSkip(cur_title, *args):
-          # TODO understand why this makes processing slower instead of faster
-          # if cleaner.remove_if_skipped and not cleaner.doKeep():
-          #   to_del_idx = i
-          #   break
-          continue
-
         remove_cur_cleaner = False
         restart_loop = False
 
-        new_title = cleaner.cleanup(cur_title, *args)
-        if new_title and (new_title != cur_title):
-          logging.getLogger().debug(f"{cleaner.__class__.__name__} changed title tag: "
-                                    f"{repr(cur_title)} -> {repr(new_title)}")
-          # update string and remove this cleaner to avoid calling it several times
-          cur_title = new_title
-          remove_cur_cleaner = not cleaner.doKeep()
-          restart_loop = True
+        if cleaner.doSkip(cur_title, *args):
+          if cleaner.remove_if_skipped and not cleaner.doKeep():
+            remove_cur_cleaner = True
 
-        elif cleaner.match_once:
-          remove_cur_cleaner = True
-          # this cleaner did not match and we will remove it, continue from same index
-          start_index = i
+        else:
+          new_title = cleaner.cleanup(cur_title, *args)
+          if new_title and (new_title != cur_title):
+            logging.getLogger().debug(f"{cleaner.__class__.__name__} changed title tag: "
+                                      f"{repr(cur_title)} -> {repr(new_title)}")
+            # update string and remove this cleaner to avoid calling it several times
+            cur_title = new_title
+            remove_cur_cleaner = not cleaner.doKeep()
+            restart_loop = True
+
+          elif cleaner.match_once:
+            remove_cur_cleaner = True
+            # this cleaner did not match and we will remove it, continue from same index
+            if start_index == 0:
+              start_index = i
 
         if remove_cur_cleaner:
-          to_del_idx = i
+          to_del_indexes.append(i)
         if restart_loop:
           start_index = 0
-        if remove_cur_cleaner or restart_loop:
           break
 
       else:
-        # all cleaners have been called and string did not change
+        # all cleaners have been called and string did not change title
         break
 
-      if to_del_idx is not None:
-        del self.cleaners[to_del_idx]
+      while to_del_indexes:
+        del self.cleaners[to_del_indexes.pop()]
 
     if cur_title != title:
       logging.getLogger().info(f"Fixed title tag: {repr(title)} -> {repr(cur_title)}")
