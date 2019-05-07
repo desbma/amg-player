@@ -377,7 +377,7 @@ def download_audio(review, track_urls, *, max_cover_size):
           with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download(track_urls)
         except youtube_dl.utils.DownloadError as e:
-          if isinstance(e.exc_info[1], socket.timeout):
+          if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
             continue
           raise
         break
