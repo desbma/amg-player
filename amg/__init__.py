@@ -82,10 +82,10 @@ USER_AGENT = f"Mozilla/5.0 AMG-Player/{__version__}"
 def fetch_page(url, *, http_cache=None):
   """ Fetch page & parse it with LXML. """
   if (http_cache is not None) and (url in http_cache):
-    logging.getLogger().info(f"Got data for URL '{url}' from cache")
+    logging.getLogger().info(f"Got data for URL {url!r} from cache")
     page = http_cache[url]
   else:
-    logging.getLogger().debug(f"Fetching '{url}'...")
+    logging.getLogger().debug(f"Fetching {url!r}...")
     headers = {"User-Agent": USER_AGENT}
     response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT)
     response.raise_for_status()
@@ -97,7 +97,7 @@ def fetch_page(url, *, http_cache=None):
 
 def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
-  logging.getLogger().debug(f"Fetching '{url}'...")
+  logging.getLogger().debug(f"Fetching {url!r}...")
   headers = {"User-Agent": USER_AGENT}
   with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
     response.raise_for_status()
@@ -424,7 +424,7 @@ def download_audio(review, track_urls, *, max_cover_size):
         files_tags[track_filepath] = tag.tag(track_filepath, review, cover_data)
       except Exception as e:
         # raise
-        logging.getLogger().warning(f"Failed to add tags to file '{track_filepath}': "
+        logging.getLogger().warning(f"Failed to add tags to file {track_filepath!r}: "
                                     f"{e.__class__.__qualname__} {e}")
     # RG/R128
     if HAS_FFMPEG:

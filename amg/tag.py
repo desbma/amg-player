@@ -539,7 +539,7 @@ def normalize_title_tag(title, artist, album):
 
 def tag(track_filepath, review, cover_data):
   """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
-  logging.getLogger().info(f"Tagging file '{track_filepath}'")
+  logging.getLogger().info(f"Tagging file {track_filepath!r}")
   mf = mutagen.File(track_filepath)
   if isinstance(mf, mutagen.mp3.MP3):
     mf = mutagen.easyid3.EasyID3(track_filepath)
