@@ -50,9 +50,9 @@ class TestAmg(unittest.TestCase):
             "https://www.angrymetalguy.com/hornss-telepath-review/":
             (("https://hornss.bandcamp.com/track/atrophic",),
              True),
-            "https://www.angrymetalguy.com/auditory-armory-dark-matter-review/":
-            (("https://www.reverbnation.com/open_graph/song/28202104?pwc%5Bbranded%5D=1",),
-             True),
+            # "https://www.angrymetalguy.com/auditory-armory-dark-matter-review/":
+            # (("https://www.reverbnation.com/open_graph/song/28202104?pwc%5Bbranded%5D=1",),
+            #  True),
             "https://www.angrymetalguy.com/gorod-aethra-review/":
             (("https://www.youtube.com/watch?v=WBU1H-9yvmQ",),
              False)}
