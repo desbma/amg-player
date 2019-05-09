@@ -290,7 +290,7 @@ def get_cover_data(review):
     else:
       if HAS_JPEGOPTIM:
         cmd = ("jpegoptim", "-q", "--strip-all", filepath)
-        subprocess.check_call(cmd)
+        subprocess.run(cmd, check=True)
       with open(filepath, "rb") as f:
         out_bytes = f.read()
 
@@ -342,7 +342,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
          "-shortest",
          "-f", "matroska", merged_filepath)
   logging.getLogger().debug(f"Merging Audio and image with command: {subprocess.list2cmdline(cmd)}")
-  subprocess.check_call(cmd, cwd=tmp_dir)
+  subprocess.run(cmd, check=True, cwd=tmp_dir)
 
   return merged_filepath
 
@@ -465,7 +465,7 @@ def play(review, track_urls, *, merge_with_picture):
           return
         cmd = ("mpv", merged_filepath)
         logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
-        subprocess.check_call(cmd)
+        subprocess.run(cmd, check=True)
 
   else:
     for track_url in track_urls:
@@ -476,7 +476,7 @@ def play(review, track_urls, *, merge_with_picture):
                                     stderr=subprocess.DEVNULL)
       cmd = ("mpv", "--force-seekable=yes", "-")
       logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
-      subprocess.check_call(cmd, stdin=dl_process.stdout)
+      subprocess.run(cmd, check=True, stdin=dl_process.stdout)
 
 
 def cl_main():
