@@ -9,4 +9,4 @@ requests>=2.6.0
 tqdm>=4.31.0
 unidecode>=0.4.20
 web_cache>=1.1.0
-youtube-dl>=2019.04.24
+youtube-dl>=2019.04.30
