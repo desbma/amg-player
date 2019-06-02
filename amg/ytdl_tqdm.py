@@ -25,6 +25,7 @@ class ytdl_tqdm:
       self.setup_ytdl(ytdl_opts)
 
   def __bool__(self):
+    """ Return True if there is an associated progress bar, False instead. """
     return self.tqdm is not None
 
   def __enter__(self):
@@ -35,10 +36,10 @@ class ytdl_tqdm:
       return self.tqdm.close()
 
   def setup_ytdl(self, ytdl_opts):
-    new_opts = {"quiet": True,
-                "no_warnings": True,
-                "progress_hooks": (self._log_progress,)}
-    ytdl_opts.update(new_opts)
+    """ Initialize tqdm bar, update YoutubeDL options, and return them. """
+    ytdl_opts.update({"quiet": True,
+                      "no_warnings": True})
+    ytdl_opts.setdefault("progress_hooks", []).append(self._log_progress)
 
     assert(self.tqdm is None)
     self.tqdm = self._get_new_tqdm()
@@ -46,6 +47,7 @@ class ytdl_tqdm:
     return ytdl_opts
 
   def _log_progress(self, ytdl_state):
+    """ Internal tqdm progress callback. """
     if ytdl_state["status"] != "downloading":
       return
 
@@ -77,6 +79,7 @@ class ytdl_tqdm:
     self.prev_downloaded_bytes = downloaded_bytes
 
   def _get_new_tqdm(self):
+    """ Setup and return a new tqdm insance. """
     # default args
     tqdm_kwargs = {"unit": "B",
                    "unit_scale": True,
