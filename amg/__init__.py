@@ -8,6 +8,7 @@ __license__ = "GPLv3"
 
 import argparse
 import collections
+import concurrent.futures
 import contextlib
 import datetime
 import enum
@@ -25,6 +26,7 @@ import string
 import subprocess
 import sys
 import tempfile
+import threading
 import urllib.parse
 import webbrowser
 
@@ -36,7 +38,6 @@ from amg import menu
 from amg import mkstemp_ctx
 from amg import sanitize
 from amg import tag
-from amg import tqdm_logging
 from amg import ytdl_tqdm
 
 import appdirs
@@ -78,6 +79,7 @@ IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
 YDL_MAX_DOWNLOAD_ATTEMPTS = 5
 USER_AGENT = f"Mozilla/5.0 AMG-Player/{__version__}"
+MAX_PARALLEL_DOWNLOADS = 4
 
 
 def fetch_page(url, *, http_cache=None):
@@ -348,39 +350,67 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return merged_filepath
 
 
+def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
+  """ Download a single track. """
+  with contextlib.ExitStack() as cm:
+    filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
+                         f"{track_idx + 1:05d}"
+                         f". {sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
+                         f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))}"
+                         r".%(ext)s")
+    ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
+                "format": "opus/vorbis/bestaudio",
+                "postprocessors": [{"key": "FFmpegExtractAudio"},
+                                   {"key": "FFmpegMetadata"}],
+                "socket_timeout": TCP_TIMEOUT}
+    if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
+      cm.enter_context(tqdm_line_lock)
+      ytdl_progress = cm.enter_context(ytdl_tqdm.ytdl_tqdm(leave=False,
+                                                           miniters=1,
+                                                           position=track_idx % MAX_PARALLEL_DOWNLOADS))
+      ytdl_progress.setup_ytdl(ydl_opts)
+    else:
+      ytdl_progress = None
+
+    for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
+      msg = f"Downloading audio for track #{track_idx + 1} from {track_url!r} (attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
+      if ytdl_progress:
+        ytdl_progress.tqdm.write(msg)
+      else:
+        logging.getLogger().info(msg)
+
+      try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+          ydl.download((track_url,))
+      except youtube_dl.utils.DownloadError as e:
+        if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
+          continue
+        raise
+      break
+
+
 def download_audio(review, track_urls, *, max_cover_size):
-  """ Download track audio to file in current directory, return True if success. """
+  """ Download audio track(s) to file(s) in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
-    with contextlib.ExitStack() as cm:
-      filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
-                           r"%(autonumber)s"
-                           f". {sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
-                           f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))}"
-                           r".%(ext)s")
-      ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
-                  "format": "opus/vorbis/bestaudio",
-                  "postprocessors": [{"key": "FFmpegExtractAudio"},
-                                     {"key": "FFmpegMetadata"}],
-                  "socket_timeout": TCP_TIMEOUT}
-      if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
-        ytdl_progress = cm.enter_context(ytdl_tqdm.ytdl_tqdm(leave=False,
-                                                             mininterval=0.05,
-                                                             miniters=1))
-        ytdl_progress.setup_ytdl(ydl_opts)
-        cm.enter_context(tqdm_logging.redirect_logging(ytdl_progress.tqdm))
+    # download
+    tqdm_line_locks = [threading.Lock() for _ in range(MAX_PARALLEL_DOWNLOADS)]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL_DOWNLOADS) as executor:
+      futures = []
+      for (track_idx, track_url), tqdm_line_lock in zip(enumerate(track_urls),
+                                                        itertools.cycle(tqdm_line_locks)):
+        futures.append(executor.submit(download_track,
+                                       review,
+                                       track_idx,
+                                       track_url,
+                                       tmp_dir,
+                                       tqdm_line_lock))
 
-      for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
-        logging.getLogger().info(f"Downloading audio for track(s) {' '.join(track_urls)} "
-                                 f"(attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})")
+      # raise exception if any
+      for e in filter(None.__ne__,
+                      map(operator.methodcaller("exception"),
+                          concurrent.futures.as_completed(futures))):
+        raise e
 
-        try:
-          with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(track_urls)
-        except youtube_dl.utils.DownloadError as e:
-          if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
-            continue
-          raise
-        break
     track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
                                 os.listdir(tmp_dir)))
     if not track_filepaths:
@@ -530,7 +560,10 @@ def cl_main():
   logging.getLogger("requests").setLevel(logging.ERROR)
   logging.getLogger("urllib3").setLevel(logging.ERROR)
   logging.getLogger("PIL").setLevel(logging.ERROR)
-  logging_formatter = colored_logging.ColoredFormatter(fmt="%(message)s")
+  if logging.getLogger().isEnabledFor(logging.DEBUG):
+    logging_formatter = colored_logging.ColoredFormatter(fmt="%(threadName)s: %(message)s")
+  else:
+    logging_formatter = colored_logging.ColoredFormatter(fmt="%(message)s")
   logging_handler = logging.StreamHandler()
   logging_handler.setFormatter(logging_formatter)
   logger.addHandler(logging_handler)
