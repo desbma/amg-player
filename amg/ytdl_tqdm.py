@@ -61,7 +61,12 @@ class ytdl_tqdm:
     # update state
     if self.prev_downloaded_bytes > downloaded_bytes:
       # new YoutubeDL file, reset progress bar
-      self.tqdm.reset()
+      try:
+        self.tqdm.reset()
+      except AttributeError:
+        # tqdm < 4.32.0
+        self.tqdm.close()
+        self.tqdm = self._get_new_tqdm()
       newly_downloaded_bytes = downloaded_bytes
     else:
       newly_downloaded_bytes = downloaded_bytes - self.prev_downloaded_bytes
