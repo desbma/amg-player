@@ -36,6 +36,7 @@ from amg import menu
 from amg import mkstemp_ctx
 from amg import sanitize
 from amg import tag
+from amg import tqdm_logging
 from amg import ytdl_tqdm
 
 import appdirs
@@ -350,9 +351,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 def download_audio(review, track_urls, *, max_cover_size):
   """ Download track audio to file in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
-    with ytdl_tqdm.ytdl_tqdm(leave=False,
-                             mininterval=0.05,
-                             miniters=1) as ytdl_progress:
+    with contextlib.ExitStack() as cm:
       filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
                            r"%(autonumber)s"
                            f". {sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
@@ -364,14 +363,15 @@ def download_audio(review, track_urls, *, max_cover_size):
                                      {"key": "FFmpegMetadata"}],
                   "socket_timeout": TCP_TIMEOUT}
       if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
+        ytdl_progress = cm.enter_context(ytdl_tqdm.ytdl_tqdm(leave=False,
+                                                             mininterval=0.05,
+                                                             miniters=1))
         ytdl_progress.setup_ytdl(ydl_opts)
+        cm.enter_context(tqdm_logging.redirect_logging(ytdl_progress.tqdm))
 
       for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
-        msg = f"Downloading audio for track(s) {' '.join(track_urls)} (attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
-        if ytdl_progress:
-          ytdl_progress.tqdm.write(msg)
-        else:
-          logging.getLogger().info(msg)
+        logging.getLogger().info(f"Downloading audio for track(s) {' '.join(track_urls)} "
+                                 f"(attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})")
 
         try:
           with youtube_dl.YoutubeDL(ydl_opts) as ydl:
