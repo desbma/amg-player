@@ -147,7 +147,7 @@ class TitleNormalizer:
                         "official", "pre-listening", "prelistening", "trollzorn",
                         "uncensored", "s/t", "sw exclusive",
                         "transcending obscurity india", "transcending obscurity",
-                        "trailer for the upcoming album"))
+                        "trailer for the upcoming album", "full ep"))
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):
       expressions.append(str(y))
