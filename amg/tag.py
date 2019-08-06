@@ -552,7 +552,7 @@ def tag(track_filepath, review, cover_data):
   try:
     mf["title"] = normalize_title_tag(mf["title"][-1], review.artist, review.album)
   except KeyError:
-    pass
+    mf["title"] = mf["album"]
   tags = dict(mf)
 
   if cover_data is not None:
