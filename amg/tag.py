@@ -119,8 +119,8 @@ class TitleNormalizer:
                                             suffixes=(" productions",)))
 
     # detect and remove track number prefix
-    self.registerCleaner(RegexPrefixCleaner("^[0-9]+ - ",
-                                            contains=(" - ",)))
+    self.registerCleaner(RegexPrefixCleaner("^[0-9]+[ -.]+ ",
+                                            contains=(" - ", ". ")))
 
     # detect and remove 'xxx records' suffix
     self.registerCleaner(RecordsSuffixCleaner("recordings"))
