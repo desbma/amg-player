@@ -537,7 +537,7 @@ def normalize_title_tag(title, artist, album):
   return normalizer.cleanup(title)
 
 
-def tag(track_filepath, review, cover_data):
+def tag(track_filepath, review, metadata, cover_data):
   """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
   logging.getLogger().info(f"Tagging file {track_filepath!r}")
   mf = mutagen.File(track_filepath)
@@ -546,13 +546,17 @@ def tag(track_filepath, review, cover_data):
   elif isinstance(mf, mutagen.mp4.MP4):
     mf = mutagen.easymp4.EasyMP4(track_filepath)
 
-  # override/fix source tags added by youtube-dl, because they often contain crap
+  # sanitize tags
   mf["artist"] = sanitize.normalize_tag_case(review.artist)
   mf["album"] = sanitize.normalize_tag_case(review.album)
   try:
-    mf["title"] = normalize_title_tag(mf["title"][-1], review.artist, review.album)
+    mf["title"] = normalize_title_tag(metadata["title"], review.artist, review.album)
   except KeyError:
     mf["title"] = mf["album"]
+  try:
+    mf["comment"] = metadata["description"]
+  except KeyError:
+    pass
   tags = dict(mf)
 
   if cover_data is not None:

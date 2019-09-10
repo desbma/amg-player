@@ -351,7 +351,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
 
 
 def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
-  """ Download a single track. """
+  """ Download a single track, and return its metadata. """
   with contextlib.ExitStack() as cm:
     filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
                          f"{track_idx + 1:05d}"
@@ -360,8 +360,7 @@ def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
                          r".%(ext)s")
     ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
                 "format": "opus/vorbis/bestaudio",
-                "postprocessors": [{"key": "FFmpegExtractAudio"},
-                                   {"key": "FFmpegMetadata"}],
+                "postprocessors": [{"key": "FFmpegExtractAudio"}],
                 "socket_timeout": TCP_TIMEOUT}
     if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
       cm.enter_context(tqdm_line_lock)
@@ -381,12 +380,11 @@ def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
 
       try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-          ydl.download((track_url,))
+          return ydl.extract_info(track_url)
       except youtube_dl.utils.DownloadError as e:
         if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
           continue
         raise
-      break
 
 
 def download_audio(review, track_urls, *, max_cover_size):
@@ -394,6 +392,7 @@ def download_audio(review, track_urls, *, max_cover_size):
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
     # download
     tqdm_line_locks = [threading.Lock() for _ in range(MAX_PARALLEL_DOWNLOADS)]
+    tracks_metadata = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=MAX_PARALLEL_DOWNLOADS) as executor:
       futures = []
       for (track_idx, track_url), tqdm_line_lock in zip(enumerate(track_urls),
@@ -406,13 +405,11 @@ def download_audio(review, track_urls, *, max_cover_size):
                                        tqdm_line_lock))
 
       # raise exception if any
-      for e in filter(None.__ne__,
-                      map(operator.methodcaller("exception"),
-                          concurrent.futures.as_completed(futures))):
-        raise e
+      for future in futures:
+        tracks_metadata.append(future.result())
 
-    track_filepaths = tuple(map(lambda x: os.path.join(tmp_dir, x),
-                                os.listdir(tmp_dir)))
+    track_filepaths = tuple(sorted(map(lambda x: os.path.join(tmp_dir, x),
+                                       os.listdir(tmp_dir))))
     if not track_filepaths:
       logging.getLogger().error("Download failed")
       return False
@@ -449,9 +446,9 @@ def download_audio(review, track_urls, *, max_cover_size):
 
     # add tags & embed cover
     files_tags = {}
-    for track_filepath in track_filepaths:
+    for track_filepath, track_metadata in zip(track_filepaths, tracks_metadata):
       try:
-        files_tags[track_filepath] = tag.tag(track_filepath, review, cover_data)
+        files_tags[track_filepath] = tag.tag(track_filepath, review, track_metadata, cover_data)
       except Exception as e:
         # raise
         logging.getLogger().warning(f"Failed to add tags to file {track_filepath!r}: "
