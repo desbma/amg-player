@@ -85,7 +85,7 @@ class TestTag(unittest.TestCase):
 
     # vorbis
     self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))
-    amg.tag.tag(self.vorbis_filepath, review, cover_data)
+    amg.tag.tag(self.vorbis_filepath, review, {}, cover_data)
     tags = mutagen.File(self.vorbis_filepath)
     ref_tags = {"artist": [artist],
                 "album": [album]}
@@ -100,7 +100,7 @@ class TestTag(unittest.TestCase):
 
     # opus
     self.assertFalse(amg.tag.has_embedded_album_art(self.opus_filepath))
-    amg.tag.tag(self.opus_filepath, review, cover_data)
+    amg.tag.tag(self.opus_filepath, review, {}, cover_data)
     tags = mutagen.File(self.opus_filepath)
     ref_tags = {"artist": [artist],
                 "album": [album]}
@@ -115,7 +115,7 @@ class TestTag(unittest.TestCase):
 
     # mp3
     self.assertFalse(amg.tag.has_embedded_album_art(self.mp3_filepath))
-    amg.tag.tag(self.mp3_filepath, review, cover_data)
+    amg.tag.tag(self.mp3_filepath, review, {}, cover_data)
     tags = mutagen.File(self.mp3_filepath)
     ref_tags = {"TPE1": [artist],
                 "TALB": [album]}
@@ -129,7 +129,7 @@ class TestTag(unittest.TestCase):
 
     # mp4
     self.assertFalse(amg.tag.has_embedded_album_art(self.m4a_filepath))
-    amg.tag.tag(self.m4a_filepath, review, cover_data)
+    amg.tag.tag(self.m4a_filepath, review, {}, cover_data)
     tags = mutagen.File(self.m4a_filepath)
     ref_tags = {"\xa9ART": [artist],
                 "\xa9alb": [album]}
