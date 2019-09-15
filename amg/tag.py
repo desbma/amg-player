@@ -7,12 +7,10 @@ import functools
 import itertools
 import logging
 import operator
+import re
 import string
 
 import mutagen
-import mutagen.easyid3
-import mutagen.easymp4
-import re
 import unidecode
 
 from amg import sanitize
@@ -545,11 +543,7 @@ def normalize_title_tag(title, artist, album):
 def tag(track_filepath, review, metadata, cover_data):
   """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
   logging.getLogger().info(f"Tagging file {track_filepath!r}")
-  mf = mutagen.File(track_filepath)
-  if isinstance(mf, mutagen.mp3.MP3):
-    mf = mutagen.easyid3.EasyID3(track_filepath)
-  elif isinstance(mf, mutagen.mp4.MP4):
-    mf = mutagen.easymp4.EasyMP4(track_filepath)
+  mf = mutagen.File(track_filepath, easy=True)
 
   # sanitize tags
   mf["artist"] = sanitize.normalize_tag_case(review.artist)
@@ -565,7 +559,7 @@ def tag(track_filepath, review, metadata, cover_data):
   tags = dict(mf)
 
   if cover_data is not None:
-    if isinstance(mf, mutagen.easyid3.EasyID3) or isinstance(mf, mutagen.easymp4.EasyMP4):
+    if isinstance(mf, mutagen.mp3.EasyMP3) or isinstance(mf, mutagen.easymp4.EasyMP4):
       # EasyXXX helpers do not allow embedding album art, reopen as normal mutagen file
       mf.save()
       mf = mutagen.File(track_filepath)
