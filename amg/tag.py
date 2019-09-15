@@ -131,11 +131,15 @@ class TitleNormalizer:
 
     # build list of common useless expressions
     expressions = []
-    words1 = ("", "official", "new", "full", "the new", "stop motion", "explicit")
-    words2 = ("", "video", "music", "track", "lyric", "lyrics", "album", "album/tour", "promo", "stream", "single",
-              "visual", "360", "studio", "audio", "song")
-    words3 = ("video", "track", "premiere", "premier", "version", "clip", "audio", "stream", "single", "teaser", "presentation",
-              "song", "in 4k", "4k", "visualizer", "album", "promo", "only", "excerpt", "vr", "lyric", "trailer")
+    words1 = ("", "explicit", "full", "new", "official", "stop motion",
+              "the new")
+    words2 = ("", "360", "album", "album/tour", "audio", "lyric", "lyrics",
+              "music", "promo", "single", "song", "stream", "studio", "track",
+              "video", "visual")
+    words3 = ("4k", "album", "audio", "clip", "excerpt", "in 4k", "lyric",
+              "only", "premier", "premiere", "presentation", "promo", "single",
+              "song", "stream", "teaser", "track", "trailer", "version",
+              "video", "visualizer", "vr")
     for w1 in words1:
       for w2 in words2:
         for w3 in words3:
@@ -146,11 +150,13 @@ class TitleNormalizer:
                 expressions.append(" ".join((w1, rpart)).strip())
             else:
               expressions.append(w3)
-    expressions.extend(("pre-orders available", "preorders available", "hd",
-                        "official", "pre-listening", "prelistening", "trollzorn",
-                        "uncensored", "s/t", "sw exclusive",
-                        "transcending obscurity india", "transcending obscurity",
-                        "trailer for the upcoming album", "full ep"))
+    expressions.extend(("full ep", "hd", "official", "pre-listening",
+                        "pre-order now", "pre-orders available", "prelistening",
+                        "preorders available", "s/t", "sw exclusive",
+                        "trailer for the upcoming album",
+                        "transcending obscurity",
+                        "transcending obscurity india", "trollzorn",
+                        "uncensored"))
     year = datetime.datetime.today().year
     for y in range(year - 5, year + 1):
       expressions.append(str(y))
@@ -365,11 +371,14 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   def cleanup(self, title, artist):
     """ See TitleCleanerBase.cleanup. """
-    for s, suffix_only in itertools.zip_longest(("by " + artist,
-                                                 artist,
-                                                 artist.replace(" ", ""),
-                                                 artist.replace("and", "&"),
-                                                 artist.replace("’", "")),
+    artist_variants = tuple(frozenset((artist,
+                                       artist.replace(" ", ""),
+                                       artist.replace("and", "&"),
+                                       artist.replace("&", "and"),
+                                       artist.replace(", ", " and "),
+                                       artist.replace(" and ", ", "),
+                                       artist.replace("’", ""))))
+    for s, suffix_only in itertools.zip_longest(("by " + artist,) + artist_variants,
                                                 (True,),
                                                 fillvalue=False):
       # detect and remove artist prefix
