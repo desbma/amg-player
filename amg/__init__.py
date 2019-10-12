@@ -118,10 +118,14 @@ def parse_review_block(review):
   url = review_link.get("href")
   title = lxml.etree.tostring(review_link, encoding="unicode", method="text").strip()
   expected_suffix = " Review"
+  expected_prefix = "AMG’s Unsigned Band Rodeo: "
   if title.endswith(expected_suffix):
     title = title[:len(title) - len(expected_suffix)]
   elif "[Things You Might Have Missed" in title:
     title = title.rsplit("[", 1)[0].strip()
+  if title.startswith(expected_prefix):
+    # https://www.angrymetalguy.com/amgs-unsigned-band-rodeo-beeldenstorm-herkoms/
+    title = title[len(expected_prefix):].strip()
   try:
     artist, album = map(str.strip, title.split("–", 1))
   except ValueError:
