@@ -251,14 +251,8 @@ class TitleCleanerBase:
 
   """ Base class for all title cleaner subclasses. """
 
-  RCLEAN_CHARS = list(string.punctuation)
-  LCLEAN_CHARS = RCLEAN_CHARS.copy()
-  for c in "!?)-":
-    RCLEAN_CHARS.remove(c)
-  for c in "(":
-    LCLEAN_CHARS.remove(c)
-  RCLEAN_CHARS = str(RCLEAN_CHARS) + string.whitespace
-  LCLEAN_CHARS = str(LCLEAN_CHARS) + string.whitespace
+  RCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "!?)-]")
+  LCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "(")
 
   def __init__(self, *, execute_once=False, remove_if_skipped=None):
     self.execute_once = execute_once
