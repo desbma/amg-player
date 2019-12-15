@@ -81,6 +81,8 @@ YDL_MAX_DOWNLOAD_ATTEMPTS = 5
 USER_AGENT = f"Mozilla/5.0 AMG-Player/{__version__}"
 MAX_PARALLEL_DOWNLOADS = 4
 
+PROXY = {protocol: os.getenv(f"{protocol}_proxy", "").replace("socks5h", "socks5") for protocol in ("http", "https")}
+
 
 def fetch_page(url, *, http_cache=None):
   """ Fetch page & parse it with LXML. """
@@ -90,7 +92,7 @@ def fetch_page(url, *, http_cache=None):
   else:
     logging.getLogger().debug(f"Fetching {url!r}...")
     headers = {"User-Agent": USER_AGENT}
-    response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT)
+    response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT, proxies=PROXY)
     response.raise_for_status()
     page = response.content
     if http_cache is not None:
@@ -102,7 +104,7 @@ def fetch_ressource(url, dest_filepath):
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug(f"Fetching {url!r}...")
   headers = {"User-Agent": USER_AGENT}
-  with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, stream=True)) as response:
+  with contextlib.closing(requests.get(url, headers=headers, timeout=TCP_TIMEOUT, proxies=PROXY, stream=True)) as response:
     response.raise_for_status()
     with open(dest_filepath, "wb") as dest_file:
       for chunk in response.iter_content(2 ** 14):
@@ -311,7 +313,8 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
                            mininterval=0.05,
                            miniters=1) as ytdl_progress:
     # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
-    ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s")}
+    ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s"),
+                "proxy": PROXY["https"]}
     if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
       ytdl_progress.setup_ytdl(ydl_opts)
 
@@ -365,6 +368,7 @@ def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
     ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
                 "format": "opus/vorbis/bestaudio",
                 "postprocessors": [{"key": "FFmpegExtractAudio"}],
+                "proxy": PROXY[urllib.parse.urlsplit(track_url).scheme],
                 "socket_timeout": TCP_TIMEOUT}
     if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
       cm.enter_context(tqdm_line_lock)
