@@ -42,5 +42,6 @@ setup(name="amg-player",
                    "Programming Language :: Python :: 3",
                    "Programming Language :: Python :: 3 :: Only",
                    "Programming Language :: Python :: 3.7",
+                   "Programming Language :: Python :: 3.8",
                    "Topic :: Multimedia :: Sound/Audio :: Players",
                    "Topic :: Utilities"])
