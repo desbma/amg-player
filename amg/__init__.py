@@ -19,8 +19,9 @@ import locale
 import logging
 import operator
 import os
-import shutil
 import shelve
+import shlex
+import shutil
 import socket
 import string
 import subprocess
@@ -49,6 +50,13 @@ import r128gain
 import requests
 import web_cache
 import youtube_dl
+
+
+try:
+  # Python >= 3.8
+  cmd_to_string = shlex.join
+except AttributeError:
+  cmd_to_string = subprocess.list2cmdline
 
 
 PlayerMode = enum.Enum("PlayerMode",
@@ -351,7 +359,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
          "-c:v", "libx264", "-crf", "18", "-tune:v", "stillimage", "-preset", "ultrafast",
          "-shortest",
          "-f", "matroska", merged_filepath)
-  logging.getLogger().debug(f"Merging Audio and image with command: {subprocess.list2cmdline(cmd)}")
+  logging.getLogger().debug(f"Merging Audio and image with command: {cmd_to_string(cmd)}")
   subprocess.run(cmd, check=True, cwd=tmp_dir)
 
   return merged_filepath
@@ -499,18 +507,18 @@ def play(review, track_urls, *, merge_with_picture):
         if merged_filepath is None:
           return
         cmd = ("mpv", merged_filepath)
-        logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
+        logging.getLogger().debug(f"Playing with command: {cmd_to_string(cmd)}")
         subprocess.run(cmd, check=True)
 
   else:
     for track_url in track_urls:
       cmd_dl = ("youtube-dl", "-o", "-", track_url)
-      logging.getLogger().debug(f"Downloading with command: {subprocess.list2cmdline(cmd_dl)}")
+      logging.getLogger().debug(f"Downloading with command: {cmd_to_string(cmd_dl)}")
       dl_process = subprocess.Popen(cmd_dl,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.DEVNULL)
       cmd = ("mpv", "--force-seekable=yes", "-")
-      logging.getLogger().debug(f"Playing with command: {subprocess.list2cmdline(cmd)}")
+      logging.getLogger().debug(f"Playing with command: {cmd_to_string(cmd)}")
       subprocess.run(cmd, check=True, stdin=dl_process.stdout)
 
 
