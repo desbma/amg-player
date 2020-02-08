@@ -96,6 +96,11 @@ class TitleNormalizer:
                                       contains=("ft.",),
                                       execute_once=True))
 
+    # detect and remove '(xxx productions)'
+    self.registerCleaner(RegexCleaner(r"[^\w\s].+ productions?[^\w\s]",
+                                      contains=("production",),
+                                      execute_once=True))
+
     # detect and remove '- xxx metal' suffix
     base_genres = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
     composed_genres = tuple(genre_sep.join(pair) for pair in itertools.permutations(base_genres, 2) for genre_sep in "/- ")
