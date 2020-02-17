@@ -4,7 +4,7 @@ curses-menu==0.5.0
 lxml>=4.3.3
 mutagen>=1.42.0
 Pillow>=6.0.0
-r128gain>=0.9.3
+r128gain>=1.0.1
 requests>=2.22.0
 tqdm==4.28.1
 unidecode>=1.0.23
