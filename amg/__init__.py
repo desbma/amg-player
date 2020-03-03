@@ -7,6 +7,7 @@ __author__ = "desbma"
 __license__ = "GPLv3"
 
 import argparse
+import codecs
 import collections
 import concurrent.futures
 import contextlib
@@ -365,6 +366,14 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return merged_filepath
 
 
+def backslash_unescape(s):
+  # https://stackoverflow.com/a/57192592
+  return codecs.decode(codecs.encode(s,
+                                     "latin-1",
+                                     "backslashreplace"),
+                       "unicode-escape")
+
+
 def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
   """ Download a single track, and return its metadata. """
   with contextlib.ExitStack() as cm:
@@ -396,11 +405,12 @@ def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
 
       try:
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-          return ydl.extract_info(track_url)
+          metadata = ydl.extract_info(track_url)
       except youtube_dl.utils.DownloadError as e:
         if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
           continue
         raise
+      return {k: backslash_unescape(metadata[k]) for k in ("artist", "album", "title") if ((k in metadata) and metadata[k])}
 
 
 def download_audio(review, track_urls, *, max_cover_size):

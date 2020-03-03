@@ -26,7 +26,8 @@ class TitleNormalizer:
     # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
 
     # remove consecutive spaces
-    self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), execute_once=True))
+    self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()),
+                                         execute_once=True))
 
     # detect and remove 'taken from album xxx, out (on) yyy' suffix
     self.registerCleaner(RegexSuffixCleaner("taken from .+, out ",
@@ -49,7 +50,8 @@ class TitleNormalizer:
                                             execute_once=True))
 
     # detect and remove 'xxx out: yy.zz.aa' suffix
-    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]+ out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?", execute_once=True))
+    self.registerCleaner(RegexSuffixCleaner(r" [\[\(]?([^ ]+ out: )?[0-9]+\.[0-9]+\.[0-9]+[\]\)]?",
+                                            execute_once=True))
 
     # detect and remove 'out yy.zz' suffix
     self.registerCleaner(RegexSuffixCleaner(" out [0-9]+/[0-9]+",
@@ -92,7 +94,7 @@ class TitleNormalizer:
                                             execute_once=True))
 
     # detect and remove 'ft. xxx'
-    self.registerCleaner(RegexCleaner(r"[\( ]+ft\. [a-zA-Z ]+[\) ]+",
+    self.registerCleaner(RegexCleaner(r"[\(\[ ]+ft\. [a-zA-Z\.\: ]+[\)\]]?",
                                       contains=("ft.",),
                                       execute_once=True))
 
@@ -142,7 +144,7 @@ class TitleNormalizer:
               "video", "visual")
     words3 = ("4k", "album", "audio", "clip", "excerpt", "in 4k", "lyric",
               "only", "premier", "premiere", "presentation", "promo", "single",
-              "song", "stream", "teaser", "track", "trailer", "version",
+              "song", "stream", "streaming", "teaser", "track", "trailer", "version",
               "video", "visualizer", "vr")
     for w1 in words1:
       for w2 in words2:
@@ -299,9 +301,12 @@ class TitleCleanerBase:
   def lnorm(self, s):
     return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower()
 
-  def startslike(self, s, l):
+  def startslike(self, s, l, *, sep=None):
     """ Return True if start of string s is similar to l. """
-    return self.lnorm(s).startswith(self.rnorm(l))
+    s = self.lnorm(s)
+    l = self.rnorm(l)
+    cut = s[len(l):]
+    return s.startswith(l) and ((not sep) or (not cut) or (cut[0] in sep))
 
   def endslike(self, s, l):
     """ Return True if end of string s is similar to l. """
@@ -336,7 +341,7 @@ class SimplePrefixCleaner(TitleCleanerBase):
 
   def cleanup(self, title, prefix):
     """ See TitleCleanerBase.cleanup. """
-    if self.startslike(title, prefix):
+    if self.startslike(title, prefix, sep=string.punctuation + string.whitespace):
       title = self.lclean(self.rmprefix(title, prefix))
     return title
 
@@ -435,9 +440,10 @@ class RegexCleaner(TitleCleanerBase):
 
   def cleanup(self, title):
     """ See TitleCleanerBase.cleanup. """
-    match = self.regex.search(title.rstrip(string.punctuation))
+    rstripped = title.rstrip(string.punctuation)
+    match = self.regex.search(rstripped)
     if match:
-      title = self.rclean(title[:match.start(0)]) + " " + self.lclean(title[match.end(0):])
+      title = f"{self.rclean(rstripped[:match.start(0)])} {self.lclean(rstripped[match.end(0):])}".rstrip()
     return title
 
 

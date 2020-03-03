@@ -724,5 +724,23 @@
         "artist": "Quiescency",
         "album": "Message for Lamb",
         "result": "The Final Embrace"
+    },
+    {
+        "source": "Regarde Les Hommes  Tomber - \"A New Order\" (Official Streaming Video)",
+        "artist": "Regarde Les Hommes Tomber",
+        "album": "Ascension",
+        "result": "A New Order"
+    },
+    {
+        "source": "Drown - Subaqueous [Official Teaser ft. VII: Father Subaqueous]",
+        "artist": "Drown",
+        "album": "Subaqueous",
+        "result": "Subaqueous"
+    },
+    {
+        "source": "Vredehammer - Aggressor",
+        "artist": "Vredehammer",
+        "album": "Viperous",
+        "result": "Aggressor"
     }
 ]
