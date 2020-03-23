@@ -135,6 +135,11 @@ class TitleNormalizer:
     self.registerCleaner(RecordsSuffixCleaner("recordings"))
     self.registerCleaner(RecordsSuffixCleaner("records"))
 
+    # detect and remove ' | xxx' suffixes
+    self.registerCleaner(RegexSuffixCleaner(r" \| .*$",
+                                            suffixes=" | ",
+                                            execute_once=True))
+
     # build list of common useless expressions
     expressions = []
     words1 = ("", "explicit", "full", "new", "official", "stop motion",
