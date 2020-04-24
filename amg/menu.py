@@ -70,7 +70,6 @@ class AmgMenu(cursesmenu.CursesMenu):
         else:
           played = "Last played: never"
       lines.append((f"{review.artist} - {review.album}",
-                    f"Published: {review.date_published.strftime('%x')}",
                     played))
     # auto align/justify
     max_lens = [0] * len(lines[0])

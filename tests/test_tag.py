@@ -81,7 +81,7 @@ class TestTag(unittest.TestCase):
     artist = "Artist"
     album = "Album"
     cover_data = os.urandom(random.randint(10000, 500000))
-    review = amg.ReviewMetadata(None, artist, album, None, None, None, None)
+    review = amg.ReviewMetadata(None, artist, album, None, None, None)
 
     # vorbis
     self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))

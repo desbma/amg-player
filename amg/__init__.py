@@ -20,6 +20,7 @@ import locale
 import logging
 import operator
 import os
+import re
 import shelve
 import shlex
 import shutil
@@ -68,7 +69,6 @@ ReviewMetadata = collections.namedtuple("ReviewMetadata",
                                          "album",
                                          "cover_thumbnail_url",
                                          "cover_url",
-                                         "date_published",
                                          "tags"))
 
 ROOT_URL = "https://www.angrymetalguy.com/"
@@ -80,8 +80,9 @@ REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector("article.category-review, "
                                                    "article[class*=tag-things-you-might-have-missed-]")
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
-REVIEW_DATE_SELECTOR = lxml.cssselect.CSSSelector("div.metabar-pad time.published")
-PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("div.entry_content iframe")
+REVIEW_HEADER_SELECTOR = lxml.cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
+REVIEW_HEADER_DATE_REGEX = re.compile(" on ([A-Z][a-z]+ \d+, [0-9]{4})")
+PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("article.post iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
@@ -91,6 +92,16 @@ USER_AGENT = f"Mozilla/5.0 AMG-Player/{__version__}"
 MAX_PARALLEL_DOWNLOADS = 4
 
 PROXY = {protocol: os.getenv(f"{protocol}_proxy", "").replace("socks5h", "socks5") for protocol in ("http", "https")}
+
+
+@contextlib.contextmanager
+def date_locale_neutral():
+  loc = locale.getlocale(locale.LC_TIME)
+  locale.setlocale(locale.LC_TIME, "C")
+  try:
+    yield
+  finally:
+    locale.setlocale(locale.LC_TIME, loc)
 
 
 def fetch_page(url, *, http_cache=None):
@@ -155,9 +166,7 @@ def parse_review_block(review):
     cover_url = make_absolute_url(srcset.split(" ")[-2])
   else:
     cover_url = None
-  published = REVIEW_DATE_SELECTOR(review)[0].get("datetime")
-  published = datetime.datetime.strptime(published, "%Y-%m-%dT%H:%M:%S%z")
-  return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, published, tags)
+  return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, tags)
 
 
 def get_reviews():
@@ -374,14 +383,14 @@ def backslash_unescape(s):
                        "unicode-escape")
 
 
-def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
+def download_track(review, date_published, track_idx, track_url, tmp_dir, tqdm_line_lock):
   """ Download a single track, and return its metadata. """
   with contextlib.ExitStack() as cm:
-    filename_template = (f"{review.date_published.strftime('%Y%m%d%H%M%S')}-"
-                         f"{track_idx + 1:05d}"
-                         f". {sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
-                         f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))}"
-                         r".%(ext)s")
+    filename_template = (f"{date_published.strftime('%Y%m%d')}. "
+                         f"{sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
+                         f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))} - "
+                         f"{track_idx + 1:02d}."
+                         r"%(ext)s")
     ydl_opts = {"outtmpl": os.path.join(tmp_dir, filename_template),
                 "format": "opus/vorbis/bestaudio",
                 "postprocessors": [{"key": "FFmpegExtractAudio"}],
@@ -413,7 +422,7 @@ def download_track(review, track_idx, track_url, tmp_dir, tqdm_line_lock):
       return {k: backslash_unescape(metadata[k]) for k in ("artist", "album", "title") if ((k in metadata) and metadata[k])}
 
 
-def download_audio(review, track_urls, *, max_cover_size):
+def download_audio(review, date_published, track_urls, *, max_cover_size):
   """ Download audio track(s) to file(s) in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
     # download
@@ -425,6 +434,7 @@ def download_audio(review, track_urls, *, max_cover_size):
                                                         itertools.cycle(tqdm_line_locks)):
         futures.append(executor.submit(download_track,
                                        review,
+                                       date_published,
                                        track_idx,
                                        track_url,
                                        tmp_dir,
@@ -493,7 +503,7 @@ def download_audio(review, track_urls, *, max_cover_size):
         pass
       else:
         filename, ext = os.path.splitext(dest_filename)
-        filename = " - ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
+        filename = ". ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
         dest_filename = "".join((filename, ext))
       dest_filepath = os.path.join(os.getcwd(), dest_filename)
       logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
@@ -651,6 +661,14 @@ def cl_main():
 
     # fetch review & play
     review_page = fetch_page(review.url, http_cache=http_cache)
+    header = REVIEW_HEADER_SELECTOR(review_page)[0]
+    for child in header:
+      if child.tag == "i":
+        header.remove(child)
+    date_published = lxml.etree.tostring(header, encoding="unicode", method="text").strip()
+    date_published = REVIEW_HEADER_DATE_REGEX.search(date_published).group(1)
+    with date_locale_neutral():
+      date_published = datetime.datetime.strptime(date_published, "%B %d, %Y").date()
     track_urls, audio_only = get_embedded_track(review_page, http_cache)
     if track_urls is None:
       logging.getLogger().warning("Unable to extract embedded track")
@@ -659,7 +677,7 @@ def cl_main():
       print(f"Artist: {review.artist}\n"
             f"Album: {review.album}\n"
             f"Review URL: {review.url}\n"
-            f"Published: {review.date_published.strftime('%x %H:%M')}\n"
+            f"Published: {date_published.strftime('%x %H:%M')}\n"
             f"Tags: {', '.join(review.tags)}")
       if args.interactive:
         input_loop = True
@@ -672,7 +690,7 @@ def cl_main():
             play(review, track_urls, merge_with_picture=audio_only)
             input_loop = False
           elif c == "d":
-            download_audio(review, track_urls, max_cover_size=args.max_embedded_cover_size)
+            download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
             input_loop = False
           elif c == "r":
             webbrowser.open_new_tab(review.url)
@@ -686,7 +704,7 @@ def cl_main():
         if (((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
                 (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)) or
                 (args.mode is PlayerMode.DISCOVER_DOWNLOAD)):
-          download_audio(review, track_urls, max_cover_size=args.max_embedded_cover_size)
+          download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
         else:
           play(review, track_urls, merge_with_picture=audio_only)
 
