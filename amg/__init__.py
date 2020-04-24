@@ -32,6 +32,7 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
+from typing import Iterable, Optional, Sequence, Tuple
 
 HAS_JPEGOPTIM = (shutil.which("jpegoptim") is not None)
 HAS_FFMPEG = (shutil.which("ffmpeg") is not None)
@@ -104,7 +105,7 @@ def date_locale_neutral():
     locale.setlocale(locale.LC_TIME, loc)
 
 
-def fetch_page(url, *, http_cache=None):
+def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> lxml.etree.XML:
   """ Fetch page & parse it with LXML. """
   if (http_cache is not None) and (url in http_cache):
     logging.getLogger().info(f"Got data for URL {url!r} from cache")
@@ -120,7 +121,7 @@ def fetch_page(url, *, http_cache=None):
   return lxml.etree.XML(page.decode("utf-8"), HTML_PARSER)
 
 
-def fetch_ressource(url, dest_filepath):
+def fetch_ressource(url: str, dest_filepath: str) -> None:
   """ Fetch ressource, and write it to file. """
   logging.getLogger().debug(f"Fetching {url!r}...")
   headers = {"User-Agent": USER_AGENT}
@@ -131,7 +132,7 @@ def fetch_ressource(url, dest_filepath):
         dest_file.write(chunk)
 
 
-def parse_review_block(review):
+def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
   """ Parse review block from main page and return a ReviewMetadata object. """
   tags = tuple(t.split("-", 1)[1] for t in review.get("class").split(" ") if (t.startswith("tag-") and
                                                                               not t.startswith("tag-review") and
@@ -153,7 +154,7 @@ def parse_review_block(review):
   except ValueError:
     # most likely not a review, ie. http://www.angrymetalguy.com/ep-edition-things-you-might-have-missed-2016/
     return None
-  def make_absolute_url(url):
+  def make_absolute_url(url: str) -> str:
     url_parts = urllib.parse.urlsplit(url)
     if url_parts.scheme:
       return url
@@ -169,7 +170,7 @@ def parse_review_block(review):
   return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, tags)
 
 
-def get_reviews():
+def get_reviews() -> Iterable[ReviewMetadata]:
   """ Parse site and yield ReviewMetadata objects. """
   previous_review = None
   for i in itertools.count():
@@ -184,7 +185,7 @@ def get_reviews():
         previous_review = r
 
 
-def get_embedded_track(page, http_cache):
+def get_embedded_track(page: lxml.etree.Element, http_cache: web_cache.WebCache) -> Tuple[Sequence[str], bool]:
   """ Parse page and extract embedded track. """
   urls = None
   audio_only = False
@@ -264,11 +265,11 @@ class KnownReviews:
     for url in to_del:
       del self.data[url]
 
-  def isKnownUrl(self, url):
+  def isKnownUrl(self, url: str) -> bool:
     """ Return True if url if from a known review, False instead. """
     return url in self.data
 
-  def setLastPlayed(self, url):
+  def setLastPlayed(self, url: str) -> None:
     """ Memorize a review's track has been read. """
     try:
       e = list(self.data[url])
@@ -284,11 +285,11 @@ class KnownReviews:
     e[__class__.DataIndex.LAST_PLAYED] = datetime.datetime.now()
     self.data[url] = tuple(e)
 
-  def getLastPlayed(self, url):
+  def getLastPlayed(self, url: str) -> datetime.datetime:
     """ Return datetime of last review track playback. """
     return self.data[url][__class__.DataIndex.LAST_PLAYED]
 
-  def getPlayCount(self, url):
+  def getPlayCount(self, url: str) -> int:
     """ Return number of time a track has been played. """
     try:
       return self.data[url][__class__.DataIndex.PLAY_COUNT]
@@ -297,7 +298,7 @@ class KnownReviews:
       return 1
 
 
-def get_cover_data(review):
+def get_cover_data(review: ReviewMetadata) -> bytes:
   """ Fetch cover and return buffer of JPEG data. """
   cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
   cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
@@ -324,7 +325,7 @@ def get_cover_data(review):
   return out_bytes
 
 
-def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
+def download_and_merge(review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str) -> str:
   """ Download track, merge audio & album art, and return merged filepath. """
   # fetch audio
   with ytdl_tqdm.ytdl_tqdm(leave=False,
@@ -375,7 +376,7 @@ def download_and_merge(review, track_urls, tmp_dir, cover_filepath):
   return merged_filepath
 
 
-def backslash_unescape(s):
+def backslash_unescape(s: str) -> str:
   # https://stackoverflow.com/a/57192592
   return codecs.decode(codecs.encode(s,
                                      "latin-1",
@@ -383,7 +384,8 @@ def backslash_unescape(s):
                        "unicode-escape")
 
 
-def download_track(review, date_published, track_idx, track_url, tmp_dir, tqdm_line_lock):
+def download_track(review: ReviewMetadata, date_published: datetime.datetime,
+                   track_idx: int, track_url: str, tmp_dir: str, tqdm_line_lock: threading.Lock):
   """ Download a single track, and return its metadata. """
   with contextlib.ExitStack() as cm:
     filename_template = (f"{date_published.strftime('%Y%m%d')}. "
@@ -422,7 +424,8 @@ def download_track(review, date_published, track_idx, track_url, tmp_dir, tqdm_l
       return {k: backslash_unescape(metadata[k]) for k in ("artist", "album", "title") if ((k in metadata) and metadata[k])}
 
 
-def download_audio(review, date_published, track_urls, *, max_cover_size):
+def download_audio(review: ReviewMetadata, date_published: datetime.datetime,
+                   track_urls: Sequence[str], *, max_cover_size: int) -> bool:
   """ Download audio track(s) to file(s) in current directory, return True if success. """
   with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
     # download
@@ -512,7 +515,7 @@ def download_audio(review, date_published, track_urls, *, max_cover_size):
     return True
 
 
-def play(review, track_urls, *, merge_with_picture):
+def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_picture: bool) -> bool:
   """ Play it fucking loud! """
   # TODO support other players (vlc, avplay, ffplay...)
   merge_with_picture = merge_with_picture and HAS_FFMPEG
