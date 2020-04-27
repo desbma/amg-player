@@ -492,7 +492,7 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
 
   def __init__(self, record_word, **kwargs):
     self.record_word = record_word
-    super().__init__(r"[|\)\(\[][0-9a-z,/ ]+" + record_word + "$",
+    super().__init__(r"([|\)\(\[]|on)[0-9a-z,/ ]+" + record_word + "$",
                      suffixes=(record_word,),
                      **kwargs)
 
