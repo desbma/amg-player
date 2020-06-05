@@ -35,7 +35,7 @@ class TestTag(unittest.TestCase):
     download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg",
              vorbis_filepath)
     opus_filepath = os.path.join(cls.ref_temp_dir.name, "f.opus")
-    download("https://people.xiph.org/~giles/2012/opus/ehren-paper_lights-64.opus",
+    download("https://www.dropbox.com/s/xlp1goezxovlgl4/ehren-paper_lights-64.opus?dl=1",
              opus_filepath)
     mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
     download("https://www.dropbox.com/s/mtac0y8azs5hqxo/Shuffle%2520for%2520K.M.mp3?dl=1",
