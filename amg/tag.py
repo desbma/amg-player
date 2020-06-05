@@ -11,6 +11,7 @@ import re
 import string
 from typing import Dict, List, Optional, Sequence
 
+import more_itertools
 import mutagen
 import unidecode
 
@@ -385,14 +386,14 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   def cleanup(self, title: str, artist: str) -> str:
     """ See TitleCleanerBase.cleanup. """
-    artist_variants = tuple(frozenset((f"{artist} band",
-                                       artist,
-                                       artist.replace(" ", ""),
-                                       artist.replace("and", "&"),
-                                       artist.replace("&", "and"),
-                                       artist.replace(", ", " and "),
-                                       artist.replace(" and ", ", "),
-                                       artist.replace("’", ""))))
+    artist_variants = tuple(more_itertools.unique_everseen((f"{artist} band",
+                                                            artist,
+                                                            artist.replace(" ", ""),
+                                                            artist.replace("and", "&"),
+                                                            artist.replace("&", "and"),
+                                                            artist.replace(", ", " and "),
+                                                            artist.replace(" and ", ", "),
+                                                            artist.replace("’", ""))))
     for s, suffix_only in itertools.zip_longest(("by " + artist,) + artist_variants,
                                                 (True,),
                                                 fillvalue=False):
