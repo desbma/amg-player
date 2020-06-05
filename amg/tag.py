@@ -104,6 +104,11 @@ class TitleNormalizer:
                                       contains=("production",),
                                       execute_once=True))
 
+    # detect and remove 'xxx productions' prefix
+    self.registerCleaner(RegexPrefixCleaner(r"^[\w\s]+ productions?",
+                                            contains=("production",),
+                                            execute_once=True))
+
     # detect and remove '- xxx metal' suffix
     base_genres = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
     composed_genres = tuple(genre_sep.join(pair) for pair in itertools.permutations(base_genres, 2) for genre_sep in "/- ")
@@ -148,7 +153,7 @@ class TitleNormalizer:
     words2 = ("", "360", "album", "album/tour", "audio", "lyric", "lyrics",
               "music", "promo", "single", "song", "stream", "studio", "track",
               "video", "visual")
-    words3 = ("4k", "album", "audio", "clip", "excerpt", "in 4k", "lyric",
+    words3 = ("4k", "album", "audio", "clip", "excerpt", "hq", "in 4k", "lyric",
               "only", "premier", "premiere", "presentation", "promo", "single",
               "song", "stream", "streaming", "teaser", "track", "trailer", "version",
               "video", "visualizer", "vr")
@@ -380,7 +385,8 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
   def cleanup(self, title: str, artist: str) -> str:
     """ See TitleCleanerBase.cleanup. """
-    artist_variants = tuple(frozenset((artist,
+    artist_variants = tuple(frozenset((f"{artist} band",
+                                       artist,
                                        artist.replace(" ", ""),
                                        artist.replace("and", "&"),
                                        artist.replace("&", "and"),

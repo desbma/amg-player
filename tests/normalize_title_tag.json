@@ -754,5 +754,23 @@
         "artist": "Funeral Leech",
         "album": "Death Meditation",
         "result": "Statues"
+    },
+    {
+        "source": "Shok Paris - Fall from Grace (*** NEW song***) [HQ]",
+        "artist": "Shok Paris",
+        "album": "Full Metal Jacket",
+        "result": "Fall from Grace"
+    },
+    {
+        "source": "Shadow In The Darkness Band - Benign",
+        "artist": "Shadow in the Darkness",
+        "album": "Erstwhile Befell",
+        "result": "Benign"
+    },
+    {
+        "source": "Dying Victims Productions - La Tumba De Los Muertos Vivientes",
+        "artist": "Hexenbrett",
+        "album": "Zweite Beschwörung: Ein Kind zu töten",
+        "result": "La Tumba de Los Muertos Vivientes"
     }
 ]
