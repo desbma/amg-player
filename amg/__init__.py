@@ -686,8 +686,8 @@ def cl_main():
           while c not in frozenset("pdrsq"):
             c = input("[P]lay / [D]ownload / Go to [R]eview / [S]kip to next track / Exit [Q] ? ").lower()
           if c == "p":
-            known_reviews.setLastPlayed(review.url)
             play(review, track_urls, merge_with_picture=audio_only)
+            known_reviews.setLastPlayed(review.url)
             input_loop = False
           elif c == "d":
             download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
@@ -700,13 +700,13 @@ def cl_main():
             input_loop = False
             track_loop = False
       else:
-        known_reviews.setLastPlayed(review.url)
         if (((args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO)) and
                 (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)) or
                 (args.mode is PlayerMode.DISCOVER_DOWNLOAD)):
           download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
         else:
           play(review, track_urls, merge_with_picture=audio_only)
+        known_reviews.setLastPlayed(review.url)
 
     if track_loop and (args.mode is PlayerMode.MANUAL):
       # update menu and display it
