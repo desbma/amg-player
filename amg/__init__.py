@@ -665,9 +665,6 @@ def cl_main():
     # fetch review & play
     review_page = fetch_page(review.url, http_cache=http_cache)
     header = REVIEW_HEADER_SELECTOR(review_page)[0]
-    for child in header:
-      if child.tag == "i":
-        header.remove(child)
     date_published = lxml.etree.tostring(header, encoding="unicode", method="text").strip()
     date_published = REVIEW_HEADER_DATE_REGEX.search(date_published).group(1)
     with date_locale_neutral():
