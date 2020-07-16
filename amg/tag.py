@@ -36,6 +36,11 @@ class TitleNormalizer:
                                             contains=("taken from", "out"),
                                             execute_once=True))
 
+    # detect and remove 'a track of the upcoming xxx' suffix
+    self.registerCleaner(RegexSuffixCleaner("a track of upcoming ",
+                                            contains=("a track of upcoming"),
+                                            execute_once=True))
+
     # detect and remove 'album: xxx track yy'
     self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+",
                                       contains=("track",),
@@ -168,7 +173,7 @@ class TitleNormalizer:
                 expressions.append(" ".join((w1, rpart)).strip())
             else:
               expressions.append(w3)
-    expressions.extend(("full ep", "hd", "official", "pre-listening",
+    expressions.extend(("full ep", "full-length", "hd", "official", "pre-listening",
                         "pre-order now", "pre-orders available", "prelistening",
                         "preorders available", "s/t", "sw exclusive",
                         "trailer for the upcoming album",
@@ -524,8 +529,9 @@ class StartParenthesesCleaner(TitleCleanerBase):
   def cleanup(self, title: str) -> str:
     """ See TitleCleanerBase.cleanup. """
     # detect and remove starting parenthesis expression
-    if title.startswith("(") and (title.find(")") != (len(title) - 1)):
-      return self.lclean(title[title.find(")") + 1:])
+    closing_pos = title.find(")")
+    if title.startswith("(") and (closing_pos != (len(title) - 1)) and (len(title[1:closing_pos]) > 1):
+      return self.lclean(title[closing_pos + 1:])
     return title
 
 
