@@ -138,8 +138,8 @@ class TitleNormalizer:
         self.registerCleaner(RegexSuffixCleaner(r" \| .*$", suffixes=" | ", execute_once=True))
 
         # build list of common useless expressions
-        expressions = []
-        words1 = ("", "explicit", "full", "new", "official", "stop motion", "the new")
+        expressions = set()
+        words1 = ("", "explicit", "full", "including", "new", "official", "stop motion", "the new")
         words2 = (
             "",
             "360",
@@ -167,6 +167,7 @@ class TitleNormalizer:
             "hq",
             "in 4k",
             "lyric",
+            "lyrics",
             "only",
             "premier",
             "premiere",
@@ -191,10 +192,10 @@ class TitleNormalizer:
                         if w1 or w2:
                             for rsep in (" ", "-", ""):
                                 rpart = rsep.join((w2, w3)).strip()
-                                expressions.append(" ".join((w1, rpart)).strip())
+                                expressions.add(" ".join((w1, rpart)).strip())
                         else:
-                            expressions.append(w3)
-        expressions.extend(
+                            expressions.add(w3)
+        expressions.update(
             (
                 "full ep",
                 "full-length",
@@ -216,11 +217,11 @@ class TitleNormalizer:
         )
         year = datetime.datetime.today().year
         for y in range(year - 5, year + 1):
-            expressions.append(str(y))
+            expressions.add(str(y))
             for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
-                expressions.append(f"{month_name} {y}")
-                expressions.append(f"{month_abbr} {y}")
-        expressions.sort(key=len, reverse=True)
+                expressions.add(f"{month_name} {y}")
+                expressions.add(f"{month_abbr} {y}")
+        expressions = list(sorted(expressions, key=len, reverse=True))
         expressions.remove("song")
         suffix_cleaner = SimpleSuffixCleaner()
         for expression in expressions:
@@ -273,7 +274,7 @@ class TitleNormalizer:
                 else:
                     new_title = cleaner.cleanup(cur_title, *args)
                     if new_title and (new_title != cur_title):
-                        logging.getLogger().debug(
+                        print(
                             f"{cleaner.__class__.__name__} changed title tag: "
                             f"{repr(cur_title)} -> {repr(new_title)}"
                         )
@@ -340,18 +341,18 @@ class TitleCleanerBase:
     def lclean(self, s: str) -> str:
         """ Remove garbage at left of string. """
         r = s.lstrip(__class__.LCLEAN_CHARS)
-        c = unidecode.unidecode_expect_ascii(r).lstrip(__class__.LCLEAN_CHARS)
+        c = unidecode.unidecode_expect_ascii(r.lstrip(__class__.LCLEAN_CHARS)).lstrip(__class__.LCLEAN_CHARS)
         if c != r:
             r = c
         return r
 
     @functools.lru_cache(maxsize=32768)
     def rnorm(self, s: str) -> str:
-        return unidecode.unidecode_expect_ascii(s).rstrip(string.punctuation).lower()
+        return unidecode.unidecode_expect_ascii(s.rstrip(string.punctuation)).rstrip(string.punctuation).lower()
 
     @functools.lru_cache(maxsize=32768)
     def lnorm(self, s: str) -> str:
-        return unidecode.unidecode_expect_ascii(s).lstrip(string.punctuation).lower()
+        return unidecode.unidecode_expect_ascii(s.lstrip(string.punctuation)).lstrip(string.punctuation).lower()
 
     def startslike(self, s: str, l: str, *, sep: Optional[str] = None) -> bool:
         """ Return True if start of string s is similar to l. """
