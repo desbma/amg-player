@@ -2,6 +2,5 @@
 
 import amg
 
-
 if __name__ == "__main__":
-  amg.cl_main()
+    amg.cl_main()

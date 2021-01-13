@@ -13,130 +13,117 @@ import amg
 
 
 def download(url, filepath):
-  cache_dir = os.getenv("TEST_DL_CACHE_DIR")
-  if cache_dir is not None:
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_filepath = os.path.join(cache_dir,
-                                  os.path.basename(urllib.parse.urlsplit(url).path))
-    if os.path.isfile(cache_filepath):
-      shutil.copyfile(cache_filepath, filepath)
-      return
-  amg.fetch_ressource(url, filepath)
-  if cache_dir is not None:
-    shutil.copyfile(filepath, cache_filepath)
+    cache_dir = os.getenv("TEST_DL_CACHE_DIR")
+    if cache_dir is not None:
+        os.makedirs(cache_dir, exist_ok=True)
+        cache_filepath = os.path.join(cache_dir, os.path.basename(urllib.parse.urlsplit(url).path))
+        if os.path.isfile(cache_filepath):
+            shutil.copyfile(cache_filepath, filepath)
+            return
+    amg.fetch_ressource(url, filepath)
+    if cache_dir is not None:
+        shutil.copyfile(filepath, cache_filepath)
 
 
 class TestTag(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.ref_temp_dir = tempfile.TemporaryDirectory()
+        vorbis_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
+        download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", vorbis_filepath)
+        opus_filepath = os.path.join(cls.ref_temp_dir.name, "f.opus")
+        download("https://www.dropbox.com/s/xlp1goezxovlgl4/ehren-paper_lights-64.opus?dl=1", opus_filepath)
+        mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
+        download("https://www.dropbox.com/s/mtac0y8azs5hqxo/Shuffle%2520for%2520K.M.mp3?dl=1", mp3_filepath)
+        m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
+        download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a", m4a_filepath)
 
-  @classmethod
-  def setUpClass(cls):
-    cls.ref_temp_dir = tempfile.TemporaryDirectory()
-    vorbis_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
-    download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg",
-             vorbis_filepath)
-    opus_filepath = os.path.join(cls.ref_temp_dir.name, "f.opus")
-    download("https://www.dropbox.com/s/xlp1goezxovlgl4/ehren-paper_lights-64.opus?dl=1",
-             opus_filepath)
-    mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
-    download("https://www.dropbox.com/s/mtac0y8azs5hqxo/Shuffle%2520for%2520K.M.mp3?dl=1",
-             mp3_filepath)
-    m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
-    download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a",
-             m4a_filepath)
+    @classmethod
+    def tearDownClass(cls):
+        cls.ref_temp_dir.cleanup()
 
-  @classmethod
-  def tearDownClass(cls):
-    cls.ref_temp_dir.cleanup()
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        for src_filename in os.listdir(__class__.ref_temp_dir.name):
+            shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
+        self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
+        self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
+        self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
+        mf = mutagen.File(self.mp3_filepath)
+        mf.tags.delall("APIC")
+        mf.save()
+        self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
+        mf = mutagen.File(self.m4a_filepath)
+        del mf["covr"]
+        mf.save()
 
-  def setUp(self):
-    self.temp_dir = tempfile.TemporaryDirectory()
-    for src_filename in os.listdir(__class__.ref_temp_dir.name):
-      shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
-    self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
-    self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
-    self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
-    mf = mutagen.File(self.mp3_filepath)
-    mf.tags.delall("APIC")
-    mf.save()
-    self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
-    mf = mutagen.File(self.m4a_filepath)
-    del mf["covr"]
-    mf.save()
+    def tearDown(self):
+        self.temp_dir.cleanup()
 
-  def tearDown(self):
-    self.temp_dir.cleanup()
+    def test_normalize_title_tag(self):
+        json_filepath = os.path.join(os.path.dirname(__file__), "normalize_title_tag.json")
+        with open(json_filepath, "rt") as json_file:
+            for test_data in json.load(json_file):
+                source = test_data["source"]
+                artist = test_data["artist"]
+                album = test_data["album"]
+                expected_result = test_data["result"]
+                with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
+                    self.assertEqual(amg.tag.normalize_title_tag(source, artist, album), expected_result)
 
-  def test_normalize_title_tag(self):
-    json_filepath = os.path.join(os.path.dirname(__file__), "normalize_title_tag.json")
-    with open(json_filepath, "rt") as json_file:
-      for test_data in json.load(json_file):
-        source = test_data["source"]
-        artist = test_data["artist"]
-        album = test_data["album"]
-        expected_result = test_data["result"]
-        with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
-          self.assertEqual(amg.tag.normalize_title_tag(source, artist, album), expected_result)
+    def test_tag(self):
+        artist = "Artist"
+        album = "Album"
+        cover_data = os.urandom(random.randint(10000, 500000))
+        review = amg.ReviewMetadata(None, artist, album, None, None, None)
 
-  def test_tag(self):
-    artist = "Artist"
-    album = "Album"
-    cover_data = os.urandom(random.randint(10000, 500000))
-    review = amg.ReviewMetadata(None, artist, album, None, None, None)
+        # vorbis
+        self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))
+        amg.tag.tag(self.vorbis_filepath, review, {}, cover_data)
+        tags = mutagen.File(self.vorbis_filepath)
+        ref_tags = {"artist": [artist], "album": [album]}
+        for k, v in ref_tags.items():
+            self.assertIn(k, tags)
+            self.assertEqual(tags[k], v)
+        self.assertIn("metadata_block_picture", tags)
+        self.assertEqual(len(tags["metadata_block_picture"]), 1)
+        self.assertIn(base64.b64encode(cover_data).decode(), tags["metadata_block_picture"][0])
+        self.assertTrue(amg.tag.has_embedded_album_art(self.vorbis_filepath))
 
-    # vorbis
-    self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))
-    amg.tag.tag(self.vorbis_filepath, review, {}, cover_data)
-    tags = mutagen.File(self.vorbis_filepath)
-    ref_tags = {"artist": [artist],
-                "album": [album]}
-    for k, v in ref_tags.items():
-      self.assertIn(k, tags)
-      self.assertEqual(tags[k], v)
-    self.assertIn("metadata_block_picture", tags)
-    self.assertEqual(len(tags["metadata_block_picture"]), 1)
-    self.assertIn(base64.b64encode(cover_data).decode(),
-                  tags["metadata_block_picture"][0])
-    self.assertTrue(amg.tag.has_embedded_album_art(self.vorbis_filepath))
+        # opus
+        self.assertFalse(amg.tag.has_embedded_album_art(self.opus_filepath))
+        amg.tag.tag(self.opus_filepath, review, {}, cover_data)
+        tags = mutagen.File(self.opus_filepath)
+        ref_tags = {"artist": [artist], "album": [album]}
+        for k, v in ref_tags.items():
+            self.assertIn(k, tags)
+            self.assertEqual(tags[k], v)
+        self.assertIn("metadata_block_picture", tags)
+        self.assertEqual(len(tags["metadata_block_picture"]), 1)
+        self.assertIn(base64.b64encode(cover_data).decode(), tags["metadata_block_picture"][0])
+        self.assertTrue(amg.tag.has_embedded_album_art(self.opus_filepath))
 
-    # opus
-    self.assertFalse(amg.tag.has_embedded_album_art(self.opus_filepath))
-    amg.tag.tag(self.opus_filepath, review, {}, cover_data)
-    tags = mutagen.File(self.opus_filepath)
-    ref_tags = {"artist": [artist],
-                "album": [album]}
-    for k, v in ref_tags.items():
-      self.assertIn(k, tags)
-      self.assertEqual(tags[k], v)
-    self.assertIn("metadata_block_picture", tags)
-    self.assertEqual(len(tags["metadata_block_picture"]), 1)
-    self.assertIn(base64.b64encode(cover_data).decode(),
-                  tags["metadata_block_picture"][0])
-    self.assertTrue(amg.tag.has_embedded_album_art(self.opus_filepath))
+        # mp3
+        self.assertFalse(amg.tag.has_embedded_album_art(self.mp3_filepath))
+        amg.tag.tag(self.mp3_filepath, review, {}, cover_data)
+        tags = mutagen.File(self.mp3_filepath)
+        ref_tags = {"TPE1": [artist], "TALB": [album]}
+        for k, v in ref_tags.items():
+            self.assertIn(k, tags)
+            self.assertEqual(tags[k].text, v)
+        self.assertIn("APIC:", tags)
+        self.assertIn(cover_data, tags["APIC:"].data)
+        self.assertTrue(amg.tag.has_embedded_album_art(self.mp3_filepath))
 
-    # mp3
-    self.assertFalse(amg.tag.has_embedded_album_art(self.mp3_filepath))
-    amg.tag.tag(self.mp3_filepath, review, {}, cover_data)
-    tags = mutagen.File(self.mp3_filepath)
-    ref_tags = {"TPE1": [artist],
-                "TALB": [album]}
-    for k, v in ref_tags.items():
-      self.assertIn(k, tags)
-      self.assertEqual(tags[k].text, v)
-    self.assertIn("APIC:", tags)
-    self.assertIn(cover_data,
-                  tags["APIC:"].data)
-    self.assertTrue(amg.tag.has_embedded_album_art(self.mp3_filepath))
-
-    # mp4
-    self.assertFalse(amg.tag.has_embedded_album_art(self.m4a_filepath))
-    amg.tag.tag(self.m4a_filepath, review, {}, cover_data)
-    tags = mutagen.File(self.m4a_filepath)
-    ref_tags = {"\xa9ART": [artist],
-                "\xa9alb": [album]}
-    for k, v in ref_tags.items():
-      self.assertIn(k, tags)
-      self.assertEqual(tags[k], v)
-    self.assertIn("covr", tags)
-    self.assertEqual(len(tags["covr"]), 1)
-    self.assertEqual(bytes(tags["covr"][0]), cover_data)
-    self.assertTrue(amg.tag.has_embedded_album_art(self.m4a_filepath))
+        # mp4
+        self.assertFalse(amg.tag.has_embedded_album_art(self.m4a_filepath))
+        amg.tag.tag(self.m4a_filepath, review, {}, cover_data)
+        tags = mutagen.File(self.m4a_filepath)
+        ref_tags = {"\xa9ART": [artist], "\xa9alb": [album]}
+        for k, v in ref_tags.items():
+            self.assertIn(k, tags)
+            self.assertEqual(tags[k], v)
+        self.assertIn("covr", tags)
+        self.assertEqual(len(tags["covr"]), 1)
+        self.assertEqual(bytes(tags["covr"][0]), cover_data)
+        self.assertTrue(amg.tag.has_embedded_album_art(self.m4a_filepath))
