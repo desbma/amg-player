@@ -1,9 +1,14 @@
+""" String sanitization related tests. """
+
 import unittest
 
 import amg.sanitize as sanitize
 
 
 class TestSanitize(unittest.TestCase):
+
+    """ String sanitization test suite. """
+
     def test_normalize_tag_case(self):
         """ Fix tag capitalization. """
         references = {

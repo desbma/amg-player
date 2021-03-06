@@ -1,3 +1,5 @@
+""" Audio tag handling code. """
+
 import abc
 import base64
 import calendar
@@ -9,7 +11,7 @@ import logging
 import operator
 import re
 import string
-from typing import Deque, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple
 
 import more_itertools
 import mutagen
@@ -23,7 +25,7 @@ class TitleNormalizer:
     """ Class to chain all title tag transformations. """
 
     def __init__(self, artist: str, album: str):  # noqa: C901
-        self.cleaners: List[TitleCleanerBase] = []
+        self.cleaners: List[Tuple[TitleCleanerBase, Tuple[Any]]] = []
 
         # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
 
@@ -221,13 +223,13 @@ class TitleNormalizer:
             for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
                 expressions.add(f"{month_name} {y}")
                 expressions.add(f"{month_abbr} {y}")
-        expressions = list(sorted(expressions, key=len, reverse=True))
-        expressions.remove("song")
+        expressions_list = list(sorted(expressions, key=len, reverse=True))
+        expressions_list.remove("song")
         suffix_cleaner = SimpleSuffixCleaner()
-        for expression in expressions:
+        for expression in expressions_list:
             self.registerCleaner(suffix_cleaner, (expression,))
         prefix_cleaner = SimplePrefixCleaner()
-        for expression in expressions:
+        for expression in expressions_list:
             self.registerCleaner(prefix_cleaner, (expression,))
 
         # detect and remove artist prefix ot suffix
@@ -252,10 +254,12 @@ class TitleNormalizer:
         self.registerCleaner(FunctionCleaner(lambda x: x.replace("PT.", "pt."), execute_once=True))
 
     def registerCleaner(self, cleaner, args=()):
+        """ Register a new cleaner object. """
         assert isinstance(cleaner, TitleCleanerBase)
         self.cleaners.append((cleaner, args))
 
     def cleanup(self, title: str) -> str:
+        """ Do the string cleanup by running all cleaners. """
         cur_title = title
         to_del_indexes: Deque[int] = collections.deque()
         start_index = 0
@@ -328,7 +332,7 @@ class TitleCleanerBase:
         return False
 
     @abc.abstractmethod
-    def cleanup(self, title: str, *args) -> str:
+    def cleanup(self, title: str, *args: Tuple[Any]) -> str:
         """ Cleanup a title string, and return the updated string. """
         pass
 
@@ -349,22 +353,24 @@ class TitleCleanerBase:
 
     @functools.lru_cache(maxsize=32768)
     def rnorm(self, s: str) -> str:
+        """ Normalize string unicode chars and remove useless chars from its right. """
         return unidecode.unidecode_expect_ascii(s.rstrip(string.punctuation)).rstrip(string.punctuation).lower()
 
     @functools.lru_cache(maxsize=32768)
     def lnorm(self, s: str) -> str:
+        """ Normalize string unicode chars and remove useless chars from its left. """
         return unidecode.unidecode_expect_ascii(s.lstrip(string.punctuation)).lstrip(string.punctuation).lower()
 
-    def startslike(self, s: str, l: str, *, sep: Optional[str] = None) -> bool:
-        """ Return True if start of string s is similar to l. """
+    def startslike(self, s: str, pattern: str, *, sep: Optional[str] = None) -> bool:
+        """ Return True if start of string s is similar to pattern. """
         s = self.lnorm(s)
-        l = self.rnorm(l)
-        cut = s[len(l) :]
-        return s.startswith(l) and ((not sep) or (not cut) or (cut[0] in sep))
+        pattern = self.rnorm(pattern)
+        cut = s[len(pattern) :]
+        return s.startswith(pattern) and ((not sep) or (not cut) or (cut[0] in sep))
 
-    def endslike(self, s: str, l: str) -> bool:
-        """ Return True if end of string s is similar to l. """
-        return self.rnorm(s).endswith(self.rnorm(l))
+    def endslike(self, s: str, pattern: str) -> bool:
+        """ Return True if end of string s is similar to pattern. """
+        return self.rnorm(s).endswith(self.rnorm(pattern))
 
     def rmsuffix(self, s: str, e: str) -> str:
         """ Remove string suffix. """
@@ -384,7 +390,7 @@ class FunctionCleaner(TitleCleanerBase):
         assert callable(func)
         self.func = func
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         return self.func(title)
 
@@ -393,7 +399,7 @@ class SimplePrefixCleaner(TitleCleanerBase):
 
     """ Cleaner to remove a static string prefix. """
 
-    def cleanup(self, title: str, prefix: str) -> str:
+    def cleanup(self, title: str, prefix: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         if self.startslike(title, prefix, sep=string.punctuation + string.whitespace):
             title = self.lclean(self.rmprefix(title, prefix))
@@ -404,7 +410,7 @@ class SimpleSuffixCleaner(TitleCleanerBase):
 
     """ Cleaner to remove a static string suffix. """
 
-    def cleanup(self, title: str, suffix: str) -> str:
+    def cleanup(self, title: str, suffix: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         if self.endslike(title, suffix):
             new_title = self.rclean(self.rmsuffix(title, suffix))
@@ -426,7 +432,7 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
         """ See TitleCleanerBase.doKeep. """
         return not self.suffix_removed
 
-    def cleanup(self, title: str, artist: str) -> str:
+    def cleanup(self, title: str, artist: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         artist_variants = tuple(
             more_itertools.unique_everseen(
@@ -460,7 +466,7 @@ class AlbumCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
 
     """ Cleaner to remove album prefix/suffix. """
 
-    def cleanup(self, title: str, album: str) -> str:
+    def cleanup(self, title: str, album: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         # detect and remove album prefix
         if self.startslike(title, album):
@@ -497,7 +503,7 @@ class RegexCleaner(TitleCleanerBase):
             return skip
         return super().doSkip(title, *args)
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         rstripped = title.rstrip(string.punctuation)
         match = self.regex.search(rstripped)
@@ -520,7 +526,7 @@ class RegexSuffixCleaner(RegexCleaner):
             return not any(self.endslike(title, suffix) for suffix in self.suffixes)
         return super().doSkip(title, *args)
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         match = self.regex.search(title.rstrip(string.punctuation))
         if match:
@@ -532,7 +538,7 @@ class RegexPrefixCleaner(RegexCleaner):
 
     """ Cleaner to remove a regex prefix match. """
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         match = self.regex.search(title)
         if match:
@@ -548,7 +554,7 @@ class RecordsSuffixCleaner(RegexSuffixCleaner, SimpleSuffixCleaner):
         self.record_word = record_word
         super().__init__(r"([|\)\(\[]|on)[0-9a-z,/ ]+" + record_word + "$", suffixes=(record_word,), **kwargs)
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         # detect and remove 'xxx records' suffix
         match = self.regex.search(title.rstrip(string.punctuation))
@@ -565,7 +571,7 @@ class StartParenthesesCleaner(TitleCleanerBase):
 
     """ Cleaner to remove parentheses string prefix. """
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         # detect and remove starting parenthesis expression
         closing_pos = title.find(")")
@@ -578,10 +584,10 @@ class PairedCharCleaner(TitleCleanerBase):
 
     """ Cleaner to fix chars that go by pair. """
 
-    def cleanup(self, title: str) -> str:
+    def cleanup(self, title: str) -> str:  # type: ignore
         """ See TitleCleanerBase.cleanup. """
         # detect and remove unpaired chars
-        char_pairs = (("()", False), ('"' * 2, False), ("'" * 2, True))
+        char_pairs = ((("(", ")"), False), (('"', '"'), False), (("'", "'"), True))
         c1: str
         c2: str
         for (c1, c2), only_at_edges in char_pairs:
@@ -611,7 +617,7 @@ def normalize_title_tag(title: str, artist: str, album: str) -> str:
     return normalizer.cleanup(title)
 
 
-def tag(track_filepath: str, review, metadata: Dict[str, str], cover_data: bytes):
+def tag(track_filepath: str, review, metadata: Dict[str, str], cover_data: Optional[bytes]):
     """ Tag an audio file, return tag dict excluding RG/R128 info and album art. """
     logging.getLogger().info(f"Tagging file {track_filepath!r}")
     mf = mutagen.File(track_filepath, easy=True)

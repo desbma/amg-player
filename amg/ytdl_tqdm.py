@@ -6,15 +6,18 @@ import shutil
 import tqdm
 
 
-def ltrunc(s, l):
+def ltrunc(s: str, length: int) -> str:
     """ Truncate string from left. """
-    assert l > 0
-    if len(s) <= l:
+    assert length > 0
+    if len(s) <= length:
         return s
-    return f"…{s[-(l - 1):]}"
+    return f"…{s[-(length - 1):]}"
 
 
 class ytdl_tqdm:
+
+    """ Convenient context manager to report ytdl download progress. """
+
     def __init__(self, ytdl_opts=None, **kwargs):
         """ See tqdm.tqdm for args description. """
         self.tqdm = None
@@ -45,7 +48,7 @@ class ytdl_tqdm:
         return ytdl_opts
 
     def _log_progress(self, ytdl_state):
-        """ Internal tqdm progress callback. """
+        """ Report tqdm progress (callback). """
         if ytdl_state["status"] != "downloading":
             return
 
@@ -81,7 +84,7 @@ class ytdl_tqdm:
         self.prev_downloaded_bytes = downloaded_bytes
 
     def _get_new_tqdm(self):
-        """ Setup and return a new tqdm insance. """
+        """ Set up and return a new tqdm instance. """
         # default args
         tqdm_kwargs = {"unit": "B", "unit_scale": True, "unit_divisor": 1024}
         # merge with user args

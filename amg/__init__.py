@@ -32,7 +32,7 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
-from typing import Callable, Iterable, Optional, Sequence, Tuple
+from typing import BinaryIO, Callable, Iterable, Optional, Sequence, Tuple
 
 import appdirs
 import lxml.cssselect
@@ -152,7 +152,7 @@ def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
         url_parts = urllib.parse.urlsplit(url)
         if url_parts.scheme:
             return url
-        url_parts = ("https",) + url_parts[1:]
+        url_parts = urllib.parse.SplitResult("https", *url_parts[1:])
         return urllib.parse.urlunsplit(url_parts)
 
     review_img = REVIEW_COVER_SELECTOR(review)[0]
@@ -180,9 +180,11 @@ def get_reviews() -> Iterable[ReviewMetadata]:
                 previous_review = r
 
 
-def get_embedded_track(page: lxml.etree.Element, http_cache: web_cache.WebCache) -> Tuple[Sequence[str], bool]:
+def get_embedded_track(
+    page: lxml.etree.Element, http_cache: web_cache.WebCache
+) -> Tuple[Optional[Sequence[str]], bool]:
     """ Parse page and extract embedded track. """
-    urls = None
+    urls: Optional[Sequence[str]] = None
     audio_only = False
     try:
         try:
@@ -236,7 +238,13 @@ def get_embedded_track(page: lxml.etree.Element, http_cache: web_cache.WebCache)
 
 
 class KnownReviews:
+
+    """ Persistent state for reviews to track played tracks. """
+
     class DataIndex(enum.IntEnum):
+
+        """ Review metadata identifier. """
+
         LAST_PLAYED = 0
         PLAY_COUNT = 1
         DATA_INDEX_COUNT = 2
@@ -302,7 +310,7 @@ def get_cover_data(review: ReviewMetadata) -> bytes:
             img = PIL.Image.open(filepath)
             if img.mode != "RGB":
                 img = img.convert("RGB")
-            f = io.BytesIO()
+            f: BinaryIO = io.BytesIO()
             img.save(f, format="JPEG", quality=90, optimize=True)
             f.seek(0)
             out_bytes = f.read()
@@ -392,6 +400,7 @@ def download_and_merge(
 
 
 def backslash_unescape(s: str) -> str:
+    """ Revert backslash escaping. """
     # https://stackoverflow.com/a/57192592
     return codecs.decode(codecs.encode(s, "latin-1", "backslashreplace"), "unicode-escape")
 
@@ -430,7 +439,10 @@ def download_track(
             ytdl_progress = None
 
         for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
-            msg = f"Downloading audio for track #{track_idx + 1} from {track_url!r} (attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
+            msg = (
+                f"Downloading audio for track #{track_idx + 1} from {track_url!r} "
+                f"(attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
+            )
             if ytdl_progress:
                 ytdl_progress.tqdm.write(msg)
             else:
@@ -478,7 +490,8 @@ def download_audio(
 
         if not all(map(tag.has_embedded_album_art, track_filepaths)):
             # get cover
-            cover_data = get_cover_data(review)
+            cover_data: Optional[bytes] = get_cover_data(review)
+            assert cover_data is not None
 
             # post process cover
             in_bytes = io.BytesIO(cover_data)
@@ -492,9 +505,10 @@ def download_audio(
                 # resize
                 img.thumbnail((max_cover_size, max_cover_size), PIL.Image.LANCZOS)
 
-                # apply unsharp filter to remove resize blur (equivalent to (images/graphics)magick -unsharp 1.5x1+0.7+0.02)
-                # we don't use PIL.ImageFilter.SHARPEN or PIL.ImageEnhance.Sharpness because we want precise control over
-                # parameters
+                # apply unsharp filter to remove resize blur (equivalent to (images/graphics)magick -unsharp
+                # 1.5x1+0.7+0.02)
+                # we don't use PIL.ImageFilter.SHARPEN or PIL.ImageEnhance.Sharpness because we want precise control
+                # over parameters
                 unsharper = PIL.ImageFilter.UnsharpMask(radius=1.5, percent=70, threshold=5)
                 img = img.filter(unsharper)
 
@@ -567,7 +581,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
             subprocess.run(cmd, check=True, stdin=dl_process.stdout)
 
 
-def cl_main():
+def cl_main():  # noqa: C901
     """ Command line entry point. """
     # parse args
     arg_parser = argparse.ArgumentParser(
@@ -583,12 +597,12 @@ def cl_main():
         default=PlayerMode.MANUAL.name.lower(),
         dest="mode",
         help="""Playing mode.
-                                  "manual" let you select tracks to play one by one.
-                                  "radio" let you select the first one, and then plays all tracks by chronological
-                                  order.
-                                  "discover" automatically plays all tracks by chronological order from the first non
-                                  played one.
-                                  "discover_download" like "discover" but downloads tracks.""",
+                "manual" let you select tracks to play one by one.
+                "radio" let you select the first one, and then plays all tracks by chronological
+                order.
+                "discover" automatically plays all tracks by chronological order from the first non
+                played one.
+                "discover_download" like "discover" but downloads tracks.""",
     )
     arg_parser.add_argument(
         "-i",

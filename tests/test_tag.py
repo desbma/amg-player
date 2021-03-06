@@ -1,3 +1,5 @@
+""" Tag related unit tests. """
+
 import base64
 import json
 import os
@@ -13,6 +15,7 @@ import amg
 
 
 def download(url, filepath):
+    """ Download a file. """
     cache_dir = os.getenv("TEST_DL_CACHE_DIR")
     if cache_dir is not None:
         os.makedirs(cache_dir, exist_ok=True)
@@ -26,8 +29,12 @@ def download(url, filepath):
 
 
 class TestTag(unittest.TestCase):
+
+    """ Tag related test suite. """
+
     @classmethod
     def setUpClass(cls):
+        """ Set up test suite stuff. """
         cls.ref_temp_dir = tempfile.TemporaryDirectory()
         vorbis_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
         download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", vorbis_filepath)
@@ -40,9 +47,11 @@ class TestTag(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        """ Clean up test suite stuff. """
         cls.ref_temp_dir.cleanup()
 
     def setUp(self):
+        """ Set up test case stuff. """
         self.temp_dir = tempfile.TemporaryDirectory()
         for src_filename in os.listdir(__class__.ref_temp_dir.name):
             shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
@@ -58,9 +67,11 @@ class TestTag(unittest.TestCase):
         mf.save()
 
     def tearDown(self):
+        """ Clean up test case stuff. """
         self.temp_dir.cleanup()
 
     def test_normalize_title_tag(self):
+        """ Test title tag normalization. """
         json_filepath = os.path.join(os.path.dirname(__file__), "normalize_title_tag.json")
         with open(json_filepath, "rt") as json_file:
             for test_data in json.load(json_file):
@@ -72,6 +83,7 @@ class TestTag(unittest.TestCase):
                     self.assertEqual(amg.tag.normalize_title_tag(source, artist, album), expected_result)
 
     def test_tag(self):
+        """ Test tagging for various formats. """
         artist = "Artist"
         album = "Album"
         cover_data = os.urandom(random.randint(10000, 500000))

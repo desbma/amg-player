@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+""" Module setup. """
+
 import os
 import re
 import sys

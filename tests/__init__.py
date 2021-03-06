@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-import datetime
+""" AMG main tests. """
+
 import inspect
 import logging
 import random
@@ -10,10 +11,15 @@ import amg
 
 
 class TestAmg(unittest.TestCase):
+
+    """ AMG main test suite. """
+
     def setUp(self):
+        """ Set up test case stuff. """
         self.maxDiff = None
 
     def test_get_reviews(self):
+        """ Test review fetching. """
         count = random.randint(10, 50)
         gen = amg.get_reviews()
         self.assertTrue(inspect.isgenerator(gen))
@@ -33,6 +39,7 @@ class TestAmg(unittest.TestCase):
         self.assertEqual(i, count - 1)
 
     def test_get_embedded_track(self):
+        """ Test embedded track URL extraction. """
         http_cache = amg.web_cache.WebCache(":memory:", "reviews", caching_strategy=amg.web_cache.CachingStrategy.FIFO)
         urls = {
             "https://www.angrymetalguy.com/vredehammer-violator-review/": (

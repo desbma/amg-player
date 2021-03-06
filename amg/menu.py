@@ -1,3 +1,5 @@
+""" Terminal menu code to browse tracks. """
+
 import enum
 import webbrowser
 
@@ -30,7 +32,8 @@ class AmgMenu(cursesmenu.CursesMenu):
             self.append_item(ReviewItem(review, review_string, index, self))
 
     def process_user_input(self):
-        """Override key handling to add "open review" and "quick exit" features.
+        """
+        Override key handling to add "open review" and "quick exit" features.
 
         See cursesmenu.CursesMenu.process_user_input
         """
@@ -88,7 +91,7 @@ class AmgMenu(cursesmenu.CursesMenu):
 
     @staticmethod
     def setupAndShow(mode, reviews, known_reviews, http_cache, selected_idx=None):
-        """ Setup and display interactive menu, return selected review index or None if exist requested. """
+        """ Set up and display interactive menu, return selected review index or None if exist requested. """
         menu = AmgMenu(
             reviews=reviews, known_reviews=known_reviews, http_cache=http_cache, mode=mode, selected_idx=selected_idx
         )
@@ -106,6 +109,7 @@ class ReviewItem(cursesmenu.items.SelectionItem):
         self.review = review
 
     def action(self):
+        """ React to user action. """
         if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
             webbrowser.open_new_tab(self.review.url)
             self.should_exit = False
