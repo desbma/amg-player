@@ -10,6 +10,9 @@ import amg
 
 
 class TestAmg(unittest.TestCase):
+    def setUp(self):
+        self.maxDiff = None
+
     def test_get_reviews(self):
         count = random.randint(10, 50)
         gen = amg.get_reviews()
@@ -50,7 +53,19 @@ class TestAmg(unittest.TestCase):
                 True,
             ),
             "https://www.angrymetalguy.com/hornss-telepath-review/": (
-                ("https://hornss.bandcamp.com/track/atrophic",),
+                (
+                    "https://hornss.bandcamp.com/track/st-geneive",
+                    "https://hornss.bandcamp.com/track/atrophic",
+                    "https://hornss.bandcamp.com/track/manzanita",
+                    "https://hornss.bandcamp.com/track/in-fields-of-lyme",
+                    "https://hornss.bandcamp.com/track/sargasso-heart",
+                    "https://hornss.bandcamp.com/track/prince-of-a-thousand-enemies",
+                    "https://hornss.bandcamp.com/track/the-black-albatross",
+                    "https://hornss.bandcamp.com/track/leaving-thermal",
+                    "https://hornss.bandcamp.com/track/the-airtight-garage",
+                    "https://hornss.bandcamp.com/track/old-ghosts",
+                    "https://hornss.bandcamp.com/track/galatic-derelict",
+                ),
                 True,
             ),
             # "https://www.angrymetalguy.com/auditory-armory-dark-matter-review/":

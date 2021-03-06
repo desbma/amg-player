@@ -274,7 +274,7 @@ class TitleNormalizer:
                 else:
                     new_title = cleaner.cleanup(cur_title, *args)
                     if new_title and (new_title != cur_title):
-                        print(
+                        logging.getLogger().debug(
                             f"{cleaner.__class__.__name__} changed title tag: "
                             f"{repr(cur_title)} -> {repr(new_title)}"
                         )
