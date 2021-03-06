@@ -32,10 +32,7 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
-from typing import Iterable, Optional, Sequence, Tuple
-
-HAS_JPEGOPTIM = shutil.which("jpegoptim") is not None
-HAS_FFMPEG = shutil.which("ffmpeg") is not None
+from typing import Callable, Iterable, Optional, Sequence, Tuple
 
 import appdirs
 import lxml.cssselect
@@ -51,10 +48,12 @@ from amg import colored_logging, menu, mkstemp_ctx, sanitize, tag, ytdl_tqdm
 
 try:
     # Python >= 3.8
-    cmd_to_string = shlex.join
+    cmd_to_string: Callable[[Sequence[str]], str] = shlex.join
 except AttributeError:
     cmd_to_string = subprocess.list2cmdline
 
+HAS_JPEGOPTIM = shutil.which("jpegoptim") is not None
+HAS_FFMPEG = shutil.which("ffmpeg") is not None
 
 PlayerMode = enum.Enum("PlayerMode", ("MANUAL", "RADIO", "DISCOVER", "DISCOVER_DOWNLOAD"))
 ReviewMetadata = collections.namedtuple(
@@ -71,7 +70,7 @@ REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector(
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_HEADER_SELECTOR = lxml.cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
-REVIEW_HEADER_DATE_REGEX = re.compile(" on ([A-Z][a-z]+ \d+, [0-9]{4})")
+REVIEW_HEADER_DATE_REGEX = re.compile(r" on ([A-Z][a-z]+ \d+, [0-9]{4})")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("article.post iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
@@ -86,6 +85,7 @@ PROXY = {protocol: os.getenv(f"{protocol}_proxy", "").replace("socks5h", "socks5
 
 @contextlib.contextmanager
 def date_locale_neutral():
+    """ Context manager to call with a neutral default locale. """
     loc = locale.getlocale(locale.LC_TIME)
     locale.setlocale(locale.LC_TIME, "C")
     try:
@@ -159,7 +159,7 @@ def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
     cover_thumbnail_url = make_absolute_url(review_img.get("src"))
     srcset = review_img.get("srcset")
     if srcset is not None:
-        cover_url = make_absolute_url(srcset.split(" ")[-2])
+        cover_url: Optional[str] = make_absolute_url(srcset.split(" ")[-2])
     else:
         cover_url = None
     return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, tags)
@@ -266,24 +266,24 @@ class KnownReviews:
             e = list(self.data[url])
         except KeyError:
             e = []
-        if len(e) < __class__.DataIndex.DATA_INDEX_COUNT:
-            e.extend(None for _ in range(__class__.DataIndex.DATA_INDEX_COUNT - len(e)))
+        if len(e) < self.__class__.DataIndex.DATA_INDEX_COUNT:
+            e.extend(None for _ in range(self.__class__.DataIndex.DATA_INDEX_COUNT - len(e)))
         try:
-            e[__class__.DataIndex.PLAY_COUNT] += 1
+            e[self.__class__.DataIndex.PLAY_COUNT] += 1
         except TypeError:
             # be compatible with when play count was not stored
-            e[__class__.DataIndex.PLAY_COUNT] = 2 if e[__class__.DataIndex.LAST_PLAYED] is not None else 1
-        e[__class__.DataIndex.LAST_PLAYED] = datetime.datetime.now()
+            e[self.__class__.DataIndex.PLAY_COUNT] = 2 if e[self.__class__.DataIndex.LAST_PLAYED] is not None else 1
+        e[self.__class__.DataIndex.LAST_PLAYED] = datetime.datetime.now()
         self.data[url] = tuple(e)
 
     def getLastPlayed(self, url: str) -> datetime.datetime:
         """ Return datetime of last review track playback. """
-        return self.data[url][__class__.DataIndex.LAST_PLAYED]
+        return self.data[url][self.__class__.DataIndex.LAST_PLAYED]
 
     def getPlayCount(self, url: str) -> int:
         """ Return number of time a track has been played. """
         try:
-            return self.data[url][__class__.DataIndex.PLAY_COUNT]
+            return self.data[url][self.__class__.DataIndex.PLAY_COUNT]
         except IndexError:
             # be compatible with when play count was not stored
             return 1
@@ -316,11 +316,13 @@ def get_cover_data(review: ReviewMetadata) -> bytes:
     return out_bytes
 
 
-def download_and_merge(review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str) -> str:
+def download_and_merge(
+    review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str
+) -> Optional[str]:
     """ Download track, merge audio & album art, and return merged filepath. """
     # fetch audio
     with ytdl_tqdm.ytdl_tqdm(leave=False, mininterval=0.05, miniters=1) as ytdl_progress:
-        # https://github.com/rg3/youtube-dl/blob/master/youtube_dl/YoutubeDL.py#L121-L269
+        # https://github.com/ytdl-org/youtube-dl/blob/b8b622fbebb158db95edb05a8cc248668194b430/youtube_dl/YoutubeDL.py#L143-L323
         ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s"), "proxy": PROXY["https"]}
         if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
             ytdl_progress.setup_ytdl(ydl_opts)
@@ -340,7 +342,7 @@ def download_and_merge(review: ReviewMetadata, track_urls: Sequence[str], tmp_di
     audio_filepaths.sort()
     if not audio_filepaths:
         logging.getLogger().error("Download failed")
-        return
+        return None
     concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
     with open(concat_filepath, "wt") as concat_file:
         for audio_filepath in audio_filepaths:
@@ -537,8 +539,8 @@ def download_audio(
         return True
 
 
-def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_picture: bool) -> bool:
-    """ Play it fucking loud! """
+def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_picture: bool) -> None:
+    """ Play it fucking loud. """
     # TODO support other players (vlc, avplay, ffplay...)
     merge_with_picture = merge_with_picture and HAS_FFMPEG
     if merge_with_picture:
@@ -550,8 +552,8 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
             with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
                 merged_filepath = download_and_merge(review, track_urls, tmp_dir, cover_filepath)
                 if merged_filepath is None:
-                    return
-                cmd = ("mpv", merged_filepath)
+                    return None
+                cmd: Tuple[str, ...] = ("mpv", merged_filepath)
                 logging.getLogger().debug(f"Playing with command: {cmd_to_string(cmd)}")
                 subprocess.run(cmd, check=True)
 
@@ -566,6 +568,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
 
 
 def cl_main():
+    """ Command line entry point. """
     # parse args
     arg_parser = argparse.ArgumentParser(
         description=f"AMG Player v{__version__}. {__doc__}", formatter_class=argparse.ArgumentDefaultsHelpFormatter

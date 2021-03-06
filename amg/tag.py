@@ -9,7 +9,7 @@ import logging
 import operator
 import re
 import string
-from typing import Dict, List, Optional, Sequence
+from typing import Deque, Dict, List, Optional, Sequence, Tuple
 
 import more_itertools
 import mutagen
@@ -22,7 +22,7 @@ class TitleNormalizer:
 
     """ Class to chain all title tag transformations. """
 
-    def __init__(self, artist: str, album: str):
+    def __init__(self, artist: str, album: str):  # noqa: C901
         self.cleaners: List[TitleCleanerBase] = []
 
         # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
@@ -94,7 +94,7 @@ class TitleNormalizer:
         self.registerCleaner(RegexPrefixCleaner(r"^[\w\s]+ productions?", contains=("production",), execute_once=True))
 
         # detect and remove '- xxx metal' suffix
-        base_genres = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
+        base_genres: Tuple[str, ...] = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
         composed_genres = tuple(
             genre_sep.join(pair) for pair in itertools.permutations(base_genres, 2) for genre_sep in "/- "
         )
@@ -257,11 +257,12 @@ class TitleNormalizer:
 
     def cleanup(self, title: str) -> str:
         cur_title = title
-        to_del_indexes: Sequence[int] = collections.deque()
+        to_del_indexes: Deque[int] = collections.deque()
         start_index = 0
 
         while self.cleaners:
 
+            cleaner: TitleCleanerBase
             for i, (cleaner, args) in enumerate(itertools.islice(self.cleaners, start_index, None), start_index):
 
                 remove_cur_cleaner = False
@@ -333,15 +334,15 @@ class TitleCleanerBase:
 
     def rclean(self, s: str) -> str:
         """ Remove garbage at right of string. """
-        r = s.rstrip(__class__.RCLEAN_CHARS)
+        r = s.rstrip(self.__class__.RCLEAN_CHARS)
         if r.endswith(" -"):
-            r = r[:-2].rstrip(__class__.RCLEAN_CHARS)
+            r = r[:-2].rstrip(self.__class__.RCLEAN_CHARS)
         return r
 
     def lclean(self, s: str) -> str:
         """ Remove garbage at left of string. """
-        r = s.lstrip(__class__.LCLEAN_CHARS)
-        c = unidecode.unidecode_expect_ascii(r.lstrip(__class__.LCLEAN_CHARS)).lstrip(__class__.LCLEAN_CHARS)
+        r = s.lstrip(self.__class__.LCLEAN_CHARS)
+        c = unidecode.unidecode_expect_ascii(r.lstrip(self.__class__.LCLEAN_CHARS)).lstrip(self.__class__.LCLEAN_CHARS)
         if c != r:
             r = c
         return r
@@ -581,6 +582,8 @@ class PairedCharCleaner(TitleCleanerBase):
         """ See TitleCleanerBase.cleanup. """
         # detect and remove unpaired chars
         char_pairs = (("()", False), ('"' * 2, False), ("'" * 2, True))
+        c1: str
+        c2: str
         for (c1, c2), only_at_edges in char_pairs:
             if only_at_edges:
                 if title.endswith(c2) and (c1 not in title[:-1]):

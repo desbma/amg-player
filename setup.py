@@ -11,7 +11,9 @@ if sys.hexversion < 0x3070000:
     exit(1)
 
 with open(os.path.join("amg", "__init__.py"), "rt") as f:
-    version = re.search('__version__ = "([^"]+)"', f.read()).group(1)
+    version_match = re.search('__version__ = "([^"]+)"', f.read())
+    assert version_match is not None
+    version = version_match.group(1)
 
 with open("requirements.txt", "rt") as f:
     requirements = f.read().splitlines()

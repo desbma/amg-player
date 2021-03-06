@@ -1,5 +1,4 @@
-Angry Metal Guy Player
-======================
+# Angry Metal Guy Player
 
 [![Latest version](https://img.shields.io/pypi/v/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
 [![Tests status](https://github.com/desbma/amg-player/actions/workflows/ci.yml/badge.svg)](https://github.com/desbma/amg-player/actions)
@@ -10,22 +9,20 @@ Angry Metal Guy Player
 
 Angry Metal Guy Player (AMG Player) is a Python multi platform console tool to automatically play or download tracks from [Angry Metal Guy](https://www.angrymetalguy.com/) reviews.
 
-I created this because:  
+I created this because:
 
-* I like Angry Metal Guy, and discovered great music (both metal and totally non-metal) thanks to their reviews
-* I often disagree with their ratings (in fact I disagree more often than I agree), both for overrating and underrating
-* Even when I disagree, I like reading their reviews
-* I want to listen to the music **before** I read the review, to avoid getting influenced
-* To be efficient, I want to listen to the tracks like a radio, and read the review to learn more only when I like something
-
+- I like Angry Metal Guy, and discovered great music (both metal and totally non-metal) thanks to their reviews
+- I often disagree with their ratings (in fact I disagree more often than I agree), both for overrating and underrating
+- Even when I disagree, I like reading their reviews
+- I want to listen to the music **before** I read the review, to avoid getting influenced
+- To be efficient, I want to listen to the tracks like a radio, and read the review to learn more only when I like something
 
 ## Features
 
-* Can work either in interactive mode (manually select tracks) or totally automatic (play new tracks like a radio)
-* Supports embedded tracks from: YouTube, Bandcamp, SoundCloud, ReverbNation
-* Plays YouTube video if available, or generates a video on the fly with the cover image + audio track(s) (requires FFmpeg)
-* Can download tracks (with embedded album art) to play later
-
+- Can work either in interactive mode (manually select tracks) or totally automatic (play new tracks like a radio)
+- Supports embedded tracks from: YouTube, Bandcamp, SoundCloud, ReverbNation
+- Plays YouTube video if available, or generates a video on the fly with the cover image + audio track(s) (requires FFmpeg)
+- Can download tracks (with embedded album art) to play later
 
 ## Screenshots
 
@@ -34,7 +31,6 @@ Selection screen:
 
 Playing a track:  
 [![playing image](https://i.imgur.com/pXUScj2m.png)](https://i.imgur.com/pXUScj2.png)
-
 
 ## Installation
 
@@ -54,25 +50,23 @@ Some features are only available if [FFmpeg](https://ffmpeg.org/download.html) >
 
 **Angry Metal Guy Player only supports [MPV player](https://mpv.io/) for now.**
 
-
 ## Command line usage
 
 Run `amg -h` to get full command line reference.
 
 ### Examples
 
-* Browse and play interactively last 50 reviews:
+- Browse and play interactively last 50 reviews:
 
-    `amg -c 50`
+  `amg -c 50`
 
-* Choose the first track to play, then play all tracks in chronological order:
+- Choose the first track to play, then play all tracks in chronological order:
 
-    `amg -m radio`
+  `amg -m radio`
 
-* Play last 20 tracks in chronological order, skipping those already played:
+- Play last 20 tracks in chronological order, skipping those already played:
 
-    `amg -c 20 -m discover`
-
+  `amg -c 20 -m discover`
 
 ## License
 
