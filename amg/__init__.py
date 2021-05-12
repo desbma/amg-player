@@ -18,14 +18,12 @@ import itertools
 import json
 import locale
 import logging
-import operator
 import os
 import re
 import shelve
 import shlex
 import shutil
 import socket
-import string
 import subprocess
 import sys
 import tempfile
@@ -72,7 +70,7 @@ REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
 REVIEW_HEADER_SELECTOR = lxml.cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
 REVIEW_HEADER_DATE_REGEX = re.compile(r" on ([A-Z][a-z]+ \d+, [0-9]{4})")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("article.post iframe")
-BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script")
+BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script[data-player-data]")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
@@ -203,9 +201,8 @@ def get_embedded_track(
                     urls = (f"https://www.youtube.com/watch?v={yt_id}",)
                 elif iframe_url.startswith(bc_prefix):
                     iframe_page = fetch_page(iframe_url, http_cache=http_cache)
-                    js = BANDCAMP_JS_SELECTOR(iframe_page)[-1].text
-                    js = next(filter(operator.methodcaller("__contains__", "var playerdata ="), js.split("\n")))
-                    js = js.split("=", 1)[1].rstrip(";" + string.whitespace)
+                    js = BANDCAMP_JS_SELECTOR(iframe_page)[0]
+                    js = js.attrib["data-player-data"]
                     js = json.loads(js)
                     # import pprint
                     # pprint.pprint(js)
