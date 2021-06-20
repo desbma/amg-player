@@ -32,6 +32,9 @@ class TitleNormalizer:
         # remove consecutive spaces
         self.registerCleaner(FunctionCleaner(lambda x: " ".join(x.split()), execute_once=True))
 
+        # detect and remove '#hashtag' suffix
+        self.registerCleaner(RegexSuffixCleaner(r"(#[\w]+ ?)+", contains=("#"), execute_once=True))
+
         # detect and remove 'taken from album xxx, out (on) yyy' suffix
         self.registerCleaner(
             RegexSuffixCleaner("taken from .+, out ", contains=("taken from", "out"), execute_once=True)
@@ -165,6 +168,7 @@ class TitleNormalizer:
             "album",
             "audio",
             "clip",
+            "edit",
             "excerpt",
             "hq",
             "in 4k",
