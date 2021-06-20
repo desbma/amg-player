@@ -7,6 +7,7 @@ readonly VERSION=${1:-$(date +%Y.%m.%-d.0)}
 
 cd "$(git rev-parse --show-toplevel)"
 
+# update requirements
 ydl_version=$(LANG=C pacman -Qi youtube-dl | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
 grep -v youtube-dl requirements.txt > requirements.txt.tmp
 echo "youtube-dl>=$ydl_version" >> requirements.txt.tmp
@@ -14,9 +15,17 @@ sort -u -o requirements.txt.tmp requirements.txt.tmp
 mv requirements.txt{.tmp,}
 git add requirements.txt
 
+# update version
 sed -i "s/^\(__version__ = \"\).*\(\"\)/\1$VERSION\2/w /dev/stdout" amg/__init__.py
 git add amg/__init__.py
 
+# commit
 git commit -m "Version ${VERSION}"
 
+# tag
 git tag -m "Version ${VERSION}" "${VERSION}"
+
+# release
+rm -Rf dist
+python setup.py sdist
+twine upload dist/*.tar.gz
