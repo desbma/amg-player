@@ -22,7 +22,14 @@ from amg import sanitize
 
 class TitleNormalizer:
 
-    """ Class to chain all title tag transformations. """
+    """
+    Class to chain all title tag transformations.
+
+    What was once a small concise function has grown into the largest part of this project.
+    This chains many checks to remove crap from title tags, because record people do not have conventions or
+    common sense for that matter, and often try to stuff their grocery list and the name of their cat into
+    what should be a simple title for the song.
+    """
 
     def __init__(self, artist: str, album: str):  # noqa: C901
         self.cleaners: List[Tuple[TitleCleanerBase, Tuple[Any]]] = []
@@ -65,7 +72,7 @@ class TitleNormalizer:
         # detect and remove 'out month xxth' suffix
         self.registerCleaner(RegexSuffixCleaner(" out [a-z]+ [0-9]+th", contains=(" out ",), execute_once=True))
 
-        # detect and remove 'out month xxth' suffix
+        # detect and remove 'new album out xxx' suffix
         self.registerCleaner(RegexSuffixCleaner("new album out .*$", contains=("new album out ",), execute_once=True))
 
         # detect and remove '[xxx music]' suffix
@@ -81,7 +88,7 @@ class TitleNormalizer:
             RegexSuffixCleaner("record label:? [a-z0-9 ]+$", contains=("record label",), execute_once=True)
         )
 
-        # detect and remove 'record label xxx' suffix
+        # detect and remove 'next concert: xxx' suffix
         self.registerCleaner(RegexSuffixCleaner("next concert: .+$", contains=("next concert: ",), execute_once=True))
 
         # detect and remove 'feat.xxx' suffix
@@ -99,16 +106,28 @@ class TitleNormalizer:
         self.registerCleaner(RegexPrefixCleaner(r"^[\w\s]+ productions?", contains=("production",), execute_once=True))
 
         # detect and remove '- xxx metal' suffix
-        base_genres: Tuple[str, ...] = ("crust", "black", "death", "doom", "grind", "grindcore", "thrash")
+        base_genres = [
+            "crust",
+            "black",
+            "death",
+            "doom",
+            "grind",
+            "grindcore",
+            "progressive",
+            "sci-fi",
+            "thrash",
+        ]
         composed_genres = tuple(
             genre_sep.join(pair) for pair in itertools.permutations(base_genres, 2) for genre_sep in "/- "
         )
-        metal_genres = tuple(f"{genre} metal" for genre in base_genres + composed_genres)
-        base_genres += ("metal",)
-        for genre in metal_genres + composed_genres + base_genres:
+        metal_genres = tuple(f"{genre} metal" for genre in tuple(base_genres) + composed_genres)
+        base_genres.append("metal")
+        for too_common_word in ("black", "death", "thrash"):
+            base_genres.remove(too_common_word)
+        for genre in metal_genres + composed_genres + tuple(base_genres):
             self.registerCleaner(
                 RegexSuffixCleaner(
-                    r"[|\(\[/\]]+[ ]*(?:[0-9a-z/-]+[ ]*)*" + genre + "( song)?$",
+                    r"[|\(\[/\]-]+[ ]*(?:[0-9a-z/-]+[ ]*)*" + genre + "( song)?$",
                     suffixes=(genre, f"{genre} song"),
                     execute_once=True,
                     remove_if_skipped=False,
@@ -116,7 +135,7 @@ class TitleNormalizer:
             )
 
         # detect and remove '(thrash/death from whatever)' suffix
-        for genre in metal_genres + composed_genres + base_genres:
+        for genre in metal_genres + composed_genres + tuple(base_genres):
             self.registerCleaner(
                 RegexSuffixCleaner(
                     r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]?$",
