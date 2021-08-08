@@ -579,13 +579,18 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
 
 
 def cl_main():  # noqa: C901
-    """ Command line entry point. """
+    """Command line entry point."""
     # parse args
     arg_parser = argparse.ArgumentParser(
         description=f"AMG Player v{__version__}. {__doc__}", formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     arg_parser.add_argument(
-        "-c", "--count", type=int, default=20, dest="count", help="Amount of recent reviews to fetch"
+        "-c",
+        "--count",
+        type=int,
+        default=max(20, shutil.get_terminal_size()[1] - 7),
+        dest="count",
+        help="Amount of recent reviews to fetch",
     )
     arg_parser.add_argument(
         "-m",
