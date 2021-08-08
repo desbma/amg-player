@@ -7,7 +7,7 @@ import tqdm
 
 
 def ltrunc(s: str, length: int) -> str:
-    """ Truncate string from left. """
+    """Truncate string from left."""
     assert length > 0
     if len(s) <= length:
         return s
@@ -16,10 +16,10 @@ def ltrunc(s: str, length: int) -> str:
 
 class ytdl_tqdm:
 
-    """ Convenient context manager to report ytdl download progress. """
+    """Convenient context manager to report ytdl download progress."""
 
     def __init__(self, ytdl_opts=None, **kwargs):
-        """ See tqdm.tqdm for args description. """
+        """See tqdm.tqdm for args description."""
         self.tqdm = None
         self.prev_downloaded_bytes = 0
         self.tqdm_kwargs = kwargs
@@ -27,7 +27,7 @@ class ytdl_tqdm:
             self.setup_ytdl(ytdl_opts)
 
     def __bool__(self):
-        """ Return True if there is an associated progress bar, False instead. """
+        """Return True if there is an associated progress bar, False instead."""
         return self.tqdm is not None
 
     def __enter__(self):
@@ -38,7 +38,7 @@ class ytdl_tqdm:
             return self.tqdm.close()
 
     def setup_ytdl(self, ytdl_opts):
-        """ Initialize tqdm bar, update YoutubeDL options, and return them. """
+        """Initialize tqdm bar, update YoutubeDL options, and return them."""
         ytdl_opts.update({"quiet": True, "no_warnings": True})
         ytdl_opts.setdefault("progress_hooks", []).append(self._log_progress)
 
@@ -48,7 +48,7 @@ class ytdl_tqdm:
         return ytdl_opts
 
     def _log_progress(self, ytdl_state):
-        """ Report tqdm progress (callback). """
+        """Report tqdm progress (callback)."""
         if ytdl_state["status"] != "downloading":
             return
 
@@ -84,7 +84,7 @@ class ytdl_tqdm:
         self.prev_downloaded_bytes = downloaded_bytes
 
     def _get_new_tqdm(self):
-        """ Set up and return a new tqdm instance. """
+        """Set up and return a new tqdm instance."""
         # default args
         tqdm_kwargs = {"unit": "B", "unit_scale": True, "unit_divisor": 1024}
         # merge with user args

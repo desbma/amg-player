@@ -7,10 +7,10 @@ import amg.sanitize as sanitize
 
 class TestSanitize(unittest.TestCase):
 
-    """ String sanitization test suite. """
+    """String sanitization test suite."""
 
     def test_normalize_tag_case(self):
-        """ Fix tag capitalization. """
+        """Fix tag capitalization."""
         references = {
             "A Little Test": "A Little Test",
             "I Like L.A": "I Like L.A",

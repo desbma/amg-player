@@ -10,7 +10,7 @@ import amg
 
 class AmgMenu(cursesmenu.CursesMenu):
 
-    """ Custom menu to choose review/track. """
+    """Custom menu to choose review/track."""
 
     UserAction = enum.Enum("UserAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
 
@@ -52,12 +52,12 @@ class AmgMenu(cursesmenu.CursesMenu):
             self.select()
 
     def get_last_user_action(self):
-        """ Return last user action when item was selected. """
+        """Return last user action when item was selected."""
         return self.user_action
 
     @staticmethod
     def reviewsToStrings(reviews, known_reviews, http_cache):
-        """ Generate a list of string representations of reviews. """
+        """Generate a list of string representations of reviews."""
         lines = []
         for i, review in enumerate(reviews):
             try:
@@ -91,7 +91,7 @@ class AmgMenu(cursesmenu.CursesMenu):
 
     @staticmethod
     def setupAndShow(mode, reviews, known_reviews, http_cache, selected_idx=None):
-        """ Set up and display interactive menu, return selected review index or None if exist requested. """
+        """Set up and display interactive menu, return selected review index or None if exist requested."""
         menu = AmgMenu(
             reviews=reviews, known_reviews=known_reviews, http_cache=http_cache, mode=mode, selected_idx=selected_idx
         )
@@ -102,14 +102,14 @@ class AmgMenu(cursesmenu.CursesMenu):
 
 class ReviewItem(cursesmenu.items.SelectionItem):
 
-    """ Custom menu item (menu line), overriden to support several actions per item. """
+    """Custom menu item (menu line), overriden to support several actions per item."""
 
     def __init__(self, review, review_string, index, menu):
         super().__init__(review_string, index, menu)
         self.review = review
 
     def action(self):
-        """ React to user action. """
+        """React to user action."""
         if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
             webbrowser.open_new_tab(self.review.url)
             self.should_exit = False

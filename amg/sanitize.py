@@ -36,7 +36,7 @@ TAG_LOWERCASE_WORDS = frozenset(
 
 
 def sanitize_for_path(s: str) -> str:
-    """ Sanitize a string to be FAT/NTFS friendly when used in file path. """
+    """Sanitize a string to be FAT/NTFS friendly when used in file path."""
     s = s.translate(str.maketrans("/\\|*", "---x"))
     s = "".join(c for c in unidecode.unidecode_expect_ascii(s) if c in VALID_PATH_CHARS)
     s = s.strip()
@@ -45,7 +45,7 @@ def sanitize_for_path(s: str) -> str:
 
 
 def normalize_tag_case(s: str) -> str:
-    """ Normalize case of an audio tag string. """
+    """Normalize case of an audio tag string."""
 
     def split_sep_char(w, c):
         parts = w.split(c, 1)

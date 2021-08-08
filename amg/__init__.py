@@ -83,7 +83,7 @@ PROXY = {protocol: os.getenv(f"{protocol}_proxy", "").replace("socks5h", "socks5
 
 @contextlib.contextmanager
 def date_locale_neutral():
-    """ Context manager to call with a neutral default locale. """
+    """Context manager to call with a neutral default locale."""
     loc = locale.getlocale(locale.LC_TIME)
     locale.setlocale(locale.LC_TIME, "C")
     try:
@@ -93,7 +93,7 @@ def date_locale_neutral():
 
 
 def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> lxml.etree.XML:
-    """ Fetch page & parse it with LXML. """
+    """Fetch page & parse it with LXML."""
     if (http_cache is not None) and (url in http_cache):
         logging.getLogger().info(f"Got data for URL {url!r} from cache")
         page = http_cache[url]
@@ -109,7 +109,7 @@ def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> 
 
 
 def fetch_ressource(url: str, dest_filepath: str) -> None:
-    """ Fetch ressource, and write it to file. """
+    """Fetch ressource, and write it to file."""
     logging.getLogger().debug(f"Fetching {url!r}...")
     headers = {"User-Agent": USER_AGENT}
     with contextlib.closing(
@@ -122,7 +122,7 @@ def fetch_ressource(url: str, dest_filepath: str) -> None:
 
 
 def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
-    """ Parse review block from main page and return a ReviewMetadata object. """
+    """Parse review block from main page and return a ReviewMetadata object."""
     tags = tuple(
         t.split("-", 1)[1]
         for t in review.get("class").split(" ")
@@ -164,7 +164,7 @@ def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
 
 
 def get_reviews() -> Iterable[ReviewMetadata]:
-    """ Parse site and yield ReviewMetadata objects. """
+    """Parse site and yield ReviewMetadata objects."""
     previous_review = None
     for i in itertools.count():
         url = REVIEW_URL
@@ -181,7 +181,7 @@ def get_reviews() -> Iterable[ReviewMetadata]:
 def get_embedded_track(
     page: lxml.etree.Element, http_cache: web_cache.WebCache
 ) -> Tuple[Optional[Sequence[str]], bool]:
-    """ Parse page and extract embedded track. """
+    """Parse page and extract embedded track."""
     urls: Optional[Sequence[str]] = None
     audio_only = False
     try:
@@ -236,11 +236,11 @@ def get_embedded_track(
 
 class KnownReviews:
 
-    """ Persistent state for reviews to track played tracks. """
+    """Persistent state for reviews to track played tracks."""
 
     class DataIndex(enum.IntEnum):
 
-        """ Review metadata identifier. """
+        """Review metadata identifier."""
 
         LAST_PLAYED = 0
         PLAY_COUNT = 1
@@ -262,11 +262,11 @@ class KnownReviews:
             del self.data[url]
 
     def isKnownUrl(self, url: str) -> bool:
-        """ Return True if url if from a known review, False instead. """
+        """Return True if url if from a known review, False instead."""
         return url in self.data
 
     def setLastPlayed(self, url: str) -> None:
-        """ Memorize a review's track has been read. """
+        """Memorize a review's track has been read."""
         try:
             e = list(self.data[url])
         except KeyError:
@@ -282,11 +282,11 @@ class KnownReviews:
         self.data[url] = tuple(e)
 
     def getLastPlayed(self, url: str) -> datetime.datetime:
-        """ Return datetime of last review track playback. """
+        """Return datetime of last review track playback."""
         return self.data[url][self.__class__.DataIndex.LAST_PLAYED]
 
     def getPlayCount(self, url: str) -> int:
-        """ Return number of time a track has been played. """
+        """Return number of time a track has been played."""
         try:
             return self.data[url][self.__class__.DataIndex.PLAY_COUNT]
         except IndexError:
@@ -295,7 +295,7 @@ class KnownReviews:
 
 
 def get_cover_data(review: ReviewMetadata) -> bytes:
-    """ Fetch cover and return buffer of JPEG data. """
+    """Fetch cover and return buffer of JPEG data."""
     cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
     cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
 
@@ -324,7 +324,7 @@ def get_cover_data(review: ReviewMetadata) -> bytes:
 def download_and_merge(
     review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str
 ) -> Optional[str]:
-    """ Download track, merge audio & album art, and return merged filepath. """
+    """Download track, merge audio & album art, and return merged filepath."""
     # fetch audio
     with ytdl_tqdm.ytdl_tqdm(leave=False, mininterval=0.05, miniters=1) as ytdl_progress:
         # https://github.com/ytdl-org/youtube-dl/blob/b8b622fbebb158db95edb05a8cc248668194b430/youtube_dl/YoutubeDL.py#L143-L323
@@ -397,7 +397,7 @@ def download_and_merge(
 
 
 def backslash_unescape(s: str) -> str:
-    """ Revert backslash escaping. """
+    """Revert backslash escaping."""
     # https://stackoverflow.com/a/57192592
     return codecs.decode(codecs.encode(s, "latin-1", "backslashreplace"), "unicode-escape")
 
@@ -410,7 +410,7 @@ def download_track(
     tmp_dir: str,
     tqdm_line_lock: threading.Lock,
 ):
-    """ Download a single track, and return its metadata. """
+    """Download a single track, and return its metadata."""
     with contextlib.ExitStack() as cm:
         filename_template = (
             f"{date_published.strftime('%Y%m%d')}. "
@@ -462,7 +462,7 @@ def download_track(
 def download_audio(
     review: ReviewMetadata, date_published: datetime.datetime, track_urls: Sequence[str], *, max_cover_size: int
 ) -> bool:
-    """ Download audio track(s) to file(s) in current directory, return True if success. """
+    """Download audio track(s) to file(s) in current directory, return True if success."""
     with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
         # download
         tqdm_line_locks = [threading.Lock() for _ in range(MAX_PARALLEL_DOWNLOADS)]
@@ -551,7 +551,7 @@ def download_audio(
 
 
 def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_picture: bool) -> None:
-    """ Play it fucking loud. """
+    """Play it fucking loud."""
     # TODO support other players (vlc, avplay, ffplay...)
     merge_with_picture = merge_with_picture and HAS_FFMPEG
     if merge_with_picture:
