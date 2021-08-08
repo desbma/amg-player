@@ -5,6 +5,7 @@ set -o pipefail
 readonly FFMPEG_VERSION=${1:?}
 readonly BUILD_DIR=${2:-$HOME/.cache/ci/amg-player/ffmpeg}
 readonly INSTALL_DIR=${3:-$HOME/.local}
+# shellcheck disable=SC2155
 readonly PROC_COUNT=$(grep -c '^processor' /proc/cpuinfo)
 
 
