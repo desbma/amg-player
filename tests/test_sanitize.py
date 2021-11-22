@@ -26,6 +26,8 @@ class TestSanitize(unittest.TestCase):
             "BZZ: THE": "Bzz: The",
             "薄氷(Thin Ice)": "薄氷 (Thin Ice)",
             "III-III: Imha Tarikatı (Sect of Destruction)": "III-III: Imha Tarikatı (Sect of Destruction)",
+            "Cosa Del Pantano": "Cosa del Pantano",
+            "Lunatic-Liar-Lord": "Lunatic-Liar-Lord",
         }
         for before, after in references.items():
             self.assertEqual(sanitize.normalize_tag_case(before), after)

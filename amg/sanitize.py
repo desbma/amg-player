@@ -2,7 +2,7 @@
 
 import itertools
 import string
-from typing import Optional
+from typing import List, Optional, Tuple
 
 import unidecode
 
@@ -13,6 +13,7 @@ TAG_LOWERCASE_WORDS = frozenset(
         "an",
         "and",
         "at",
+        "del",
         "for",
         "from",
         "in",
@@ -47,17 +48,27 @@ def sanitize_for_path(s: str) -> str:
 def normalize_tag_case(s: str) -> str:
     """Normalize case of an audio tag string."""
 
-    def split_sep_char(w, c):
-        parts = w.split(c, 1)
-        if len(parts) > 1:
-            parts[1] = c + parts[1]
-        parts = tuple(filter(None, parts))
-        return parts
+    def split_sep_char(s: str) -> List[str]:
+        words = [s]
+        for split_char in "(-":
+            new_words = []
+            for word in words:
+                parts = word.split(split_char, 1)
+                if len(parts) > 1:
+                    parts[1] = split_char + parts[1]
+                    parts = list(filter(None, parts))
+                new_words.extend(parts)
+            words = new_words
+        return words
 
-    def remove_punct(s):
+    def split_words(s: str) -> Tuple[str, ...]:
+        return tuple(itertools.chain.from_iterable(split_sep_char(w) for w in s.split()))
+
+    def remove_punct(s: str) -> str:
         return "".join(c for c in s if c not in string.punctuation)
 
-    old_words = tuple(itertools.chain.from_iterable(split_sep_char(w, "(") for w in s.split()))
+    # case heuristic
+    old_words = split_words(s)
     new_words = []
     prev_word: Optional[str] = None
     roman_letters = frozenset("IVXLCDM")
@@ -90,4 +101,16 @@ def normalize_tag_case(s: str) -> str:
         new_word = new_word.replace("I'M", "I'm")
         new_words.append(new_word)
         prev_word = old_word
-    return " ".join(new_words)
+
+    # join
+    to_join = []
+    prev_word = None
+    while new_words:
+        new_word = new_words.pop(0)
+        if (prev_word is None) or ((prev_word is not None) and new_word.startswith("-") and (new_word != "-")):
+            to_join.append(new_word)
+        else:
+            to_join.append(f" {new_word}")
+        prev_word = new_word
+
+    return "".join(to_join)
