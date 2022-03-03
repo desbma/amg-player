@@ -243,7 +243,7 @@ class TitleNormalizer:
             )
         )
         year = datetime.datetime.today().year
-        for y in range(year - 5, year + 1):
+        for y in range(2016, year + 1):
             expressions.add(str(y))
             for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
                 expressions.add(f"{month_name} {y}")
