@@ -48,7 +48,7 @@ class ytdl_tqdm:
         return ytdl_opts
 
     def _log_progress(self, ytdl_state):
-        """Report tqdm progress (callback)."""
+        """Report youtube-dl progress (callback)."""
         if ytdl_state["status"] != "downloading":
             return
 

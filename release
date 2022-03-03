@@ -8,9 +8,9 @@ readonly VERSION=${1:-$(date +%Y.%m.%-d.0)}
 cd "$(git rev-parse --show-toplevel)"
 
 # update requirements
-ydl_version=$(LANG=C pacman -Qi youtube-dl | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
-grep -v youtube-dl requirements.txt > requirements.txt.tmp
-echo "youtube-dl>=$ydl_version" >> requirements.txt.tmp
+ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
+grep -v yt-dlp requirements.txt > requirements.txt.tmp
+echo "yt-dlp>=$ydl_version" >> requirements.txt.tmp
 sort -u -o requirements.txt.tmp requirements.txt.tmp
 mv requirements.txt{.tmp,}
 git add requirements.txt

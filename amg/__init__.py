@@ -40,7 +40,7 @@ import PIL.ImageFilter
 import r128gain
 import requests
 import web_cache
-import youtube_dl
+import yt_dlp
 
 from amg import colored_logging, menu, mkstemp_ctx, sanitize, tag, ytdl_tqdm
 
@@ -333,9 +333,9 @@ def download_and_merge(
             ytdl_progress.setup_ytdl(ydl_opts)
 
         try:
-            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download(track_urls)
-        except youtube_dl.utils.DownloadError as e:
+        except yt_dlp.utils.DownloadError as e:
             msg = f"Download error: {e}"
             if ytdl_progress:
                 ytdl_progress.tqdm.write(msg)
@@ -446,9 +446,9 @@ def download_track(
                 logging.getLogger().info(msg)
 
             try:
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     metadata = ydl.extract_info(track_url)
-            except youtube_dl.utils.DownloadError as e:
+            except yt_dlp.utils.DownloadError as e:
                 if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
                     continue
                 raise
@@ -570,7 +570,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
 
     else:
         for track_url in track_urls:
-            cmd_dl = ("youtube-dl", "-o", "-", track_url)
+            cmd_dl = ("yt-dlp", "-o", "-", track_url)
             logging.getLogger().debug(f"Downloading with command: {cmd_to_string(cmd_dl)}")
             dl_process = subprocess.Popen(cmd_dl, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             cmd = ("mpv", "--force-seekable=yes", "-")
