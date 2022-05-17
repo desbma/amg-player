@@ -29,6 +29,8 @@ repos:
       - id: mypy
         args:
           - --ignore-missing-imports
+          - --install-types
+          - --non-interactive
 
   - repo: https://gitlab.com/pycqa/flake8
     rev: 3.9.2
