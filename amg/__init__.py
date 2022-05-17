@@ -425,6 +425,9 @@ def download_track(
             "postprocessors": [{"key": "FFmpegExtractAudio"}],
             "proxy": PROXY[urllib.parse.urlsplit(track_url).scheme],
             "socket_timeout": TCP_TIMEOUT,
+            "quiet": True,
+            "logger": logging.getLogger(),
+            "no_warnings": True,
         }
         if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
             cm.enter_context(tqdm_line_lock)

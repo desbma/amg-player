@@ -1,5 +1,6 @@
 """ Show YoutubeDL download progress with a tqdm progress bar. """
 
+import logging
 import os
 import shutil
 
@@ -39,7 +40,7 @@ class ytdl_tqdm:
 
     def setup_ytdl(self, ytdl_opts):
         """Initialize tqdm bar, update YoutubeDL options, and return them."""
-        ytdl_opts.update({"quiet": True, "no_warnings": True})
+        ytdl_opts.update({"quiet": True, "no_warnings": True, "logger": logging.getLogger()})
         ytdl_opts.setdefault("progress_hooks", []).append(self._log_progress)
 
         assert self.tqdm is None
