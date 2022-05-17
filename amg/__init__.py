@@ -117,7 +117,7 @@ def fetch_ressource(url: str, dest_filepath: str) -> None:
     ) as response:
         response.raise_for_status()
         with open(dest_filepath, "wb") as dest_file:
-            for chunk in response.iter_content(2 ** 14):
+            for chunk in response.iter_content(2**14):
                 dest_file.write(chunk)
 
 
