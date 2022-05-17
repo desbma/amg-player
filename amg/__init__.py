@@ -535,6 +535,8 @@ def download_audio(
             r128gain.process(track_filepaths, album_gain=len(track_filepaths) > 1)
 
         # move tracks
+        cur_umask = os.umask(0)
+        os.umask(cur_umask)
         for track_filepath in track_filepaths:
             dest_filename = os.path.basename(track_filepath)
             # add title tag in filename if available
@@ -549,6 +551,10 @@ def download_audio(
             dest_filepath = os.path.join(os.getcwd(), dest_filename)
             logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
             shutil.move(track_filepath, dest_filepath)
+            # restore sane perms fucked up by yt-dlp
+            cur_mode = os.stat(dest_filepath).st_mode
+            new_mode = cur_mode & ~cur_umask & ~0o111
+            os.chmod(dest_filepath, new_mode)
 
         return True
 
