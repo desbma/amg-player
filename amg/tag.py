@@ -127,7 +127,7 @@ class TitleNormalizer:
         for genre in metal_genres + composed_genres + tuple(base_genres):
             self.registerCleaner(
                 RegexSuffixCleaner(
-                    r"[|\(\[/\]\)-]+[ ]*(?:[0-9a-z/-]+[ ]*)*" + genre + "( song)?$",
+                    r"[|\(\[/\] -]+(?:[0-9a-z/-\\,]+[ ]*)*" + genre + "( song)?$",
                     suffixes=(genre, f"{genre} song"),
                     execute_once=True,
                     remove_if_skipped=False,
