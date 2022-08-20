@@ -56,10 +56,10 @@ class TitleNormalizer:
         self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+", contains=("track",), execute_once=True))
 
         # detect and remove 'from xxx LP' suffix
-        self.registerCleaner(RegexSuffixCleaner("from .+ LP", contains=("from", "LP"), execute_once=True))
+        self.registerCleaner(RegexSuffixCleaner("(taken )?from .+ LP", contains=("from", "LP"), execute_once=True))
 
         # detect and remove 'from xxx album' suffix
-        self.registerCleaner(RegexSuffixCleaner("from .*album", contains=("from", "album"), execute_once=True))
+        self.registerCleaner(RegexSuffixCleaner("(taken )?from .*album", contains=("from", "album"), execute_once=True))
 
         # detect and remove 'xxx out: yy.zz.aa' suffix
         self.registerCleaner(
