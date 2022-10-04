@@ -548,7 +548,9 @@ def download_audio(
                 filename, ext = os.path.splitext(dest_filename)
                 filename = ". ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
                 dest_filename = "".join((filename, ext))
-            dest_filepath = os.path.join(os.getcwd(), dest_filename)
+            dest_dir = os.path.join(os.getcwd(), date_published.strftime("%Y%m"))
+            os.makedirs(dest_dir, exist_ok=True)
+            dest_filepath = os.path.join(dest_dir, dest_filename)
             logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
             shutil.move(track_filepath, dest_filepath)
             # restore sane perms fucked up by yt-dlp
