@@ -10,4 +10,4 @@ requests>=2.22.0
 tqdm==4.28.1
 unidecode>=1.0.23
 web_cache>=1.1.0
-yt-dlp>= 2022.07.18
+yt-dlp>= 2022.09.01
