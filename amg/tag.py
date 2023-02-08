@@ -31,7 +31,7 @@ class TitleNormalizer:
     what should be a simple title for the song.
     """
 
-    def __init__(self, artist: str, album: str):  # noqa: C901
+    def __init__(self, artist: str, album: str, record_label: Optional[str] = None):  # noqa: C901
         self.cleaners: List[Tuple[TitleCleanerBase, Tuple[Any]]] = []
 
         # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
@@ -104,6 +104,10 @@ class TitleNormalizer:
 
         # detect and remove 'xxx productions' prefix
         self.registerCleaner(RegexPrefixCleaner(r"^[\w\s]+ productions?", contains=("production",), execute_once=True))
+
+        # detect and remove record label suffix
+        if record_label is not None:
+            self.registerCleaner(SimpleSuffixCleaner(), (record_label,))
 
         # detect and remove '- xxx metal' suffix
         base_genres = [
@@ -636,13 +640,19 @@ class PairedCharCleaner(TitleCleanerBase):
         return title
 
 
-def normalize_title_tag(title: str, artist: str, album: str) -> str:
+def normalize_title_tag(title: str, artist: str, album: str, record_label: Optional[str] = None) -> str:
     """Remove useless prefix and suffix from title tag string."""
-    normalizer = TitleNormalizer(artist, album)
+    normalizer = TitleNormalizer(artist, album, record_label)
     return normalizer.cleanup(title)
 
 
-def tag(track_filepath: str, review, metadata: Dict[str, str], cover_data: Optional[bytes]):
+def tag(
+    track_filepath: str,
+    review,
+    metadata: Dict[str, str],
+    cover_data: Optional[bytes],
+    record_label: Optional[str] = None,
+):
     """Tag an audio file, return tag dict excluding RG/R128 info and album art."""
     logging.getLogger().info(f"Tagging file {track_filepath!r}")
     mf = mutagen.File(track_filepath, easy=True)
@@ -651,7 +661,7 @@ def tag(track_filepath: str, review, metadata: Dict[str, str], cover_data: Optio
     mf["artist"] = sanitize.normalize_tag_case(review.artist)
     mf["album"] = sanitize.normalize_tag_case(review.album)
     try:
-        mf["title"] = normalize_title_tag(metadata["title"], review.artist, review.album)
+        mf["title"] = normalize_title_tag(metadata["title"], review.artist, review.album, record_label)
     except KeyError:
         mf["title"] = mf["album"]
     try:

@@ -72,6 +72,8 @@ REVIEW_HEADER_DATE_REGEX = re.compile(r" on ([A-Z][a-z]+ \d+, [0-9]{4})")
 PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("article.post iframe")
 BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script[data-player-data]")
 REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
+REVIEW_FOOTER_SELECTOR = lxml.cssselect.CSSSelector("main.site-main article div.entry-content.clear > p")
+RECORD_LABEL_REGEX = re.compile("Label: (.*)")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
 YDL_MAX_DOWNLOAD_ATTEMPTS = 5
@@ -463,7 +465,12 @@ def download_track(
 
 
 def download_audio(
-    review: ReviewMetadata, date_published: datetime.datetime, track_urls: Sequence[str], *, max_cover_size: int
+    review: ReviewMetadata,
+    date_published: datetime.datetime,
+    track_urls: Sequence[str],
+    *,
+    max_cover_size: int,
+    record_label: Optional[str] = None,
 ) -> bool:
     """Download audio track(s) to file(s) in current directory, return True if success."""
     with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
@@ -524,7 +531,7 @@ def download_audio(
         files_tags = {}
         for track_filepath, track_metadata in zip(track_filepaths, tracks_metadata):
             try:
-                files_tags[track_filepath] = tag.tag(track_filepath, review, track_metadata, cover_data)
+                files_tags[track_filepath] = tag.tag(track_filepath, review, track_metadata, cover_data, record_label)
             except Exception as e:
                 # raise
                 logging.getLogger().warning(
@@ -724,6 +731,13 @@ def cl_main():  # noqa: C901
         date_published = REVIEW_HEADER_DATE_REGEX.search(date_published).group(1)
         with date_locale_neutral():
             date_published = datetime.datetime.strptime(date_published, "%B %d, %Y").date()
+        footer_elem = REVIEW_FOOTER_SELECTOR(review_page)[-1]
+        footer_str = lxml.etree.tostring(footer_elem, encoding="unicode", method="text").strip()
+        record_label_match = RECORD_LABEL_REGEX.search(footer_str)
+        if record_label_match is not None:
+            record_label = record_label_match.group(1)
+        else:
+            record_label = None
         track_urls, audio_only = get_embedded_track(review_page, http_cache)
         if track_urls is None:
             logging.getLogger().warning("Unable to extract embedded track")
@@ -747,7 +761,13 @@ def cl_main():  # noqa: C901
                         known_reviews.setLastPlayed(review.url)
                         input_loop = False
                     elif c == "d":
-                        download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
+                        download_audio(
+                            review,
+                            date_published,
+                            track_urls,
+                            max_cover_size=args.max_embedded_cover_size,
+                            record_label=record_label,
+                        )
                         input_loop = False
                     elif c == "r":
                         webbrowser.open_new_tab(review.url)
@@ -761,7 +781,13 @@ def cl_main():  # noqa: C901
                     (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO))
                     and (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)
                 ) or (args.mode is PlayerMode.DISCOVER_DOWNLOAD):
-                    download_audio(review, date_published, track_urls, max_cover_size=args.max_embedded_cover_size)
+                    download_audio(
+                        review,
+                        date_published,
+                        track_urls,
+                        max_cover_size=args.max_embedded_cover_size,
+                        record_label=record_label,
+                    )
                 else:
                     play(review, track_urls, merge_with_picture=audio_only)
                 known_reviews.setLastPlayed(review.url)

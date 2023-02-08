@@ -78,9 +78,10 @@ class TestTag(unittest.TestCase):
                 source = test_data["source"]
                 artist = test_data["artist"]
                 album = test_data["album"]
+                record_label = test_data.get("record_label")
                 expected_result = test_data["result"]
                 with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
-                    self.assertEqual(amg.tag.normalize_title_tag(source, artist, album), expected_result)
+                    self.assertEqual(amg.tag.normalize_title_tag(source, artist, album, record_label), expected_result)
 
     def test_tag(self):
         """Test tagging for various formats."""
