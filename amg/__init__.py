@@ -195,20 +195,17 @@ def get_embedded_track(
             iframe_url = iframe.get("src")
             if iframe_url is not None:
                 yt_prefixes = ("https://www.youtube.com/embed/", "https://www.youtube-nocookie.com/embed/")
-                bc_prefix = "https://bandcamp.com/EmbeddedPlayer/"
+                bc_prefixes = ("https://bandcamp.com/EmbeddedPlayer/", "http://bandcamp.com/EmbeddedPlayer/")
                 sc_prefix = "https://w.soundcloud.com/player/"
                 rn_prefix = "https://www.reverbnation.com/widget_code/"
                 if any(map(iframe_url.startswith, yt_prefixes)):
                     yt_id = urllib.parse.urlparse(iframe_url).path.rsplit("/", 1)[-1]
                     urls = (f"https://www.youtube.com/watch?v={yt_id}",)
-                elif iframe_url.startswith(bc_prefix):
+                elif any(map(iframe_url.startswith, bc_prefixes)):
                     iframe_page = fetch_page(iframe_url, http_cache=http_cache)
                     js = BANDCAMP_JS_SELECTOR(iframe_page)[0]
                     js = js.attrib["data-player-data"]
                     js = json.loads(js)
-                    # import pprint
-                    # pprint.pprint(js)
-                    # exit(7)
                     urls = tuple(t["title_link"] for t in js["tracks"] if (t["track_streaming"] and t["file"]))
                     audio_only = True
                 elif iframe_url.startswith(sc_prefix):
