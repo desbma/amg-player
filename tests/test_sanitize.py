@@ -28,6 +28,7 @@ class TestSanitize(unittest.TestCase):
             "III-III: Imha Tarikatı (Sect of Destruction)": "III-III: Imha Tarikatı (Sect of Destruction)",
             "Cosa Del Pantano": "Cosa del Pantano",
             "Lunatic-Liar-Lord": "Lunatic-Liar-Lord",
+            "The Day After 'Trinity'": "The Day After 'Trinity'",
         }
         for before, after in references.items():
             self.assertEqual(sanitize.normalize_tag_case(before), after)

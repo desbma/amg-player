@@ -80,7 +80,7 @@ def normalize_tag_case(s: str) -> str:
             (prev_word is not None) and ((prev_word[-1] in punct_followed_all_uppercase) and old_word[0].isupper())
         ) or ("." in old_word):
             new_word = old_word
-        elif old_word[0] in "[(-":
+        elif old_word[0] in "[(-'":
             new_word = old_word
         elif old_word.find("'") == 1:
             if i > 0:
