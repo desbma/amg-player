@@ -232,6 +232,7 @@ class TitleNormalizer:
                 "full-length",
                 "hd",
                 "official",
+                "offical",
                 "pre-listening",
                 "pre-order now",
                 "pre-orders available",
