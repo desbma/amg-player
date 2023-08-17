@@ -295,10 +295,8 @@ class TitleNormalizer:
         start_index = 0
 
         while self.cleaners:
-
             cleaner: TitleCleanerBase
             for i, (cleaner, args) in enumerate(itertools.islice(self.cleaners, start_index, None), start_index):
-
                 remove_cur_cleaner = False
                 restart_loop = False
 

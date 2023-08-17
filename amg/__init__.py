@@ -37,7 +37,6 @@ import lxml.cssselect
 import lxml.etree
 import PIL.Image
 import PIL.ImageFilter
-import r128gain
 import requests
 import web_cache
 import yt_dlp
@@ -534,9 +533,13 @@ def download_audio(
                 logging.getLogger().warning(
                     f"Failed to add tags to file {track_filepath!r}: " f"{e.__class__.__qualname__} {e}"
                 )
-        # RG/R128
-        if HAS_FFMPEG:
-            r128gain.process(track_filepaths, album_gain=len(track_filepaths) > 1)
+
+        # RG
+        rsgain_cmd = ["rsgain", "custom", "-s", "i"]
+        if len(track_filepaths) > 1:
+            rsgain_cmd.append("-a")
+        rsgain_cmd.extend(track_filepaths)
+        subprocess.run(rsgain_cmd, check=True)
 
         # move tracks
         cur_umask = os.umask(0)
