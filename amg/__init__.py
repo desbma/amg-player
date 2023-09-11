@@ -535,7 +535,7 @@ def download_audio(
                 )
 
         # RG
-        rsgain_cmd = ["rsgain", "custom", "-s", "i"]
+        rsgain_cmd = ["rsgain", "custom", "-s", "i", "-o", "r"]
         if len(track_filepaths) > 1:
             rsgain_cmd.append("-a")
         rsgain_cmd.extend(track_filepaths)
