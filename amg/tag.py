@@ -6,8 +6,8 @@ import calendar
 import collections
 import datetime
 import functools
-import itertools
 import io
+import itertools
 import logging
 import operator
 import re
