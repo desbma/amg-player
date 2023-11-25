@@ -30,7 +30,7 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
-from typing import BinaryIO, Callable, Iterable, Optional, Sequence, Tuple
+from typing import Callable, Iterable, Optional, Sequence, Tuple
 
 import appdirs
 import lxml.cssselect
@@ -99,27 +99,19 @@ def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> 
         logging.getLogger().info(f"Got data for URL {url!r} from cache")
         page = http_cache[url]
     else:
-        logging.getLogger().debug(f"Fetching {url!r}...")
-        headers = {"User-Agent": USER_AGENT}
-        response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT, proxies=PROXY)
-        response.raise_for_status()
-        page = response.content
+        page = fetch_ressource(url)
         if http_cache is not None:
             http_cache[url] = page
     return lxml.etree.XML(page.decode("utf-8"), HTML_PARSER)
 
 
-def fetch_ressource(url: str, dest_filepath: str) -> None:
+def fetch_ressource(url: str) -> bytes:
     """Fetch ressource, and write it to file."""
     logging.getLogger().debug(f"Fetching {url!r}...")
     headers = {"User-Agent": USER_AGENT}
-    with contextlib.closing(
-        requests.get(url, headers=headers, timeout=TCP_TIMEOUT, proxies=PROXY, stream=True)
-    ) as response:
-        response.raise_for_status()
-        with open(dest_filepath, "wb") as dest_file:
-            for chunk in response.iter_content(2**14):
-                dest_file.write(chunk)
+    response = requests.get(url, headers=headers, timeout=TCP_TIMEOUT, proxies=PROXY)
+    response.raise_for_status()
+    return response.content
 
 
 def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
@@ -293,30 +285,9 @@ class KnownReviews:
 
 
 def get_cover_data(review: ReviewMetadata) -> bytes:
-    """Fetch cover and return buffer of JPEG data."""
+    """Fetch cover and return buffer of image data."""
     cover_url = review.cover_url if review.cover_url is not None else review.cover_thumbnail_url
-    cover_ext = os.path.splitext(urllib.parse.urlsplit(cover_url).path)[1][1:].lower()
-
-    with mkstemp_ctx.mkstemp(prefix="amg_", suffix=f".{cover_ext}") as filepath:
-        fetch_ressource(cover_url, filepath)
-
-        if cover_ext == "png":
-            # convert to JPEG
-            img = PIL.Image.open(filepath)
-            if img.mode != "RGB":
-                img = img.convert("RGB")
-            f: BinaryIO = io.BytesIO()
-            img.save(f, format="JPEG", quality=90, optimize=True)
-            f.seek(0)
-            out_bytes = f.read()
-        else:
-            if HAS_JPEGOPTIM:
-                cmd = ("jpegoptim", "-q", "--strip-all", filepath)
-                subprocess.run(cmd, check=True)
-            with open(filepath, "rb") as f:
-                out_bytes = f.read()
-
-    return out_bytes
+    return fetch_ressource(cover_url)
 
 
 def download_and_merge(
@@ -573,7 +544,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
     # TODO support other players (vlc, avplay, ffplay...)
     merge_with_picture = merge_with_picture and HAS_FFMPEG
     if merge_with_picture:
-        with mkstemp_ctx.mkstemp(prefix="amg_", suffix=".jpg") as cover_filepath:
+        with mkstemp_ctx.mkstemp(prefix="amg_") as cover_filepath:
             cover_data = get_cover_data(review)
             with open(cover_filepath, "wb") as f:
                 f.write(cover_data)

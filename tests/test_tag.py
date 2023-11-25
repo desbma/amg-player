@@ -23,7 +23,9 @@ def download(url, filepath):
         if os.path.isfile(cache_filepath):
             shutil.copyfile(cache_filepath, filepath)
             return
-    amg.fetch_ressource(url, filepath)
+    data = amg.fetch_ressource(url)
+    with open(filepath, "wb") as f:
+        f.write(data)
     if cache_dir is not None:
         shutil.copyfile(filepath, cache_filepath)
 
@@ -87,7 +89,8 @@ class TestTag(unittest.TestCase):
         """Test tagging for various formats."""
         artist = "Artist"
         album = "Album"
-        cover_data = os.urandom(random.randint(10000, 500000))
+        # https://github.com/mathiasbynens/small/blob/master/jpeg.jpg
+        cover_data = b"\xff\xd8\xff\xdb\x00C\x00\x03\x02\x02\x02\x02\x02\x03\x02\x02\x02\x03\x03\x03\x03\x04\x06\x04\x04\x04\x04\x04\x08\x06\x06\x05\x06\t\x08\n\n\t\x08\t\t\n\x0c\x0f\x0c\n\x0b\x0e\x0b\t\t\r\x11\r\x0e\x0f\x10\x10\x11\x10\n\x0c\x12\x13\x12\x10\x13\x0f\x10\x10\x10\xff\xc9\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xcc\x00\x06\x00\x10\x10\x05\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xd2\xcf \xff\xd9"
         review = amg.ReviewMetadata(None, artist, album, None, None, None)
 
         # vorbis
@@ -100,7 +103,7 @@ class TestTag(unittest.TestCase):
             self.assertEqual(tags[k], v)
         self.assertIn("metadata_block_picture", tags)
         self.assertEqual(len(tags["metadata_block_picture"]), 1)
-        self.assertIn(base64.b64encode(cover_data).decode(), tags["metadata_block_picture"][0])
+        self.assertIn(cover_data, base64.b64decode(tags["metadata_block_picture"][0]))
         self.assertTrue(amg.tag.has_embedded_album_art(self.vorbis_filepath))
 
         # opus
@@ -113,7 +116,7 @@ class TestTag(unittest.TestCase):
             self.assertEqual(tags[k], v)
         self.assertIn("metadata_block_picture", tags)
         self.assertEqual(len(tags["metadata_block_picture"]), 1)
-        self.assertIn(base64.b64encode(cover_data).decode(), tags["metadata_block_picture"][0])
+        self.assertIn(cover_data, base64.b64decode(tags["metadata_block_picture"][0]))
         self.assertTrue(amg.tag.has_embedded_album_art(self.opus_filepath))
 
         # mp3

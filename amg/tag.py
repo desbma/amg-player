@@ -7,14 +7,17 @@ import collections
 import datetime
 import functools
 import itertools
+import io
 import logging
 import operator
 import re
 import string
 from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple
 
+import magic
 import more_itertools
 import mutagen
+import PIL.Image
 import unidecode
 
 from amg import sanitize
@@ -697,18 +700,31 @@ def has_embedded_album_art(filepath: str) -> bool:
 
 def embed_album_art(mf: mutagen.File, cover_data: bytes):
     """Embed album art into audio file."""
+    mime = magic.from_buffer(cover_data, mime=True)
     if isinstance(mf, mutagen.ogg.OggFileType):
         picture = mutagen.flac.Picture()
         picture.data = cover_data
         picture.type = mutagen.id3.PictureType.COVER_FRONT
-        picture.mime = "image/jpeg"
+        picture.mime = mime
         encoded_data = base64.b64encode(picture.write())
         mf["metadata_block_picture"] = encoded_data.decode("ascii")
     elif isinstance(mf, mutagen.mp3.MP3):
-        mf.tags.add(mutagen.id3.APIC(mime="image/jpeg", type=mutagen.id3.PictureType.COVER_FRONT, data=cover_data))
+        mf.tags.add(mutagen.id3.APIC(mime=mime, type=mutagen.id3.PictureType.COVER_FRONT, data=cover_data))
         mf.save()
     elif isinstance(mf, mutagen.mp4.MP4):
-        mf["covr"] = [mutagen.mp4.MP4Cover(cover_data, imageformat=mutagen.mp4.AtomDataType.JPEG)]
+        if mime == "image/jpeg":
+            fmt = mutagen.mp4.AtomDataType.JPEG
+        elif mime == "image/png":
+            fmt = mutagen.mp4.AtomDataType.PNG
+        else:
+            # convert to jpeg
+            in_bytes = io.BytesIO(cover_data)
+            img = PIL.Image.open(in_bytes)
+            out_bytes = io.BytesIO()
+            img.save(out_bytes, format="JPEG", quality=85, optimize=True)
+            cover_data = out_bytes.getvalue()
+            fmt = mutagen.mp4.AtomDataType.JPEG
+        mf["covr"] = [mutagen.mp4.MP4Cover(cover_data, imageformat=fmt)]
 
 
 # copy month names before changing locale
