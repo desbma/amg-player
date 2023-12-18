@@ -55,6 +55,9 @@ class TitleNormalizer:
             RegexSuffixCleaner("a track of upcoming ", contains=("a track of upcoming"), execute_once=True)
         )
 
+        # detect and remove 'episode x/y of' suffix
+        self.registerCleaner(RegexSuffixCleaner("episode [0-9/]+( of)", contains=("episode"), execute_once=True))
+
         # detect and remove 'album: xxx track yy'
         self.registerCleaner(RegexCleaner("(album: .+ )?track [0-9]+", contains=("track",), execute_once=True))
 
