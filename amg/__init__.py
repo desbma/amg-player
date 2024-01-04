@@ -58,7 +58,7 @@ ReviewMetadata = collections.namedtuple(
 )
 
 ROOT_URL = "https://www.angrymetalguy.com/"
-REVIEW_URL = f"{ROOT_URL}category/reviews/"
+REVIEW_URL = ROOT_URL  # f"{ROOT_URL}category/reviews/"
 LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector(
