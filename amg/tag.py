@@ -219,6 +219,7 @@ class TitleNormalizer:
             "trailer",
             "version",
             "video",
+            "visualiser",
             "visualizer",
             "vr",
         )
