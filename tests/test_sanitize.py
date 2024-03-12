@@ -29,6 +29,7 @@ class TestSanitize(unittest.TestCase):
             "Cosa Del Pantano": "Cosa del Pantano",
             "Lunatic-Liar-Lord": "Lunatic-Liar-Lord",
             "The Day After 'Trinity'": "The Day After 'Trinity'",
+            "Where I'm From": "Where I'm from",
         }
         for before, after in references.items():
             self.assertEqual(sanitize.normalize_tag_case(before), after)
