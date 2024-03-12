@@ -1,4 +1,4 @@
-""" Terminal menu code to browse tracks. """
+"""Terminal menu code to browse tracks."""
 
 import enum
 import webbrowser
@@ -9,7 +9,6 @@ import amg
 
 
 class AmgMenu(cursesmenu.CursesMenu):
-
     """Custom menu to choose review/track."""
 
     UserAction = enum.Enum("UserAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
@@ -101,7 +100,6 @@ class AmgMenu(cursesmenu.CursesMenu):
 
 
 class ReviewItem(cursesmenu.items.SelectionItem):
-
     """Custom menu item (menu line), overriden to support several actions per item."""
 
     def __init__(self, review, review_string, index, menu):

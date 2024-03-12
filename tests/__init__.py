@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" AMG main tests. """
+"""AMG main tests."""
 
 import inspect
 import logging
@@ -11,7 +11,6 @@ import amg
 
 
 class TestAmg(unittest.TestCase):
-
     """AMG main test suite."""
 
     def setUp(self):

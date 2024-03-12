@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" Browse & play embedded tracks from Angry Metal Guy music reviews. """
+"""Browse & play embedded tracks from Angry Metal Guy music reviews."""
 
 __version__ = "2024.02.14.0"
 __author__ = "desbma"
@@ -225,11 +225,9 @@ def get_embedded_track(
 
 
 class KnownReviews:
-
     """Persistent state for reviews to track played tracks."""
 
     class DataIndex(enum.IntEnum):
-
         """Review metadata identifier."""
 
         LAST_PLAYED = 0

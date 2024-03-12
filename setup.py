@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-""" Module setup. """
+"""Module setup."""
 
 import os
 import re

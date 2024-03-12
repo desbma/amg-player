@@ -1,4 +1,4 @@
-""" Remove unwanted chars or patterns from strings. """
+"""Remove unwanted chars or patterns from strings."""
 
 import itertools
 import string

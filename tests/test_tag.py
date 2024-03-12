@@ -1,9 +1,8 @@
-""" Tag related unit tests. """
+"""Tag related unit tests."""
 
 import base64
 import json
 import os
-import random
 import shutil
 import tempfile
 import unittest
@@ -31,7 +30,6 @@ def download(url, filepath):
 
 
 class TestTag(unittest.TestCase):
-
     """Tag related test suite."""
 
     @classmethod

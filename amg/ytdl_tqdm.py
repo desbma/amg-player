@@ -1,4 +1,4 @@
-""" Show YoutubeDL download progress with a tqdm progress bar. """
+"""Show YoutubeDL download progress with a tqdm progress bar."""
 
 import logging
 import os
@@ -16,7 +16,6 @@ def ltrunc(s: str, length: int) -> str:
 
 
 class ytdl_tqdm:
-
     """Convenient context manager to report ytdl download progress."""
 
     def __init__(self, ytdl_opts=None, **kwargs):
