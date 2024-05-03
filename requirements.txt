@@ -7,7 +7,7 @@ mutagen>=1.42.0
 Pillow>=6.0.0
 python-magic>=0.4.27
 requests>=2.22.0
-tqdm==4.28.1
+tqdm==4.66.3
 unidecode>=1.0.23
 web_cache>=1.1.0
 yt-dlp>= 2023.12.30
