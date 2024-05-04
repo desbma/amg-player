@@ -32,11 +32,11 @@ import urllib.parse
 import webbrowser
 from typing import Callable, Iterable, Optional, Sequence, Tuple
 
-import appdirs
 import lxml.cssselect
 import lxml.etree
 import PIL.Image
 import PIL.ImageFilter
+import platformdirs
 import requests
 import web_cache
 import yt_dlp
@@ -235,7 +235,7 @@ class KnownReviews:
         DATA_INDEX_COUNT = 2
 
     def __init__(self):
-        data_dir = appdirs.user_data_dir("amg-player")
+        data_dir = platformdirs.user_data_dir("amg-player")
         os.makedirs(data_dir, exist_ok=True)
         filepath = os.path.join(data_dir, "played.dat")
         self.data = shelve.open(filepath, protocol=3)
@@ -646,7 +646,7 @@ def cl_main():  # noqa: C901
     reviews = list(itertools.islice(get_reviews(), args.count))
 
     # http cache
-    cache_dir = appdirs.user_cache_dir("amg-player")
+    cache_dir = platformdirs.user_cache_dir("amg-player")
     os.makedirs(cache_dir, exist_ok=True)
     cache_filepath = os.path.join(cache_dir, "http_cache.db")
     http_cache = web_cache.WebCache(
