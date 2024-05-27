@@ -82,6 +82,8 @@ def normalize_tag_case(s: str) -> str:
             new_word = old_word
         elif old_word[0] in "[(-'":
             new_word = old_word
+        elif "/" in old_word:
+            new_word = old_word
         elif old_word.find("'") == 1:
             if (i > 0) and (old_word[0] != "I"):
                 new_word = "'".join((old_word[0].lower(), old_word[2:].capitalize()))
