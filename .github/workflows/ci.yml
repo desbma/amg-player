@@ -12,8 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11"]
-        ffmpeg-version: ["", "2.8", "3.4", "4.1", "4.2", "4.3", "4.4", "5.1", "6.0", "6.1", "master"]
+        python-version: ["3.12"]
+        ffmpeg-version: ["", "2.8", "3.4", "4.1", "4.2", "4.3", "4.4", "5.1", "6.0", "6.1", "7.0", "master"]
 
     steps:
       - uses: actions/checkout@v2
@@ -38,10 +38,6 @@ jobs:
           ./ci/install-ffmpeg ${{matrix.ffmpeg-version}}
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
-          pip install -U pip
-          pip install coveralls
+          pip install -U pip setuptools
           pip install -r requirements.txt
-      - run: TEST_DL_CACHE_DIR=$HOME/.cache/ci/amg-player/test coverage run --source=amg setup.py test
-      - run: coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: TEST_DL_CACHE_DIR=$HOME/.cache/ci/amg-player/test python -m unittest discover -v .

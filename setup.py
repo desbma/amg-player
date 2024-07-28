@@ -4,13 +4,8 @@
 
 import os
 import re
-import sys
 
 from setuptools import find_packages, setup
-
-if sys.hexversion < 0x3070000:
-    print("Python version %s is unsupported, >= 3.7.0 is needed" % (".".join(map(str, sys.version_info[:3]))))
-    exit(1)
 
 with open(os.path.join("amg", "__init__.py"), "rt") as f:
     version_match = re.search('__version__ = "([^"]+)"', f.read())
@@ -46,8 +41,6 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
         "Topic :: Multimedia :: Sound/Audio :: Players",
         "Topic :: Utilities",
     ],

@@ -1,10 +1,7 @@
 # Angry Metal Guy Player
 
 [![Latest version](https://img.shields.io/pypi/v/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
-[![Tests status](https://github.com/desbma/amg-player/actions/workflows/ci.yml/badge.svg)](https://github.com/desbma/amg-player/actions)
-[![Coverage](https://img.shields.io/coveralls/desbma/amg-player/master.svg?style=flat)](https://coveralls.io/github/desbma/amg-player?branch=master)
-[![Lines of code](https://tokei.rs/b1/github/desbma/amg-player)](https://github.com/desbma/amg-player)
-[![Supported Python versions](https://img.shields.io/pypi/pyversions/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg-player/)
+[![CI status](https://img.shields.io/github/actions/workflow/status/desbma/amg-player/ci.yml)](https://github.com/desbma/amg-player/actions)
 [![License](https://img.shields.io/github/license/desbma/amg-player.svg?style=flat)](https://pypi.python.org/pypi/amg/)
 
 Angry Metal Guy Player (AMG Player) is a Python multi platform console tool to automatically play or download tracks from [Angry Metal Guy](https://www.angrymetalguy.com/) reviews.
@@ -34,8 +31,8 @@ Playing a track:
 
 ## Installation
 
-Angry Metal Guy Player requires [Python](https://www.python.org/downloads/) >= 3.7.
-Some features are only available if [FFmpeg](https://ffmpeg.org/download.html) >= 2.8 is installed.
+Angry Metal Guy Player requires a recent [Python](https://www.python.org/downloads/) version.
+Some features are only available if [FFmpeg](https://ffmpeg.org/download.html) is installed.
 
 ### From PyPI (with PIP)
 
