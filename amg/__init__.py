@@ -62,7 +62,7 @@ REVIEW_URL = ROOT_URL  # f"{ROOT_URL}category/reviews/"
 LAST_PLAYED_EXPIRATION_DAYS = 365
 HTML_PARSER = lxml.etree.HTMLParser()
 REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector(
-    "article.category-review, " "article.category-reviews, " "article[class*=tag-things-you-might-have-missed-]"
+    "article.category-review, article.category-reviews, article[class*=tag-things-you-might-have-missed-]"
 )
 REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
@@ -504,7 +504,7 @@ def download_audio(
             except Exception as e:
                 # raise
                 logging.getLogger().warning(
-                    f"Failed to add tags to file {track_filepath!r}: " f"{e.__class__.__qualname__} {e}"
+                    f"Failed to add tags to file {track_filepath!r}: {e.__class__.__qualname__} {e}"
                 )
 
         # RG
