@@ -295,7 +295,11 @@ def download_and_merge(
     # fetch audio
     with ytdl_tqdm.ytdl_tqdm(leave=False, mininterval=0.05, miniters=1) as ytdl_progress:
         # https://github.com/ytdl-org/youtube-dl/blob/b8b622fbebb158db95edb05a8cc248668194b430/youtube_dl/YoutubeDL.py#L143-L323
-        ydl_opts = {"outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s"), "proxy": PROXY["https"]}
+        ydl_opts = {
+            "outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s"),
+            "proxy": PROXY["https"],
+            "cookiesfrombrowser": ("firefox",),
+        }
         if sys.stderr.isatty() and logging.getLogger().isEnabledFor(logging.INFO):
             ytdl_progress.setup_ytdl(ydl_opts)
 
