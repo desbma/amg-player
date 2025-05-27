@@ -191,7 +191,8 @@ def get_embedded_track(
                 rn_prefix = "https://www.reverbnation.com/widget_code/"
                 if any(map(iframe_url.startswith, yt_prefixes)):
                     yt_id = urllib.parse.urlparse(iframe_url).path.rsplit("/", 1)[-1]
-                    urls = (f"https://www.youtube.com/watch?v={yt_id}",)
+                    if yt_id != "undefined":
+                        urls = (f"https://www.youtube.com/watch?v={yt_id}",)
                 elif any(map(iframe_url.startswith, bc_prefixes)):
                     iframe_page = fetch_page(iframe_url, http_cache=http_cache)
                     js = BANDCAMP_JS_SELECTOR(iframe_page)[0]
