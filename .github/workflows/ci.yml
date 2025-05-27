@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.12", "3.13"]
-        ffmpeg-version: ["", "2.8", "3.4", "4.2", "4.3", "4.4", "5.1", "6.1", "7.0", "7.1", "master"]
+        ffmpeg-version: ["", "6.1", "7.0", "7.1", "master"]
 
     steps:
       - uses: actions/checkout@v4
@@ -34,7 +34,7 @@ jobs:
           key: testfiles-${{hashFiles('tests/test_tag.py')}}
       - if: ${{matrix.ffmpeg-version}}
         run: |
-          sudo apt-get install yasm
+          sudo apt-get install yasm nasm
           ./ci/install-ffmpeg ${{matrix.ffmpeg-version}}
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: |
