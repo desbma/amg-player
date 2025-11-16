@@ -12,7 +12,7 @@ def ltrunc(s: str, length: int) -> str:
     assert length > 0
     if len(s) <= length:
         return s
-    return f"…{s[-(length - 1):]}"
+    return f"…{s[-(length - 1) :]}"
 
 
 class ytdl_tqdm:

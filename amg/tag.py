@@ -314,8 +314,7 @@ class TitleNormalizer:
                     new_title = cleaner.cleanup(cur_title, *args)
                     if new_title and (new_title != cur_title):
                         logging.getLogger().debug(
-                            f"{cleaner.__class__.__name__} changed title tag: "
-                            f"{repr(cur_title)} -> {repr(new_title)}"
+                            f"{cleaner.__class__.__name__} changed title tag: {repr(cur_title)} -> {repr(new_title)}"
                         )
                         # update string and remove this cleaner to avoid calling it several times
                         cur_title = new_title
@@ -535,7 +534,7 @@ class RegexCleaner(TitleCleanerBase):
         rstripped = title.rstrip(string.punctuation)
         match = self.regex.search(rstripped)
         if match:
-            title = f"{self.rclean(rstripped[:match.start(0)])} {self.lclean(rstripped[match.end(0):])}".rstrip()
+            title = f"{self.rclean(rstripped[: match.start(0)])} {self.lclean(rstripped[match.end(0) :])}".rstrip()
         return title
 
 
