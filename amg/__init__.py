@@ -751,22 +751,19 @@ def cl_main():  # noqa: C901
                         input_loop = False
                         track_loop = False
             else:
-                try:
-                    if (
-                        (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO))
-                        and (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)
-                    ) or (args.mode is PlayerMode.DISCOVER_DOWNLOAD):
-                        download_audio(
-                            review,
-                            date_published,
-                            track_urls,
-                            max_cover_size=args.max_embedded_cover_size,
-                            record_label=record_label,
-                        )
-                    else:
-                        play(review, track_urls, merge_with_picture=audio_only)
-                except yt_dlp.utils.DownloadError:
-                    pass
+                if (
+                    (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO))
+                    and (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)
+                ) or (args.mode is PlayerMode.DISCOVER_DOWNLOAD):
+                    download_audio(
+                        review,
+                        date_published,
+                        track_urls,
+                        max_cover_size=args.max_embedded_cover_size,
+                        record_label=record_label,
+                    )
+                else:
+                    play(review, track_urls, merge_with_picture=audio_only)
                 known_reviews.setLastPlayed(review.url)
 
         if track_loop and (args.mode is PlayerMode.MANUAL):
