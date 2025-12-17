@@ -705,13 +705,17 @@ def cl_main():  # noqa: C901
         date_published = REVIEW_HEADER_DATE_REGEX.search(date_published).group(1)
         with date_locale_neutral():
             date_published = datetime.datetime.strptime(date_published, "%B %d, %Y").date()
-        footer_elem = REVIEW_FOOTER_SELECTOR(review_page)[-1]
-        footer_str = lxml.etree.tostring(footer_elem, encoding="unicode", method="text").strip()
-        record_label_match = RECORD_LABEL_REGEX.search(footer_str)
-        if record_label_match is not None:
-            record_label = record_label_match.group(1)
-        else:
+        try:
+            footer_elem = REVIEW_FOOTER_SELECTOR(review_page)[-1]
+        except IndexError:
             record_label = None
+        else:
+            footer_str = lxml.etree.tostring(footer_elem, encoding="unicode", method="text").strip()
+            record_label_match = RECORD_LABEL_REGEX.search(footer_str)
+            if record_label_match is not None:
+                record_label = record_label_match.group(1)
+            else:
+                record_label = None
         track_urls, audio_only = get_embedded_track(review_page, http_cache)
         if track_urls is None:
             logging.getLogger().warning("Unable to extract embedded track")
