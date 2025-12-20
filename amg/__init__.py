@@ -528,6 +528,11 @@ def download_audio(
             else:
                 filename, ext = os.path.splitext(dest_filename)
                 filename = ". ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
+                if len(filename) > 128:
+                    # actual limit (PATH_MAX) is much higher on Linux
+                    # but we keep a large margin for directory path, extension
+                    # and potential lower limits due to filesystem
+                    filename = f"{filename[:128]}-"
                 dest_filename = "".join((filename, ext))
             dest_dir = os.path.join(os.getcwd(), date_published.strftime("%Y-%m"))
             os.makedirs(dest_dir, exist_ok=True)
