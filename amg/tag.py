@@ -239,6 +239,7 @@ class TitleNormalizer:
                 "hd",
                 "official",
                 "offical",
+                "oficial",
                 "pre-listening",
                 "pre-order now",
                 "pre-orders available",
@@ -256,9 +257,14 @@ class TitleNormalizer:
         year = datetime.datetime.today().year
         for y in range(2016, year + 1):
             expressions.add(str(y))
-            for month_name, month_abbr in zip(MONTH_NAMES, MONTH_NAMES_ABBR):
+            for month_name, month_abbr, month_roman in zip(
+                MONTH_NAMES,
+                MONTH_NAMES_ABBR,
+                ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"),
+            ):
                 expressions.add(f"{month_name} {y}")
                 expressions.add(f"{month_abbr} {y}")
+                expressions.add(f"{y} {month_roman}")
         expressions_list = list(sorted(expressions, key=len, reverse=True))
         expressions_list.remove("song")
         suffix_cleaner = SimpleSuffixCleaner()
