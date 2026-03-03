@@ -25,4 +25,4 @@ git tag -m "Version ${VERSION}" "${VERSION}"
 # release
 rm -Rf dist
 uv build
-uv publish
+uv publish --username __token__
