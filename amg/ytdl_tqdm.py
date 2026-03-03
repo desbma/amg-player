@@ -51,6 +51,8 @@ class ytdl_tqdm:
         """Report youtube-dl progress (callback)."""
         if ytdl_state["status"] != "downloading":
             return
+        if self.tqdm is None:
+            return
 
         # get current state
         downloaded_bytes = ytdl_state["downloaded_bytes"]

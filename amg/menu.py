@@ -26,7 +26,7 @@ class AmgMenu(cursesmenu.CursesMenu):
         )
         if selected_idx is not None:
             self.current_option = selected_idx
-        review_strings = __class__.reviewsToStrings(reviews, known_reviews, http_cache)
+        review_strings = self.reviewsToStrings(reviews, known_reviews, http_cache)
         for index, (review, review_string) in enumerate(zip(reviews, review_strings)):
             self.append_item(ReviewItem(review, review_string, index, self))
 
@@ -36,14 +36,14 @@ class AmgMenu(cursesmenu.CursesMenu):
 
         See cursesmenu.CursesMenu.process_user_input
         """
-        self.user_action = __class__.UserAction.DEFAULT
+        self.user_action = self.UserAction.DEFAULT
         c = super().process_user_input()
         if c in frozenset(map(ord, "rR")):
-            self.user_action = __class__.UserAction.OPEN_REVIEW
+            self.user_action = self.UserAction.OPEN_REVIEW
             self.select()
         elif c in frozenset(map(ord, "dD")):
             # select last item (exit item)
-            self.user_action = __class__.UserAction.DOWNLOAD_AUDIO
+            self.user_action = self.UserAction.DOWNLOAD_AUDIO
             self.select()
         elif c in frozenset(map(ord, "qQ")):
             # select last item (exit item)
@@ -108,6 +108,7 @@ class ReviewItem(cursesmenu.items.SelectionItem):
 
     def action(self):
         """React to user action."""
+        assert self.menu is not None
         if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
             webbrowser.open_new_tab(self.review.url)
             self.should_exit = False

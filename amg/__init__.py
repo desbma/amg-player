@@ -32,8 +32,8 @@ import urllib.parse
 import webbrowser
 from typing import Callable, Iterable, Optional, Sequence, Tuple
 
-import lxml.cssselect
-import lxml.etree
+from lxml import cssselect as lxml_cssselect
+from lxml import etree as lxml_etree
 import PIL.Image
 import PIL.ImageFilter
 import platformdirs
@@ -60,18 +60,18 @@ ReviewMetadata = collections.namedtuple(
 ROOT_URL = "https://www.angrymetalguy.com/"
 REVIEW_URL = ROOT_URL  # f"{ROOT_URL}category/reviews/"
 LAST_PLAYED_EXPIRATION_DAYS = 365
-HTML_PARSER = lxml.etree.HTMLParser()
-REVIEW_BLOCK_SELECTOR = lxml.cssselect.CSSSelector(
+HTML_PARSER = lxml_etree.HTMLParser()
+REVIEW_BLOCK_SELECTOR = lxml_cssselect.CSSSelector(
     "article.category-review, article.category-reviews, article[class*=tag-things-you-might-have-missed-]"
 )
-REVIEW_LINK_SELECTOR = lxml.cssselect.CSSSelector(".entry-title a")
-REVIEW_COVER_SELECTOR = lxml.cssselect.CSSSelector("img.wp-post-image")
-REVIEW_HEADER_SELECTOR = lxml.cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
+REVIEW_LINK_SELECTOR = lxml_cssselect.CSSSelector(".entry-title a")
+REVIEW_COVER_SELECTOR = lxml_cssselect.CSSSelector("img.wp-post-image")
+REVIEW_HEADER_SELECTOR = lxml_cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
 REVIEW_HEADER_DATE_REGEX = re.compile(r" on ([A-Z][a-z]+ \d+, [0-9]{4})")
-PLAYER_IFRAME_SELECTOR = lxml.cssselect.CSSSelector("article.post iframe")
-BANDCAMP_JS_SELECTOR = lxml.cssselect.CSSSelector("html > head > script[data-player-data]")
-REVERBNATION_SCRIPT_SELECTOR = lxml.cssselect.CSSSelector("script")
-REVIEW_FOOTER_SELECTOR = lxml.cssselect.CSSSelector("main.site-main article div.entry-content.clear > p")
+PLAYER_IFRAME_SELECTOR = lxml_cssselect.CSSSelector("article.post iframe")
+BANDCAMP_JS_SELECTOR = lxml_cssselect.CSSSelector("html > head > script[data-player-data]")
+REVERBNATION_SCRIPT_SELECTOR = lxml_cssselect.CSSSelector("script")
+REVIEW_FOOTER_SELECTOR = lxml_cssselect.CSSSelector("main.site-main article div.entry-content.clear > p")
 RECORD_LABEL_REGEX = re.compile("Label: (.*)")
 IS_TRAVIS = os.getenv("CI") and os.getenv("TRAVIS")
 TCP_TIMEOUT = 30.1 if IS_TRAVIS else 15.1
@@ -93,7 +93,7 @@ def date_locale_neutral():
         locale.setlocale(locale.LC_TIME, loc)
 
 
-def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> lxml.etree.XML:
+def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> lxml_etree.XML:
     """Fetch page & parse it with LXML."""
     if (http_cache is not None) and (url in http_cache):
         logging.getLogger().info(f"Got data for URL {url!r} from cache")
@@ -102,7 +102,7 @@ def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> 
         page = fetch_ressource(url)
         if http_cache is not None:
             http_cache[url] = page
-    return lxml.etree.XML(page.decode("utf-8"), HTML_PARSER)
+    return lxml_etree.XML(page.decode("utf-8"), HTML_PARSER)
 
 
 def fetch_ressource(url: str) -> bytes:
@@ -114,7 +114,7 @@ def fetch_ressource(url: str) -> bytes:
     return response.content
 
 
-def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
+def parse_review_block(review: lxml_etree.Element) -> Optional[ReviewMetadata]:
     """Parse review block from main page and return a ReviewMetadata object."""
     tags = tuple(
         t.split("-", 1)[1]
@@ -123,7 +123,7 @@ def parse_review_block(review: lxml.etree.Element) -> Optional[ReviewMetadata]:
     )
     review_link = REVIEW_LINK_SELECTOR(review)[0]
     url = review_link.get("href")
-    title = lxml.etree.tostring(review_link, encoding="unicode", method="text").strip()
+    title = lxml_etree.tostring(review_link, encoding="unicode", method="text").strip()
     expected_suffix = " Review"
     expected_prefix = "AMG’s Unsigned Band Rodeo: "
     if title.endswith(expected_suffix):
@@ -172,7 +172,7 @@ def get_reviews() -> Iterable[ReviewMetadata]:
 
 
 def get_embedded_track(
-    page: lxml.etree.Element, http_cache: web_cache.WebCache
+    page: lxml_etree.Element, http_cache: web_cache.WebCache
 ) -> Tuple[Optional[Sequence[str]], bool]:
     """Parse page and extract embedded track."""
     urls: Optional[Sequence[str]] = None
@@ -260,24 +260,24 @@ class KnownReviews:
             e = list(self.data[url])
         except KeyError:
             e = []
-        if len(e) < self.__class__.DataIndex.DATA_INDEX_COUNT:
-            e.extend(None for _ in range(self.__class__.DataIndex.DATA_INDEX_COUNT - len(e)))
+        if len(e) < self.DataIndex.DATA_INDEX_COUNT:
+            e.extend(None for _ in range(self.DataIndex.DATA_INDEX_COUNT - len(e)))
         try:
-            e[self.__class__.DataIndex.PLAY_COUNT] += 1
+            e[self.DataIndex.PLAY_COUNT] += 1
         except TypeError:
             # be compatible with when play count was not stored
-            e[self.__class__.DataIndex.PLAY_COUNT] = 2 if e[self.__class__.DataIndex.LAST_PLAYED] is not None else 1
-        e[self.__class__.DataIndex.LAST_PLAYED] = datetime.datetime.now()
+            e[self.DataIndex.PLAY_COUNT] = 2 if e[self.DataIndex.LAST_PLAYED] is not None else 1
+        e[self.DataIndex.LAST_PLAYED] = datetime.datetime.now()
         self.data[url] = tuple(e)
 
     def getLastPlayed(self, url: str) -> datetime.datetime:
         """Return datetime of last review track playback."""
-        return self.data[url][self.__class__.DataIndex.LAST_PLAYED]
+        return self.data[url][self.DataIndex.LAST_PLAYED]
 
     def getPlayCount(self, url: str) -> int:
         """Return number of time a track has been played."""
         try:
-            return self.data[url][self.__class__.DataIndex.PLAY_COUNT]
+            return self.data[url][self.DataIndex.PLAY_COUNT]
         except IndexError:
             # be compatible with when play count was not stored
             return 1
@@ -320,50 +320,49 @@ def download_and_merge(
     if not audio_filepaths:
         logging.getLogger().error("Download failed")
         return None
-    concat_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".txt")
-    with open(concat_filepath, "wt") as concat_file:
+    # merge
+    merged_filepath = os.path.join(tmp_dir, "merged.mkv")
+    with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".txt", mode="wt") as concat_file:
         for audio_filepath in audio_filepaths:
             concat_file.write(f"file {audio_filepath}\n")
-
-    # merge
-    merged_filepath = tempfile.mktemp(dir=tmp_dir, suffix=".mkv")
-    cmd = (
-        "ffmpeg",
-        "-loglevel",
-        "quiet",
-        "-loop",
-        "1",
-        "-framerate",
-        "0.05",
-        "-i",
-        cover_filepath,
-        "-f",
-        "concat",
-        "-i",
-        concat_filepath,
-        "-map",
-        "0:v",
-        "-map",
-        "1:a",
-        "-filter:v",
-        "scale=trunc(iw/2)*2:trunc(ih/2)*2",
-        "-c:a",
-        "copy",
-        "-c:v",
-        "libx264",
-        "-crf",
-        "18",
-        "-tune:v",
-        "stillimage",
-        "-preset",
-        "ultrafast",
-        "-shortest",
-        "-f",
-        "matroska",
-        merged_filepath,
-    )
-    logging.getLogger().debug(f"Merging Audio and image with command: {cmd_to_string(cmd)}")
-    subprocess.run(cmd, check=True, cwd=tmp_dir)
+        concat_file.flush()
+        cmd = (
+            "ffmpeg",
+            "-loglevel",
+            "quiet",
+            "-loop",
+            "1",
+            "-framerate",
+            "0.05",
+            "-i",
+            cover_filepath,
+            "-f",
+            "concat",
+            "-i",
+            concat_file.name,
+            "-map",
+            "0:v",
+            "-map",
+            "1:a",
+            "-filter:v",
+            "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+            "-c:a",
+            "copy",
+            "-c:v",
+            "libx264",
+            "-crf",
+            "18",
+            "-tune:v",
+            "stillimage",
+            "-preset",
+            "ultrafast",
+            "-shortest",
+            "-f",
+            "matroska",
+            merged_filepath,
+        )
+        logging.getLogger().debug(f"Merging Audio and image with command: {cmd_to_string(cmd)}")
+        subprocess.run(cmd, check=True, cwd=tmp_dir)
 
     return merged_filepath
 
@@ -376,7 +375,7 @@ def backslash_unescape(s: str) -> str:
 
 def download_track(
     review: ReviewMetadata,
-    date_published: datetime.datetime,
+    date_published: datetime.date,
     track_idx: int,
     track_url: str,
     tmp_dir: str,
@@ -424,7 +423,7 @@ def download_track(
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     metadata = ydl.extract_info(track_url)
             except yt_dlp.utils.DownloadError as e:
-                if isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
+                if e.exc_info is not None and isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
                     continue
                 raise
             return {
@@ -436,7 +435,7 @@ def download_track(
 
 def download_audio(
     review: ReviewMetadata,
-    date_published: datetime.datetime,
+    date_published: datetime.date,
     track_urls: Sequence[str],
     *,
     max_cover_size: int,
@@ -480,7 +479,7 @@ def download_audio(
                 logging.getLogger().info("Resizing cover...")
 
                 # resize
-                img.thumbnail((max_cover_size, max_cover_size), PIL.Image.LANCZOS)
+                img.thumbnail((max_cover_size, max_cover_size), PIL.Image.Resampling.LANCZOS)
 
                 # apply unsharp filter to remove resize blur (equivalent to (images/graphics)magick -unsharp
                 # 1.5x1+0.7+0.02)
@@ -698,6 +697,7 @@ def cl_main():  # noqa: C901
             if to_play is None:
                 to_play = filter(lambda x: not known_reviews.isKnownUrl(x.url), reversed(reviews))
         if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD):
+            assert to_play is not None
             try:
                 review = next(to_play)
             except StopIteration:
@@ -706,8 +706,10 @@ def cl_main():  # noqa: C901
         # fetch review & play
         review_page = fetch_page(review.url, http_cache=http_cache)
         header = REVIEW_HEADER_SELECTOR(review_page)[0]
-        date_published = lxml.etree.tostring(header, encoding="unicode", method="text").strip()
-        date_published = REVIEW_HEADER_DATE_REGEX.search(date_published).group(1)
+        date_published = lxml_etree.tostring(header, encoding="unicode", method="text").strip()
+        date_published_match = REVIEW_HEADER_DATE_REGEX.search(date_published)
+        assert date_published_match is not None
+        date_published = date_published_match.group(1)
         with date_locale_neutral():
             date_published = datetime.datetime.strptime(date_published, "%B %d, %Y").date()
         try:
@@ -715,7 +717,7 @@ def cl_main():  # noqa: C901
         except IndexError:
             record_label = None
         else:
-            footer_str = lxml.etree.tostring(footer_elem, encoding="unicode", method="text").strip()
+            footer_str = lxml_etree.tostring(footer_elem, encoding="unicode", method="text").strip()
             record_label_match = RECORD_LABEL_REGEX.search(footer_str)
             if record_label_match is not None:
                 record_label = record_label_match.group(1)

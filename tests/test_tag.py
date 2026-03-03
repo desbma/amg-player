@@ -53,8 +53,8 @@ class TestTag(unittest.TestCase):
     def setUp(self):
         """Set up test case stuff."""
         self.temp_dir = tempfile.TemporaryDirectory()
-        for src_filename in os.listdir(__class__.ref_temp_dir.name):
-            shutil.copy(os.path.join(__class__.ref_temp_dir.name, src_filename), self.temp_dir.name)
+        for src_filename in os.listdir(self.ref_temp_dir.name):
+            shutil.copy(os.path.join(self.ref_temp_dir.name, src_filename), self.temp_dir.name)
         self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
         self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
         self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
