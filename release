@@ -7,13 +7,10 @@ readonly VERSION=${1:-$(date +%Y.%m.%-d.0)}
 
 cd "$(git rev-parse --show-toplevel)"
 
-# update requirements
+# update yt-dlp dependency
 ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
-grep -v yt-dlp requirements.txt > requirements.txt.tmp
-echo "yt-dlp>=$ydl_version" >> requirements.txt.tmp
-sort -u -o requirements.txt.tmp requirements.txt.tmp
-mv requirements.txt{.tmp,}
-git add requirements.txt
+sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$ydl_version\"/" pyproject.toml
+git add pyproject.toml
 
 # update version
 sed -i "s/^\(__version__ = \"\).*\(\"\)/\1$VERSION\2/w /dev/stdout" amg/__init__.py
@@ -27,5 +24,5 @@ git tag -m "Version ${VERSION}" "${VERSION}"
 
 # release
 rm -Rf dist
-python setup.py sdist
-twine upload dist/*.tar.gz
+uv build
+uv publish

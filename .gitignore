@@ -1,4 +1,2 @@
-__pycache__
-/*.egg*
-/build
-/dist
+/.claude/
+/.venv/
