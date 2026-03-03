@@ -764,13 +764,21 @@ def cl_main():  # noqa: C901
                     (args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO))
                     and (action is menu.AmgMenu.UserAction.DOWNLOAD_AUDIO)
                 ) or (args.mode is PlayerMode.DISCOVER_DOWNLOAD):
-                    download_audio(
-                        review,
-                        date_published,
-                        track_urls,
-                        max_cover_size=args.max_embedded_cover_size,
-                        record_label=record_label,
-                    )
+                    try:
+                        download_audio(
+                            review,
+                            date_published,
+                            track_urls,
+                            max_cover_size=args.max_embedded_cover_size,
+                            record_label=record_label,
+                        )
+                    except yt_dlp.DownloadError as e:
+                        if args.mode is PlayerMode.DISCOVER_DOWNLOAD:
+                            logging.getLogger().exception(
+                                f"Failed download {track_urls!r}: {e.__class__.__qualname__} {e}"
+                            )
+                        else:
+                            raise
                 else:
                     play(review, track_urls, merge_with_picture=audio_only)
                 known_reviews.setLastPlayed(review.url)
