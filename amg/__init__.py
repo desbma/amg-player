@@ -30,7 +30,7 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
-from typing import Callable, Iterable, Optional, Sequence, Tuple
+from collections.abc import Iterable, Sequence
 
 from lxml import cssselect as lxml_cssselect
 from lxml import etree as lxml_etree
@@ -42,12 +42,6 @@ import web_cache
 import yt_dlp
 
 from amg import colored_logging, menu, mkstemp_ctx, sanitize, tag, ytdl_tqdm
-
-try:
-    # Python >= 3.8
-    cmd_to_string: Callable[[Sequence[str]], str] = shlex.join
-except AttributeError:
-    cmd_to_string = subprocess.list2cmdline
 
 HAS_JPEGOPTIM = shutil.which("jpegoptim") is not None
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
@@ -93,7 +87,7 @@ def date_locale_neutral():
         locale.setlocale(locale.LC_TIME, loc)
 
 
-def fetch_page(url: str, *, http_cache: Optional[web_cache.WebCache] = None) -> lxml_etree.XML:
+def fetch_page(url: str, *, http_cache: web_cache.WebCache | None = None) -> lxml_etree.XML:
     """Fetch page & parse it with LXML."""
     if (http_cache is not None) and (url in http_cache):
         logging.getLogger().info(f"Got data for URL {url!r} from cache")
@@ -114,7 +108,7 @@ def fetch_ressource(url: str) -> bytes:
     return response.content
 
 
-def parse_review_block(review: lxml_etree.Element) -> Optional[ReviewMetadata]:
+def parse_review_block(review: lxml_etree.Element) -> ReviewMetadata | None:
     """Parse review block from main page and return a ReviewMetadata object."""
     tags = tuple(
         t.split("-", 1)[1]
@@ -150,7 +144,7 @@ def parse_review_block(review: lxml_etree.Element) -> Optional[ReviewMetadata]:
     cover_thumbnail_url = make_absolute_url(review_img.get("src"))
     srcset = review_img.get("srcset")
     if srcset is not None:
-        cover_url: Optional[str] = make_absolute_url(srcset.split(" ")[-2])
+        cover_url: str | None = make_absolute_url(srcset.split(" ")[-2])
     else:
         cover_url = None
     return ReviewMetadata(url, artist, album, cover_thumbnail_url, cover_url, tags)
@@ -171,11 +165,9 @@ def get_reviews() -> Iterable[ReviewMetadata]:
                 previous_review = r
 
 
-def get_embedded_track(
-    page: lxml_etree.Element, http_cache: web_cache.WebCache
-) -> Tuple[Optional[Sequence[str]], bool]:
+def get_embedded_track(page: lxml_etree.Element, http_cache: web_cache.WebCache) -> tuple[Sequence[str] | None, bool]:
     """Parse page and extract embedded track."""
-    urls: Optional[Sequence[str]] = None
+    urls: Sequence[str] | None = None
     audio_only = False
     try:
         try:
@@ -291,7 +283,7 @@ def get_cover_data(review: ReviewMetadata) -> bytes:
 
 def download_and_merge(
     review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str
-) -> Optional[str]:
+) -> str | None:
     """Download track, merge audio & album art, and return merged filepath."""
     # fetch audio
     with ytdl_tqdm.ytdl_tqdm(leave=False, mininterval=0.05, miniters=1) as ytdl_progress:
@@ -361,7 +353,7 @@ def download_and_merge(
             "matroska",
             merged_filepath,
         )
-        logging.getLogger().debug(f"Merging Audio and image with command: {cmd_to_string(cmd)}")
+        logging.getLogger().debug(f"Merging Audio and image with command: {shlex.join(cmd)}")
         subprocess.run(cmd, check=True, cwd=tmp_dir)
 
     return merged_filepath
@@ -439,7 +431,7 @@ def download_audio(
     track_urls: Sequence[str],
     *,
     max_cover_size: int,
-    record_label: Optional[str] = None,
+    record_label: str | None = None,
 ) -> bool:
     """Download audio track(s) to file(s) in current directory, return True if success."""
     with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
@@ -466,7 +458,7 @@ def download_audio(
 
         if not all(map(tag.has_embedded_album_art, track_filepaths)):
             # get cover
-            cover_data: Optional[bytes] = get_cover_data(review)
+            cover_data: bytes | None = get_cover_data(review)
             assert cover_data is not None
 
             # post process cover
@@ -560,17 +552,17 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
                 merged_filepath = download_and_merge(review, track_urls, tmp_dir, cover_filepath)
                 if merged_filepath is None:
                     return None
-                cmd: Tuple[str, ...] = ("mpv", merged_filepath)
-                logging.getLogger().debug(f"Playing with command: {cmd_to_string(cmd)}")
+                cmd: tuple[str, ...] = ("mpv", merged_filepath)
+                logging.getLogger().debug(f"Playing with command: {shlex.join(cmd)}")
                 subprocess.run(cmd, check=True)
 
     else:
         for track_url in track_urls:
             cmd_dl = ("yt-dlp", "-o", "-", track_url)
-            logging.getLogger().debug(f"Downloading with command: {cmd_to_string(cmd_dl)}")
+            logging.getLogger().debug(f"Downloading with command: {shlex.join(cmd_dl)}")
             dl_process = subprocess.Popen(cmd_dl, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
             cmd = ("mpv", "--force-seekable=yes", "-")
-            logging.getLogger().debug(f"Playing with command: {cmd_to_string(cmd)}")
+            logging.getLogger().debug(f"Playing with command: {shlex.join(cmd)}")
             subprocess.run(cmd, check=True, stdin=dl_process.stdout)
 
 

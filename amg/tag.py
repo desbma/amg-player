@@ -12,7 +12,8 @@ import logging
 import operator
 import re
 import string
-from typing import Any, Deque, Dict, List, Optional, Sequence, Tuple
+from typing import Any, Deque
+from collections.abc import Sequence
 
 import magic
 import more_itertools
@@ -39,8 +40,8 @@ class TitleNormalizer:
     what should be a simple title for the song.
     """
 
-    def __init__(self, artist: str, album: str, record_label: Optional[str] = None):  # noqa: C901
-        self.cleaners: List[Tuple[TitleCleanerBase, tuple]] = []
+    def __init__(self, artist: str, album: str, record_label: str | None = None):  # noqa: C901
+        self.cleaners: list[tuple[TitleCleanerBase, tuple]] = []
 
         # TODO separate cleaner from params and copy/reuse cleaners in TitleNormalizer.cleanup
 
@@ -363,7 +364,7 @@ class TitleCleanerBase:
     RCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "!?)-]")
     LCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "(")
 
-    def __init__(self, *, execute_once: bool = False, remove_if_skipped: Optional[bool] = None):
+    def __init__(self, *, execute_once: bool = False, remove_if_skipped: bool | None = None):
         self.execute_once = execute_once
         self.remove_if_skipped = remove_if_skipped if (remove_if_skipped is not None) else execute_once
 
@@ -376,7 +377,7 @@ class TitleCleanerBase:
         return False
 
     @abc.abstractmethod
-    def cleanup(self, title: str, *args: Tuple[Any]) -> str:
+    def cleanup(self, title: str, *args: tuple[Any]) -> str:
         """Cleanup a title string, and return the updated string."""
         pass
 
@@ -405,7 +406,7 @@ class TitleCleanerBase:
         """Normalize string unicode chars and remove useless chars from its left."""
         return unidecode.unidecode_expect_ascii(s.lstrip(string.punctuation)).lstrip(string.punctuation).lower()
 
-    def startslike(self, s: str, pattern: str, *, sep: Optional[str] = None) -> bool:
+    def startslike(self, s: str, pattern: str, *, sep: str | None = None) -> bool:
         """Return True if start of string s is similar to pattern."""
         s = self.lnorm(s)
         pattern = self.rnorm(pattern)
@@ -433,7 +434,7 @@ class FunctionCleaner(TitleCleanerBase):
         assert callable(func)
         self.func = func
 
-    def cleanup(self, title: str, *args: Tuple[Any]) -> str:
+    def cleanup(self, title: str, *args: tuple[Any]) -> str:
         """See TitleCleanerBase.cleanup."""
         return self.func(title)
 
@@ -648,7 +649,7 @@ class PairedCharCleaner(TitleCleanerBase):
         return title
 
 
-def normalize_title_tag(title: str, artist: str, album: str, record_label: Optional[str] = None) -> str:
+def normalize_title_tag(title: str, artist: str, album: str, record_label: str | None = None) -> str:
     """Remove useless prefix and suffix from title tag string."""
     normalizer = TitleNormalizer(artist, album, record_label)
     return normalizer.cleanup(title)
@@ -657,9 +658,9 @@ def normalize_title_tag(title: str, artist: str, album: str, record_label: Optio
 def tag(
     track_filepath: str,
     review,
-    metadata: Dict[str, str],
-    cover_data: Optional[bytes],
-    record_label: Optional[str] = None,
+    metadata: dict[str, str],
+    cover_data: bytes | None,
+    record_label: str | None = None,
 ):
     """Tag an audio file, return tag dict excluding RG/R128 info and album art."""
     logging.getLogger().info(f"Tagging file {track_filepath!r}")

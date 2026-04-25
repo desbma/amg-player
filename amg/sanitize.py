@@ -2,7 +2,6 @@
 
 import itertools
 import string
-from typing import List, Optional, Tuple
 
 import unidecode
 
@@ -48,7 +47,7 @@ def sanitize_for_path(s: str) -> str:
 def normalize_tag_case(s: str) -> str:
     """Normalize case of an audio tag string."""
 
-    def split_sep_char(s: str) -> List[str]:
+    def split_sep_char(s: str) -> list[str]:
         words = [s]
         for split_char in "(-":
             new_words = []
@@ -61,7 +60,7 @@ def normalize_tag_case(s: str) -> str:
             words = new_words
         return words
 
-    def split_words(s: str) -> Tuple[str, ...]:
+    def split_words(s: str) -> tuple[str, ...]:
         return tuple(itertools.chain.from_iterable(split_sep_char(w) for w in s.split()))
 
     def remove_punct(s: str) -> str:
@@ -70,7 +69,7 @@ def normalize_tag_case(s: str) -> str:
     # case heuristic
     old_words = split_words(s)
     new_words = []
-    prev_word: Optional[str] = None
+    prev_word: str | None = None
     roman_letters = frozenset("IVXLCDM")
     punct_followed_all_uppercase = set(".-")
     punct_followed_uppercase = set(string.punctuation)

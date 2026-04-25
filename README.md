@@ -23,10 +23,10 @@ I created this because:
 
 ## Screenshots
 
-Selection screen:  
+Selection screen:
 [![selection image](https://i.imgur.com/Ijrjd0Am.png)](https://i.imgur.com/Ijrjd0A.png)
 
-Playing a track:  
+Playing a track:
 [![playing image](https://i.imgur.com/pXUScj2m.png)](https://i.imgur.com/pXUScj2.png)
 
 ## Installation
