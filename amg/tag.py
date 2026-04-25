@@ -494,12 +494,12 @@ class ArtistCleaner(SimplePrefixCleaner, SimpleSuffixCleaner):
         )
         for s, suffix_only in itertools.zip_longest(("by " + artist,) + artist_variants, (True,), fillvalue=False):
             # detect and remove artist prefix
-            if (not suffix_only) and (not self.prefix_removed) and self.startslike(title, s):
+            if (not suffix_only) and (not self.prefix_removed) and self.startslike(title, s):  # ty: ignore[invalid-argument-type]
                 r = SimplePrefixCleaner.cleanup(self, title, s)
                 self.prefix_removed = True
                 return r
             # detect and remove artist suffix
-            elif (not self.suffix_removed) and self.endslike(title, s):
+            elif (not self.suffix_removed) and self.endslike(title, s):  # ty: ignore[invalid-argument-type]
                 r = SimpleSuffixCleaner.cleanup(self, title, s)
                 self.suffix_removed = True
                 return r

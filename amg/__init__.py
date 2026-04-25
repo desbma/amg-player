@@ -33,7 +33,7 @@ import webbrowser
 from collections.abc import Iterable, Sequence
 
 from lxml import cssselect as lxml_cssselect
-from lxml import etree as lxml_etree
+from lxml import etree as lxml_etree  # ty: ignore[unresolved-import]
 import PIL.Image
 import PIL.ImageFilter
 import platformdirs
@@ -302,7 +302,7 @@ def download_and_merge(
         except yt_dlp.utils.DownloadError as e:
             msg = f"Download error: {e}"
             if ytdl_progress:
-                ytdl_progress.tqdm.write(msg)
+                ytdl_progress.tqdm.write(msg)  # ty: ignore[unresolved-attribute]
             else:
                 # already logged
                 # logging.getLogger().warning(msg)
@@ -407,7 +407,7 @@ def download_track(
                 f"(attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
             )
             if ytdl_progress:
-                ytdl_progress.tqdm.write(msg)
+                ytdl_progress.tqdm.write(msg)  # ty: ignore[unresolved-attribute]
             else:
                 logging.getLogger().info(msg)
 
