@@ -7,6 +7,7 @@ import shutil
 import tempfile
 import unittest
 import urllib.parse
+from pathlib import Path, PurePosixPath
 
 import mutagen
 
@@ -18,8 +19,8 @@ def download(url, filepath):
     cache_dir = os.getenv("TEST_DL_CACHE_DIR")
     if cache_dir is not None:
         os.makedirs(cache_dir, exist_ok=True)
-        cache_filepath = os.path.join(cache_dir, os.path.basename(urllib.parse.urlsplit(url).path))
-        if os.path.isfile(cache_filepath):
+        cache_filepath = Path(cache_dir) / PurePosixPath(urllib.parse.urlsplit(url).path).name
+        if cache_filepath.is_file():
             shutil.copyfile(cache_filepath, filepath)
             return
     data = amg.fetch_ressource(url)
@@ -36,13 +37,13 @@ class TestTag(unittest.TestCase):
     def setUpClass(cls):
         """Set up test suite stuff."""
         cls.ref_temp_dir = tempfile.TemporaryDirectory()
-        vorbis_filepath = os.path.join(cls.ref_temp_dir.name, "f.ogg")
+        vorbis_filepath = Path(cls.ref_temp_dir.name) / "f.ogg"
         download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", vorbis_filepath)
-        opus_filepath = os.path.join(cls.ref_temp_dir.name, "f.opus")
+        opus_filepath = Path(cls.ref_temp_dir.name) / "f.opus"
         download("https://www.dropbox.com/s/xlp1goezxovlgl4/ehren-paper_lights-64.opus?dl=1", opus_filepath)
-        mp3_filepath = os.path.join(cls.ref_temp_dir.name, "f.mp3")
+        mp3_filepath = Path(cls.ref_temp_dir.name) / "f.mp3"
         download("https://www.dropbox.com/s/mtac0y8azs5hqxo/Shuffle%2520for%2520K.M.mp3?dl=1", mp3_filepath)
-        m4a_filepath = os.path.join(cls.ref_temp_dir.name, "f.m4a")
+        m4a_filepath = Path(cls.ref_temp_dir.name) / "f.m4a"
         download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a", m4a_filepath)
 
     @classmethod
@@ -53,15 +54,15 @@ class TestTag(unittest.TestCase):
     def setUp(self):
         """Set up test case stuff."""
         self.temp_dir = tempfile.TemporaryDirectory()
-        for src_filename in os.listdir(self.ref_temp_dir.name):
-            shutil.copy(os.path.join(self.ref_temp_dir.name, src_filename), self.temp_dir.name)
-        self.vorbis_filepath = os.path.join(self.temp_dir.name, "f.ogg")
-        self.opus_filepath = os.path.join(self.temp_dir.name, "f.opus")
-        self.mp3_filepath = os.path.join(self.temp_dir.name, "f.mp3")
+        for src_path in Path(self.ref_temp_dir.name).iterdir():
+            shutil.copy(src_path, self.temp_dir.name)
+        self.vorbis_filepath = Path(self.temp_dir.name) / "f.ogg"
+        self.opus_filepath = Path(self.temp_dir.name) / "f.opus"
+        self.mp3_filepath = Path(self.temp_dir.name) / "f.mp3"
         mf = mutagen.File(self.mp3_filepath)
         mf.tags.delall("APIC")
         mf.save()
-        self.m4a_filepath = os.path.join(self.temp_dir.name, "f.m4a")
+        self.m4a_filepath = Path(self.temp_dir.name) / "f.m4a"
         mf = mutagen.File(self.m4a_filepath)
         del mf["covr"]
         mf.save()
@@ -72,7 +73,7 @@ class TestTag(unittest.TestCase):
 
     def test_normalize_title_tag(self):
         """Test title tag normalization."""
-        json_filepath = os.path.join(os.path.dirname(__file__), "normalize_title_tag.json")
+        json_filepath = Path(__file__).parent / "normalize_title_tag.json"
         with open(json_filepath, "rt") as json_file:
             for test_data in json.load(json_file):
                 source = test_data["source"]

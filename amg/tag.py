@@ -12,8 +12,9 @@ import logging
 import operator
 import re
 import string
-from typing import Any, Deque
 from collections.abc import Sequence
+from pathlib import Path
+from typing import Any, Deque
 
 import magic
 import more_itertools
@@ -656,7 +657,7 @@ def normalize_title_tag(title: str, artist: str, album: str, record_label: str |
 
 
 def tag(
-    track_filepath: str,
+    track_filepath: str | Path,
     review,
     metadata: dict[str, str],
     cover_data: bytes | None,
@@ -693,7 +694,7 @@ def tag(
     return tags
 
 
-def has_embedded_album_art(filepath: str) -> bool:
+def has_embedded_album_art(filepath: str | Path) -> bool:
     """Return True if file already has an embedded album art, False instead."""
     mf = mutagen.File(filepath)
     if isinstance(mf, mutagen.ogg.OggFileType):

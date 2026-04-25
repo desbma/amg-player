@@ -31,6 +31,7 @@ import threading
 import urllib.parse
 import webbrowser
 from collections.abc import Iterable, Sequence
+from pathlib import Path
 
 from lxml import cssselect as lxml_cssselect
 from lxml import etree as lxml_etree  # ty: ignore[unresolved-import]
@@ -233,7 +234,7 @@ class KnownReviews:
     def __init__(self):
         data_dir = platformdirs.user_data_dir("amg-player")
         os.makedirs(data_dir, exist_ok=True)
-        filepath = os.path.join(data_dir, "played.dat")
+        filepath = Path(data_dir) / "played.dat"
         self.data = shelve.open(filepath, protocol=3)
         # cleanup old entries
         now = datetime.datetime.now()
@@ -292,7 +293,7 @@ def download_and_merge(
     with ytdl_tqdm.ytdl_tqdm(leave=False, mininterval=0.05, miniters=1) as ytdl_progress:
         # https://github.com/ytdl-org/youtube-dl/blob/b8b622fbebb158db95edb05a8cc248668194b430/youtube_dl/YoutubeDL.py#L143-L323
         ydl_opts = {
-            "outtmpl": os.path.join(tmp_dir, r"%(autonumber)s.%(ext)s"),
+            "outtmpl": str(Path(tmp_dir) / r"%(autonumber)s.%(ext)s"),
             "proxy": PROXY["https"],
             "cookiesfrombrowser": ("firefox",),
         }
@@ -316,7 +317,7 @@ def download_and_merge(
         logging.getLogger().error("Download failed")
         return None
     # merge
-    merged_filepath = os.path.join(tmp_dir, "merged.mkv")
+    merged_filepath = str(Path(tmp_dir) / "merged.mkv")
     with tempfile.NamedTemporaryFile(dir=tmp_dir, suffix=".txt", mode="wt") as concat_file:
         for audio_filepath in audio_filepaths:
             concat_file.write(f"file {audio_filepath}\n")
@@ -386,7 +387,7 @@ def download_track(
             r"%(ext)s"
         )
         ydl_opts = {
-            "outtmpl": os.path.join(tmp_dir, filename_template),
+            "outtmpl": str(Path(tmp_dir) / filename_template),
             "format": "opus/vorbis/bestaudio",
             "postprocessors": [{"key": "FFmpegExtractAudio"}],
             "proxy": PROXY[urllib.parse.urlsplit(track_url).scheme],
@@ -454,7 +455,7 @@ def download_audio(
             for future in futures:
                 tracks_metadata.append(future.result())
 
-        track_filepaths = tuple(sorted(map(lambda x: os.path.join(tmp_dir, x), os.listdir(tmp_dir))))
+        track_filepaths = tuple(sorted(str(p) for p in Path(tmp_dir).iterdir()))
         if not track_filepaths:
             logging.getLogger().error("Download failed")
             return False
@@ -513,14 +514,15 @@ def download_audio(
         cur_umask = os.umask(0)
         os.umask(cur_umask)
         for track_filepath in track_filepaths:
-            dest_filename = os.path.basename(track_filepath)
+            dest_filename = Path(track_filepath).name
             # add title tag in filename if available
             try:
                 file_tags = files_tags[track_filepath]
             except KeyError:
                 pass
             else:
-                filename, ext = os.path.splitext(dest_filename)
+                p = Path(dest_filename)
+                filename, ext = p.stem, p.suffix
                 filename = ". ".join((filename, pathvalidate.sanitize_filename(file_tags["title"][-1])))
                 if len(filename) > 128:
                     # actual limit (PATH_MAX) is much higher on Linux
@@ -528,9 +530,9 @@ def download_audio(
                     # and potential lower limits due to filesystem
                     filename = f"{filename[:128]}-"
                 dest_filename = "".join((filename, ext))
-            dest_dir = os.path.join(os.getcwd(), date_published.strftime("%Y-%m"))
+            dest_dir = Path.cwd() / date_published.strftime("%Y-%m")
             os.makedirs(dest_dir, exist_ok=True)
-            dest_filepath = os.path.join(dest_dir, dest_filename)
+            dest_filepath = dest_dir / dest_filename
             logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
             shutil.move(track_filepath, dest_filepath)
             # restore sane perms fucked up by yt-dlp
@@ -653,7 +655,7 @@ def cl_main():  # noqa: C901
     # http cache
     cache_dir = platformdirs.user_cache_dir("amg-player")
     os.makedirs(cache_dir, exist_ok=True)
-    cache_filepath = os.path.join(cache_dir, "http_cache.db")
+    cache_filepath = Path(cache_dir) / "http_cache.db"
     http_cache = web_cache.WebCache(
         cache_filepath,
         "reviews",
