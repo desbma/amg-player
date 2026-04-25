@@ -41,7 +41,10 @@ import requests
 import web_cache
 import yt_dlp
 
-from amg import colored_logging, menu, mkstemp_ctx, sanitize, tag, ytdl_tqdm
+import colorlog
+import pathvalidate
+
+from amg import menu, tag, ytdl_tqdm
 
 HAS_JPEGOPTIM = shutil.which("jpegoptim") is not None
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
@@ -377,8 +380,8 @@ def download_track(
     with contextlib.ExitStack() as cm:
         filename_template = (
             f"{date_published.strftime('%Y%m%d')}. "
-            f"{sanitize.sanitize_for_path(review.artist.replace(os.sep, '_'))} - "
-            f"{sanitize.sanitize_for_path(review.album.replace(os.sep, '_'))} - "
+            f"{pathvalidate.sanitize_filename(review.artist)} - "
+            f"{pathvalidate.sanitize_filename(review.album)} - "
             f"{track_idx + 1:02d}."
             r"%(ext)s"
         )
@@ -518,7 +521,7 @@ def download_audio(
                 pass
             else:
                 filename, ext = os.path.splitext(dest_filename)
-                filename = ". ".join((filename, sanitize.sanitize_for_path(file_tags["title"][-1])))
+                filename = ". ".join((filename, pathvalidate.sanitize_filename(file_tags["title"][-1])))
                 if len(filename) > 128:
                     # actual limit (PATH_MAX) is much higher on Linux
                     # but we keep a large margin for directory path, extension
@@ -543,10 +546,11 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
     # TODO support other players (vlc, avplay, ffplay...)
     merge_with_picture = merge_with_picture and HAS_FFMPEG
     if merge_with_picture:
-        with mkstemp_ctx.mkstemp(prefix="amg_") as cover_filepath:
+        with tempfile.NamedTemporaryFile(prefix="amg_", delete_on_close=False) as cover_file:
             cover_data = get_cover_data(review)
-            with open(cover_filepath, "wb") as f:
-                f.write(cover_data)
+            cover_file.write(cover_data)
+            cover_file.close()
+            cover_filepath = cover_file.name
 
             with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
                 merged_filepath = download_and_merge(review, track_urls, tmp_dir, cover_filepath)
@@ -628,9 +632,9 @@ def cl_main():  # noqa: C901
     logging.getLogger("urllib3").setLevel(logging.ERROR)
     logging.getLogger("PIL").setLevel(logging.ERROR)
     if logging.getLogger().isEnabledFor(logging.DEBUG):
-        logging_formatter = colored_logging.ColoredFormatter(fmt="%(threadName)s: %(message)s")
+        logging_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s%(threadName)s: %(message)s")
     else:
-        logging_formatter = colored_logging.ColoredFormatter(fmt="%(message)s")
+        logging_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s%(message)s")
     logging_handler = logging.StreamHandler()
     logging_handler.setFormatter(logging_formatter)
     logger.addHandler(logging_handler)

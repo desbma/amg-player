@@ -3,9 +3,6 @@
 import itertools
 import string
 
-import unidecode
-
-VALID_PATH_CHARS = frozenset(f"-_.()!#$%%&'@^{{}}~ {string.ascii_letters}{string.digits}")
 TAG_LOWERCASE_WORDS = frozenset(
     (
         "a",
@@ -33,15 +30,6 @@ TAG_LOWERCASE_WORDS = frozenset(
         "vs",
     )
 )
-
-
-def sanitize_for_path(s: str) -> str:
-    """Sanitize a string to be FAT/NTFS friendly when used in file path."""
-    s = s.translate(str.maketrans("/\\|*", "---x"))
-    s = "".join(c for c in unidecode.unidecode_expect_ascii(s) if c in VALID_PATH_CHARS)
-    s = s.strip()
-    s = s.rstrip(".")  # this if for FAT on Android
-    return s
 
 
 def normalize_tag_case(s: str) -> str:
