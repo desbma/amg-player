@@ -17,6 +17,13 @@ import amg
 
 NORMALIZE_TITLE_TAG_TIMEOUT_S = 1.0
 
+# Some CDNs (e.g. Wikimedia) reject the default project User-Agent with HTTP 429.
+# Override it for tests only with a generic browser User-Agent so fixture downloads succeed.
+BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+setattr(amg, "USER_AGENT", BROWSER_USER_AGENT)
+
 
 def normalize_title_tag_timeout_handler(_signum: int, _frame: types.FrameType | None) -> None:
     """Raise TimeoutError when the per-case alarm fires."""
