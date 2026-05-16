@@ -4,7 +4,9 @@ import base64
 import json
 import os
 import shutil
+import signal
 import tempfile
+import types
 import unittest
 import urllib.parse
 from pathlib import Path, PurePosixPath
@@ -12,6 +14,13 @@ from pathlib import Path, PurePosixPath
 import mutagen
 
 import amg
+
+NORMALIZE_TITLE_TAG_TIMEOUT_S = 1.0
+
+
+def normalize_title_tag_timeout_handler(_signum: int, _frame: types.FrameType | None) -> None:
+    """Raise TimeoutError when the per-case alarm fires."""
+    raise TimeoutError(f"normalize_title_tag exceeded {NORMALIZE_TITLE_TAG_TIMEOUT_S}s")
 
 
 def download(url, filepath):
@@ -75,14 +84,25 @@ class TestTag(unittest.TestCase):
         """Test title tag normalization."""
         json_filepath = Path(__file__).parent / "normalize_title_tag.json"
         with open(json_filepath, "rt") as json_file:
-            for test_data in json.load(json_file):
+            cases = json.load(json_file)
+        previous_handler = signal.signal(signal.SIGALRM, normalize_title_tag_timeout_handler)
+        try:
+            for test_data in cases:
                 source = test_data["source"]
                 artist = test_data["artist"]
                 album = test_data["album"]
                 record_label = test_data.get("record_label")
                 expected_result = test_data["result"]
                 with self.subTest(source=source, expected_result=expected_result, artist=artist, album=album):
-                    self.assertEqual(amg.tag.normalize_title_tag(source, artist, album, record_label), expected_result)
+                    signal.setitimer(signal.ITIMER_REAL, NORMALIZE_TITLE_TAG_TIMEOUT_S)
+                    try:
+                        self.assertEqual(
+                            amg.tag.normalize_title_tag(source, artist, album, record_label), expected_result
+                        )
+                    finally:
+                        signal.setitimer(signal.ITIMER_REAL, 0)
+        finally:
+            signal.signal(signal.SIGALRM, previous_handler)
 
     def test_tag(self):
         """Test tagging for various formats."""

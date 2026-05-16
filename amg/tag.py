@@ -232,10 +232,19 @@ def build_pipeline(artist: str, album: str, record_label: str | None) -> list[Cl
     if record_label is not None:
         cleaners.append(simple_suffix_cleaner(record_label))
     # detect and remove '- xxx metal' suffix
-    for genre in metal_genres + composed_genres + base_genres:
+    for genre in metal_genres + composed_genres:
         cleaners.append(
             regex_suffix_cleaner(
-                r"[|\(\[/\] -]+(?:[0-9a-z/-\\,]+[ ]*)*" + genre + "( song)?$",
+                r"[|\(\[/\] -]+[0-9a-z/-\\, ]*" + genre + "( song)?$",
+                suffixes=(genre, f"{genre} song"),
+            )
+        )
+    # base genres are also common english words, so require a non-space leading separator to avoid stripping them
+    # when they appear as the final word of an actual title (e.g. "Crust" in "Earth's Crust")
+    for genre in base_genres:
+        cleaners.append(
+            regex_suffix_cleaner(
+                r"[ ]*[|\(\[/\]-][|\(\[/\] -]*[0-9a-z/-\\, ]*" + genre + "( song)?$",
                 suffixes=(genre, f"{genre} song"),
             )
         )
