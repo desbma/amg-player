@@ -38,7 +38,7 @@ dependencies = [
     "tqdm>=4.67.3",
     "unidecode>=1.4.0",
     "web_cache>=1.1.0",
-    "yt-dlp>=2026.3.17",
+    "yt-dlp>= 2026.03.17",
 ]
 
 [project.scripts]
