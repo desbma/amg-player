@@ -1,26 +1,31 @@
-#!/bin/bash -eu
+#!/bin/bash -eux
 
 set -o pipefail
 
-readonly VERSION=${1:-$(date +%Y.%m.%-d.0)}
+readonly VERSION="${1:-$(date +%Y.%m.%-d.0)}"
 
 
-cd "$(git rev-parse --show-toplevel)"
+cd "$(jj root)"
+
+if jj show --stat | tail -n -1 | grep -q '^0 files changed'
+then
+  jj describe -m "Version ${VERSION}"
+else
+  jj new -m "Version ${VERSION}"
+fi
 
 # update yt-dlp dependency
 ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
 sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$ydl_version\"/" pyproject.toml
-git add pyproject.toml
 
 # update version
 sed -i "s/^\(__version__ = \"\).*\(\"\)/\1$VERSION\2/w /dev/stdout" amg/__init__.py
-git add amg/__init__.py
 
 # commit
-git commit -m "Version ${VERSION}"
+jj new
 
 # tag
-git tag -m "Version ${VERSION}" "${VERSION}"
+jj tag set -r @- "${VERSION}"
 
 # release
 rm -Rf dist
