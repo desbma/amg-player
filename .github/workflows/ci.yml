@@ -35,4 +35,4 @@ jobs:
           ./ci/install-ffmpeg ${{matrix.ffmpeg-version}}
           echo "$HOME/.local/bin" >> $GITHUB_PATH
       - run: uv sync
-      - run: TEST_DL_CACHE_DIR=$HOME/.cache/ci/amg-player/test uv run python -m unittest discover -v .
+      - run: TEST_DL_CACHE_DIR=$HOME/.cache/ci/amg-player/test uv run python -m unittest discover -s tests -v
