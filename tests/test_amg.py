@@ -17,6 +17,15 @@ import platformdirs
 
 import amg
 
+REVIEW_BLOCK_TEMPLATE = """<article class="post type-post status-publish category-reviews tag-doom-metal tag-review">
+<div class="post-thumbnail">
+<img src="https://www.angrymetalguy.com/wp-content/uploads/cover-768x768.jpg" class="wp-post-image"/>
+</div>
+<div class="entry-full"><header class="entry-header"><h2 class="entry-title">
+<a href="https://www.angrymetalguy.com/review/" rel="bookmark">{title}</a>
+</h2></header></div>
+</article>"""
+
 
 class TestAmg(unittest.TestCase):
     """AMG main test suite."""
@@ -24,6 +33,30 @@ class TestAmg(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test case stuff."""
         self.maxDiff = None
+
+    def test_parse_review_block(self) -> None:
+        """Test artist and album extraction from review titles."""
+        titles = {
+            "Sworn – Null Crowned the Infinite Review": ("Sworn", "Null Crowned the Infinite"),
+            "Vauruvã – Mar da Deriva [Things You Might Have Missed 2025]": ("Vauruvã", "Mar da Deriva"),
+            "AMG’s Unsigned Band Rodeö: Beware of Gods – Upon Whom The Last Light Descends III: Behead The Oracle": (
+                "Beware of Gods",
+                "Upon Whom The Last Light Descends III: Behead The Oracle",
+            ),
+            "AMG’s Unsigned Band Rodeo: Beeldenstorm – Herkoms": ("Beeldenstorm", "Herkoms"),
+            "AMG Unsigned Band Rodeö: Suodeth – Aja": ("Suodeth", "Aja"),
+            "Angry Metal Guy’s Unsigned Band Rodeo: Witch Ripper – Witch Ripper": ("Witch Ripper", "Witch Ripper"),
+            "EP Edition: Things You Might Have Missed 2016": None,
+        }
+        for title, expected in titles.items():
+            with self.subTest(title=title):
+                page = amg.lxml_etree.XML(REVIEW_BLOCK_TEMPLATE.format(title=title), amg.HTML_PARSER)
+                review = amg.parse_review_block(amg.REVIEW_BLOCK_SELECTOR(page)[0])
+                if expected is None:
+                    self.assertIsNone(review)
+                else:
+                    assert review is not None
+                    self.assertEqual((review.artist, review.album), expected)
 
     def test_log_colors(self) -> None:
         """Test only records above the informational level are colored."""

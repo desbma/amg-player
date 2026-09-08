@@ -63,6 +63,7 @@ REVIEW_LINK_SELECTOR = lxml_cssselect.CSSSelector(".entry-title a")
 REVIEW_COVER_SELECTOR = lxml_cssselect.CSSSelector("img.wp-post-image")
 REVIEW_HEADER_SELECTOR = lxml_cssselect.CSSSelector("article.post header.entry-header div.entry-meta")
 REVIEW_HEADER_DATE_REGEX = re.compile(r" on ([A-Z][a-z]+ \d+, [0-9]{4})")
+UNSIGNED_BAND_RODEO_PREFIX_REGEX = re.compile(r"^(?:AMG|Angry Metal Guy)(?:['’]s)? Unsigned Band Rode[oö]: *")
 PLAYER_IFRAME_SELECTOR = lxml_cssselect.CSSSelector("article.post iframe")
 BANDCAMP_JS_SELECTOR = lxml_cssselect.CSSSelector("html > head > script[data-player-data]")
 REVERBNATION_SCRIPT_SELECTOR = lxml_cssselect.CSSSelector("script")
@@ -137,14 +138,11 @@ def parse_review_block(review: lxml_etree.Element) -> ReviewMetadata | None:
     url = review_link.get("href")
     title = lxml_etree.tostring(review_link, encoding="unicode", method="text").strip()
     expected_suffix = " Review"
-    expected_prefix = "AMG’s Unsigned Band Rodeo: "
     if title.endswith(expected_suffix):
         title = title[: len(title) - len(expected_suffix)]
     elif "[Things You Might Have Missed" in title:
         title = title.rsplit("[", 1)[0].strip()
-    if title.startswith(expected_prefix):
-        # https://www.angrymetalguy.com/amgs-unsigned-band-rodeo-beeldenstorm-herkoms/
-        title = title[len(expected_prefix) :].strip()
+    title = UNSIGNED_BAND_RODEO_PREFIX_REGEX.sub("", title)
     try:
         artist, album = map(str.strip, title.split("–", 1))
     except ValueError:
