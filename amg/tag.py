@@ -113,6 +113,7 @@ def useless_expressions() -> tuple[str, ...]:
         "trailer",
         "version",
         "video",
+        "visual",
         "visualiser",
         "visualizer",
         "vr",
