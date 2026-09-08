@@ -9,13 +9,13 @@ cd "$(jj root)"
 
 if jj show --stat | tail -n -1 | grep -q '^0 files changed'
 then
-  jj describe -m "Version ${VERSION}"
+  jj describe -m "chore: version ${VERSION}"
 else
-  jj new -m "Version ${VERSION}"
+  jj new -m "chore: version ${VERSION}"
 fi
 
 # update yt-dlp dependency
-ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1 | sed -E 's/\.0+([0-9])/.\1/g')
+ydl_version=$(LANG=C pacman -Qi yt-dlp | awk '/^Version/ {print $3}' | cut -d '-' -f 1 | sed -E 's/\.0+([0-9])/.\1/g')
 sed -i -E "s/\"yt-dlp(\[[^]]+\])?>=[^\"]*\"/\"yt-dlp\1>=$ydl_version\"/w /dev/stdout" pyproject.toml
 
 # update version
