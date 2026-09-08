@@ -1,8 +1,17 @@
 """AMG main tests."""
 
+import dbm
+import dbm.dumb
+import dbm.sqlite3
 import inspect
+import itertools
 import random
+import tempfile
 import unittest
+import unittest.mock
+from pathlib import Path
+
+import platformdirs
 
 import amg
 
@@ -10,16 +19,18 @@ import amg
 class TestAmg(unittest.TestCase):
     """AMG main test suite."""
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test case stuff."""
         self.maxDiff = None
 
-    def test_get_reviews(self):
+    def test_get_reviews(self) -> None:
         """Test review fetching."""
         count = random.randint(10, 50)
         gen = amg.get_reviews()
         self.assertTrue(inspect.isgenerator(gen))
-        for i, review in zip(range(count), gen):
+        reviews = list(itertools.islice(gen, count))
+        self.assertEqual(len(reviews), count)
+        for review in reviews:
             self.assertIsInstance(review, amg.ReviewMetadata)
             self.assertTrue(review.url.startswith(amg.ROOT_URL))
             self.assertIsInstance(review.artist, str)
@@ -32,9 +43,19 @@ class TestAmg(unittest.TestCase):
             self.assertTrue(review.tags)
             for tag in review.tags:
                 self.assertIsInstance(tag, str)
-        self.assertEqual(i, count - 1)
 
-    def test_get_embedded_track(self):
+    def test_known_reviews_backend(self) -> None:
+        """Test played review storage uses SQLite whatever the interpreter's default dbm backend."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            with (
+                unittest.mock.patch.object(platformdirs, "user_data_dir", return_value=tmp_dir),
+                unittest.mock.patch.object(dbm, "_defaultmod", dbm.dumb),
+            ):
+                known_reviews = amg.KnownReviews()
+            known_reviews.data.close()
+            self.assertEqual(dbm.whichdb(Path(tmp_dir) / "played.dat"), dbm.sqlite3.__name__)
+
+    def test_get_embedded_track(self) -> None:
         """Test embedded track URL extraction."""
         http_cache = amg.web_cache.WebCache(":memory:", "reviews", caching_strategy=amg.web_cache.CachingStrategy.FIFO)
         urls = {

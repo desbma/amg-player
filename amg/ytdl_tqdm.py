@@ -22,7 +22,7 @@ class ytdl_tqdm:
 
     def __init__(self, ytdl_opts: dict[str, Any] | None = None, **kwargs: Any) -> None:
         """See tqdm.tqdm for args description."""
-        self.tqdm: Tqdm[Any] | None = None
+        self.tqdm: Tqdm | None = None
         self.prev_downloaded_bytes = 0
         self.tqdm_kwargs: dict[str, Any] = kwargs
         if ytdl_opts is not None:
@@ -33,9 +33,11 @@ class ytdl_tqdm:
         return self.tqdm is not None
 
     def __enter__(self) -> Self:
+        """Enter the context manager."""
         return self
 
     def __exit__(self, *args: object) -> None:
+        """Close the progress bar."""
         tqdm_bar = self.tqdm
         if tqdm_bar is not None:
             tqdm_bar.close()
@@ -87,7 +89,7 @@ class ytdl_tqdm:
         tqdm_bar.update(newly_downloaded_bytes)
         self.prev_downloaded_bytes = downloaded_bytes
 
-    def _get_new_tqdm(self) -> Tqdm[Any]:
+    def _get_new_tqdm(self) -> Tqdm:
         """Set up and return a new tqdm instance."""
         # default args
         tqdm_kwargs = {"unit": "B", "unit_scale": True, "unit_divisor": 1024}

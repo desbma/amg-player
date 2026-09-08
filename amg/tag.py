@@ -2,6 +2,7 @@
 
 import base64
 import calendar
+import contextlib
 import datetime
 import functools
 import io
@@ -25,8 +26,8 @@ import mutagen.ogg
 import PIL.Image
 import unidecode
 
+import amg
 from amg import sanitize
-
 
 # What was once a small concise function has grown into the largest part of this project.
 # This chains many checks to remove crap from title tags, because record people do not have conventions or
@@ -42,25 +43,29 @@ MONTH_NAMES_ABBR = calendar.month_abbr[1:]
 Cleaner = Callable[[str], str]
 
 RCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "!?)-]")
-LCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c not in "(")
+LCLEAN_CHARS = "".join(c for c in (string.punctuation + string.whitespace) if c != "(")
 SEP_CHARS = string.punctuation + string.whitespace
 
 
 @functools.cache
 def re_compile(pattern: str, flags: int = re.IGNORECASE) -> re.Pattern:
+    """Compile a regex, and cache it."""
     return re.compile(pattern, flags)
 
 
 def rnorm(s: str) -> str:
+    """Normalize a string for suffix comparison."""
     return unidecode.unidecode_expect_ascii(s.rstrip(string.punctuation)).rstrip(string.punctuation).lower()
 
 
 def lnorm(s: str) -> str:
+    """Normalize a string for prefix comparison."""
     return unidecode.unidecode_expect_ascii(s.lstrip(string.punctuation)).lstrip(string.punctuation).lower()
 
 
 @functools.cache
 def useless_expressions() -> tuple[str, ...]:
+    """Build the expressions to strip from title tags, longest first."""
     expressions: set[str] = set()
     words1 = ("", "explicit", "full", "including", "new", "official", "stop motion", "the new")
     words2 = (
@@ -119,7 +124,7 @@ def useless_expressions() -> tuple[str, ...]:
                     if w1 or w2:
                         for rsep in (" ", "-", ""):
                             rpart = rsep.join((w2, w3)).strip()
-                            expressions.add(" ".join((w1, rpart)).strip())
+                            expressions.add(f"{w1} {rpart}".strip())
                     else:
                         expressions.add(w3)
     expressions.update(
@@ -151,17 +156,19 @@ def useless_expressions() -> tuple[str, ...]:
             MONTH_NAMES,
             MONTH_NAMES_ABBR,
             ("I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"),
+            strict=True,
         ):
             expressions.add(f"{month_name} {y}")
             expressions.add(f"{month_abbr} {y}")
             expressions.add(f"{y} {month_roman}")
-    expressions_list = sorted(expressions, key=lambda e: len(e), reverse=True)
+    expressions_list = sorted(expressions, key=len, reverse=True)
     expressions_list.remove("song")
     return tuple(expressions_list)
 
 
 @functools.cache
 def metal_genre_groups() -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:
+    """Build the metal, composed and base genre names."""
     base_genres = [
         "crust",
         "black",
@@ -232,25 +239,27 @@ def build_pipeline(artist: str, album: str, record_label: str | None) -> list[Cl
     if record_label is not None:
         cleaners.append(simple_suffix_cleaner(record_label))
     # detect and remove '- xxx metal' suffix
-    for genre in metal_genres + composed_genres:
-        cleaners.append(
-            regex_suffix_cleaner(
-                r"[|\(\[/\] -]+[0-9a-z/-\\, ]*" + genre + "( song)?$",
-                suffixes=(genre, f"{genre} song"),
-            )
+    cleaners.extend(
+        regex_suffix_cleaner(
+            r"[|\(\[/\] -]+[0-9a-z/-\\, ]*" + genre + "( song)?$",
+            suffixes=(genre, f"{genre} song"),
         )
+        for genre in metal_genres + composed_genres
+    )
     # base genres are also common english words, so require a non-space leading separator to avoid stripping them
     # when they appear as the final word of an actual title (e.g. "Crust" in "Earth's Crust")
-    for genre in base_genres:
-        cleaners.append(
-            regex_suffix_cleaner(
-                r"[ ]*[|\(\[/\]-][|\(\[/\] -]*[0-9a-z/-\\, ]*" + genre + "( song)?$",
-                suffixes=(genre, f"{genre} song"),
-            )
+    cleaners.extend(
+        regex_suffix_cleaner(
+            r"[ ]*[|\(\[/\]-][|\(\[/\] -]*[0-9a-z/-\\, ]*" + genre + "( song)?$",
+            suffixes=(genre, f"{genre} song"),
         )
+        for genre in base_genres
+    )
     # detect and remove '(thrash/death from whatever)' suffix
-    for genre in metal_genres + composed_genres + base_genres:
-        cleaners.append(regex_suffix_cleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]?$"))
+    cleaners.extend(
+        regex_suffix_cleaner(r"[|\(\[/]+[ ]*" + genre + r" from [a-zA-Z-, ]+[\)\]]?$")
+        for genre in metal_genres + composed_genres + base_genres
+    )
     cleaners.extend(
         [
             # detect and remove 'xxx metal' prefix
@@ -347,12 +356,14 @@ def rmprefix(s: str, e: str) -> str:
 
 
 def strip_prefix(title: str, prefix: str) -> str:
+    """Remove prefix from title if title starts like it."""
     if startslike(title, prefix, sep=SEP_CHARS):
         return lclean(rmprefix(title, prefix))
     return title
 
 
 def strip_suffix(title: str, suffix: str) -> str:
+    """Remove suffix from title if title ends like it."""
     if endslike(title, suffix):
         new = rclean(rmsuffix(title, suffix))
         if new.lower() != "the":
@@ -361,10 +372,12 @@ def strip_suffix(title: str, suffix: str) -> str:
 
 
 def simple_suffix_cleaner(suffix: str) -> Cleaner:
+    """Build a cleaner removing a literal suffix."""
     return lambda title: strip_suffix(title, suffix)
 
 
 def regex_cleaner(pattern: str) -> Cleaner:
+    """Build a cleaner removing a regex match anywhere in the title."""
     regex = re_compile(pattern)
 
     def cleaner(title: str) -> str:
@@ -378,6 +391,7 @@ def regex_cleaner(pattern: str) -> Cleaner:
 
 
 def regex_suffix_cleaner(pattern: str, *, suffixes: Sequence[str] = ()) -> Cleaner:
+    """Build a cleaner removing a regex match at the end of the title."""
     regex = re_compile(pattern)
 
     def cleaner(title: str) -> str:
@@ -392,6 +406,7 @@ def regex_suffix_cleaner(pattern: str, *, suffixes: Sequence[str] = ()) -> Clean
 
 
 def regex_prefix_cleaner(pattern: str) -> Cleaner:
+    """Build a cleaner removing a regex match at the start of the title."""
     regex = re_compile(pattern)
 
     def cleaner(title: str) -> str:
@@ -404,6 +419,7 @@ def regex_prefix_cleaner(pattern: str) -> Cleaner:
 
 
 def records_suffix_cleaner(record_word: str) -> Cleaner:
+    """Build a cleaner removing a record label suffix."""
     regex = re_compile(r"([|\)\(\[]|on)[0-9a-z,/ ]+" + record_word + "$")
 
     def cleaner(title: str) -> str:
@@ -419,12 +435,13 @@ def records_suffix_cleaner(record_word: str) -> Cleaner:
 
 
 def expressions_suffix_cleaner(expressions: Sequence[str]) -> Cleaner:
+    """Build a cleaner removing expressions at the end of the title."""
     entries: dict[str, int] = {}
     for e in expressions:
         e_norm = rnorm(e)
         if e_norm:
             entries[e_norm] = len(unidecode.unidecode_expect_ascii(e))
-    ordered = sorted(entries, key=lambda e: len(e), reverse=True)
+    ordered = sorted(entries, key=len, reverse=True)
     regex = re_compile("(?:" + "|".join(re.escape(e) for e in ordered) + ")$", 0)
 
     def cleaner(title: str) -> str:
@@ -444,12 +461,13 @@ def expressions_suffix_cleaner(expressions: Sequence[str]) -> Cleaner:
 
 
 def expressions_prefix_cleaner(expressions: Sequence[str]) -> Cleaner:
+    """Build a cleaner removing expressions at the start of the title."""
     entries: dict[str, int] = {}
     for e in expressions:
         e_norm = rnorm(e)
         if e_norm:
             entries[e_norm] = len(unidecode.unidecode_expect_ascii(e))
-    ordered = sorted(entries, key=lambda e: len(e), reverse=True)
+    ordered = sorted(entries, key=len, reverse=True)
     sep_class = re.escape(SEP_CHARS)
     regex = re_compile("^(?P<e>" + "|".join(re.escape(e) for e in ordered) + ")(?:[" + sep_class + r"]|$)", 0)
 
@@ -470,6 +488,7 @@ def expressions_prefix_cleaner(expressions: Sequence[str]) -> Cleaner:
 
 
 def artist_cleaner(artist: str) -> Cleaner:
+    """Build a cleaner removing the artist name, at most once as prefix and once as suffix."""
     variants = tuple(
         more_itertools.unique_everseen(
             (
@@ -488,7 +507,7 @@ def artist_cleaner(artist: str) -> Cleaner:
     state = [False, False]  # prefix_removed, suffix_removed
 
     def cleaner(title: str) -> str:
-        for s_raw, suffix_only in itertools.zip_longest((by_artist,) + variants, (True,), fillvalue=False):
+        for s_raw, suffix_only in itertools.zip_longest((by_artist, *variants), (True,), fillvalue=False):
             assert isinstance(s_raw, str)
             s = s_raw
             if (not suffix_only) and (not state[0]) and startslike(title, s):
@@ -503,6 +522,7 @@ def artist_cleaner(artist: str) -> Cleaner:
 
 
 def album_cleaner(album: str) -> Cleaner:
+    """Build a cleaner removing the album name, and the expression introducing it."""
     inner_suffixes = ("taken from", "from the album", "from")
 
     def cleaner(title: str) -> str:
@@ -522,6 +542,8 @@ def album_cleaner(album: str) -> Cleaner:
 
 
 def start_parens_cleaner() -> Cleaner:
+    """Build a cleaner removing a leading parenthesized expression."""
+
     def cleaner(title: str) -> str:
         closing_pos = title.find(")")
         if title.startswith("(") and (closing_pos != (len(title) - 1)) and (len(title[1:closing_pos]) > 1):
@@ -532,6 +554,7 @@ def start_parens_cleaner() -> Cleaner:
 
 
 def paired_char_cleaner() -> Cleaner:
+    """Build a cleaner fixing unbalanced quotes and parentheses."""
     char_pairs = ((("(", ")"), False), (('"', '"'), False), (("'", "'"), True))
 
     def cleaner(title: str) -> str:
@@ -541,13 +564,11 @@ def paired_char_cleaner() -> Cleaner:
                     title = title[:-1]
                 elif title.startswith(c1) and (c2 not in title[1:]):
                     title = title[1:]
-            else:
-                if c1 != c2:
-                    if (title.count(c1) + title.count(c2)) == 1:
-                        title = title.translate(str.maketrans("", "", c1 + c2))
-                else:
-                    if title.count(c1) == 1:
-                        title = title.translate(str.maketrans("", "", c1))
+            elif c1 != c2:
+                if (title.count(c1) + title.count(c2)) == 1:
+                    title = title.translate(str.maketrans("", "", c1 + c2))
+            elif title.count(c1) == 1:
+                title = title.translate(str.maketrans("", "", c1))
         if title.startswith("(") and title.endswith(")"):
             title = title[1:-1]
         return title
@@ -562,11 +583,11 @@ def normalize_title_tag(title: str, artist: str, album: str, record_label: str |
 
 def tag(
     track_filepath: str | Path,
-    review,
+    review: amg.ReviewMetadata,
     metadata: dict[str, str],
     cover_data: bytes | None,
     record_label: str | None = None,
-):
+) -> dict[str, list[str]]:
     """Tag an audio file, return tag dict excluding RG/R128 info and album art."""
     logging.getLogger().info(f"Tagging file {track_filepath!r}")
     mf = mutagen.File(track_filepath, easy=True)
@@ -578,14 +599,12 @@ def tag(
         mf["title"] = normalize_title_tag(metadata["title"], review.artist, review.album, record_label)
     except KeyError:
         mf["title"] = mf["album"]
-    try:
+    with contextlib.suppress(KeyError):
         mf["comment"] = metadata["description"]
-    except KeyError:
-        pass
     tags = dict(mf)
 
     if cover_data is not None:
-        if isinstance(mf, mutagen.mp3.EasyMP3) or isinstance(mf, mutagen.easymp4.EasyMP4):
+        if isinstance(mf, (mutagen.mp3.EasyMP3, mutagen.easymp4.EasyMP4)):
             # EasyXXX helpers do not allow embedding album art, reopen as normal mutagen file
             mf.save()
             mf = mutagen.File(track_filepath)
@@ -603,14 +622,14 @@ def has_embedded_album_art(filepath: str | Path) -> bool:
     mf = mutagen.File(filepath)
     if isinstance(mf, mutagen.ogg.OggFileType):
         return "metadata_block_picture" in mf
-    elif isinstance(mf, mutagen.mp3.MP3):
+    if isinstance(mf, mutagen.mp3.MP3):
         return any(map(operator.methodcaller("startswith", "APIC:"), mf.keys()))
-    elif isinstance(mf, mutagen.mp4.MP4):
+    if isinstance(mf, mutagen.mp4.MP4):
         return "covr" in mf
     return False
 
 
-def embed_album_art(mf: mutagen.File, cover_data: bytes):
+def embed_album_art(mf: mutagen.File, cover_data: bytes) -> None:
     """Embed album art into audio file."""
     mime = magic.from_buffer(cover_data, mime=True)
     if isinstance(mf, mutagen.ogg.OggFileType):

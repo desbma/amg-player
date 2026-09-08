@@ -2,13 +2,13 @@
 
 import unittest
 
-import amg.sanitize as sanitize
+from amg import sanitize
 
 
 class TestSanitize(unittest.TestCase):
     """String sanitization test suite."""
 
-    def test_normalize_tag_case(self):
+    def test_normalize_tag_case(self) -> None:
         """Fix tag capitalization."""
         references = {
             "A Little Test": "A Little Test",

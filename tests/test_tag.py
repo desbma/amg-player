@@ -8,6 +8,7 @@ import signal
 import tempfile
 import types
 import unittest
+import unittest.mock
 import urllib.parse
 from pathlib import Path, PurePosixPath
 
@@ -18,11 +19,9 @@ import amg
 NORMALIZE_TITLE_TAG_TIMEOUT_S = 1.0
 
 # Some CDNs (e.g. Wikimedia) reject the default project User-Agent with HTTP 429.
-# Override it for tests only with a generic browser User-Agent so fixture downloads succeed.
 BROWSER_USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 )
-setattr(amg, "USER_AGENT", BROWSER_USER_AGENT)
 
 
 def normalize_title_tag_timeout_handler(_signum: int, _frame: types.FrameType | None) -> None:
@@ -30,17 +29,17 @@ def normalize_title_tag_timeout_handler(_signum: int, _frame: types.FrameType | 
     raise TimeoutError(f"normalize_title_tag exceeded {NORMALIZE_TITLE_TAG_TIMEOUT_S}s")
 
 
-def download(url, filepath):
+def download(url: str, filepath: Path) -> None:
     """Download a file."""
     cache_dir = os.getenv("TEST_DL_CACHE_DIR")
     if cache_dir is not None:
-        os.makedirs(cache_dir, exist_ok=True)
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
         cache_filepath = Path(cache_dir) / PurePosixPath(urllib.parse.urlsplit(url).path).name
         if cache_filepath.is_file():
             shutil.copyfile(cache_filepath, filepath)
             return
     data = amg.fetch_ressource(url)
-    with open(filepath, "wb") as f:
+    with filepath.open("wb") as f:
         f.write(data)
     if cache_dir is not None:
         shutil.copyfile(filepath, cache_filepath)
@@ -50,8 +49,9 @@ class TestTag(unittest.TestCase):
     """Tag related test suite."""
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Set up test suite stuff."""
+        cls.enterClassContext(unittest.mock.patch.object(amg, "USER_AGENT", BROWSER_USER_AGENT))
         cls.ref_temp_dir = tempfile.TemporaryDirectory()
         vorbis_filepath = Path(cls.ref_temp_dir.name) / "f.ogg"
         download("https://upload.wikimedia.org/wikipedia/en/0/09/Opeth_-_Deliverance.ogg", vorbis_filepath)
@@ -63,11 +63,11 @@ class TestTag(unittest.TestCase):
         download("https://auphonic.com/media/audio-examples/01.auphonic-demo-unprocessed.m4a", m4a_filepath)
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         """Clean up test suite stuff."""
         cls.ref_temp_dir.cleanup()
 
-    def setUp(self):
+    def setUp(self) -> None:
         """Set up test case stuff."""
         self.temp_dir = tempfile.TemporaryDirectory()
         for src_path in Path(self.ref_temp_dir.name).iterdir():
@@ -83,14 +83,14 @@ class TestTag(unittest.TestCase):
         del mf["covr"]
         mf.save()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         """Clean up test case stuff."""
         self.temp_dir.cleanup()
 
-    def test_normalize_title_tag(self):
+    def test_normalize_title_tag(self) -> None:
         """Test title tag normalization."""
         json_filepath = Path(__file__).parent / "normalize_title_tag.json"
-        with open(json_filepath, "rt") as json_file:
+        with json_filepath.open() as json_file:
             cases = json.load(json_file)
         previous_handler = signal.signal(signal.SIGALRM, normalize_title_tag_timeout_handler)
         try:
@@ -111,13 +111,15 @@ class TestTag(unittest.TestCase):
         finally:
             signal.signal(signal.SIGALRM, previous_handler)
 
-    def test_tag(self):
+    def test_tag(self) -> None:
         """Test tagging for various formats."""
         artist = "Artist"
         album = "Album"
         # https://github.com/mathiasbynens/small/blob/master/jpeg.jpg
-        cover_data = b"\xff\xd8\xff\xdb\x00C\x00\x03\x02\x02\x02\x02\x02\x03\x02\x02\x02\x03\x03\x03\x03\x04\x06\x04\x04\x04\x04\x04\x08\x06\x06\x05\x06\t\x08\n\n\t\x08\t\t\n\x0c\x0f\x0c\n\x0b\x0e\x0b\t\t\r\x11\r\x0e\x0f\x10\x10\x11\x10\n\x0c\x12\x13\x12\x10\x13\x0f\x10\x10\x10\xff\xc9\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xcc\x00\x06\x00\x10\x10\x05\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xd2\xcf \xff\xd9"
-        review = amg.ReviewMetadata(None, artist, album, None, None, None)
+        cover_data = b"\xff\xd8\xff\xdb\x00C\x00\x03\x02\x02\x02\x02\x02\x03\x02\x02\x02\x03\x03\x03\x03\x04\x06\x04\x04\x04\x04\x04\x08\x06\x06\x05\x06\t\x08\n\n\t\x08\t\t\n\x0c\x0f\x0c\n\x0b\x0e\x0b\t\t\r\x11\r\x0e\x0f\x10\x10\x11\x10\n\x0c\x12\x13\x12\x10\x13\x0f\x10\x10\x10\xff\xc9\x00\x0b\x08\x00\x01\x00\x01\x01\x01\x11\x00\xff\xcc\x00\x06\x00\x10\x10\x05\xff\xda\x00\x08\x01\x01\x00\x00?\x00\xd2\xcf \xff\xd9"  # noqa: E501
+        review = amg.ReviewMetadata(
+            "https://www.angrymetalguy.com/review", artist, album, "https://www.angrymetalguy.com/cover.jpg", None, ()
+        )
 
         # vorbis
         self.assertFalse(amg.tag.has_embedded_album_art(self.vorbis_filepath))

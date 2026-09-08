@@ -1,0 +1,1 @@
+"""AMG Player test suite."""

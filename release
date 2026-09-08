@@ -15,8 +15,8 @@ else
 fi
 
 # update yt-dlp dependency
-ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1)
-sed -i "s/\"yt-dlp>=.*\"/\"yt-dlp>=$ydl_version\"/" pyproject.toml
+ydl_version=$(LANG=C pacman -Qi yt-dlp | grep ^Version | cut -d ':' -f 2 | cut -d '-' -f 1 | sed -E 's/\.0+([0-9])/.\1/g')
+sed -i -E "s/\"yt-dlp(\[[^]]+\])?>=[^\"]*\"/\"yt-dlp\1>=$ydl_version\"/w /dev/stdout" pyproject.toml
 
 # update version
 sed -i "s/^\(__version__ = \"\).*\(\"\)/\1$VERSION\2/w /dev/stdout" amg/__init__.py

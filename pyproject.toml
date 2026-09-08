@@ -24,21 +24,21 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "colorlog>=6.10.0",
-    "cssselect>=1.4.0",
-    "curses-menu==0.5.0",
-    "lxml>=6.1.0",
-    "more_itertools>=11.0.2",
-    "mutagen>=1.47.0",
+    "colorlog>=6.12.0",
+    "cssselect>=1.5.0",
+    "curses-menu==0.9.0",
+    "lxml>=6.1.3",
+    "more-itertools>=11.1.0",
+    "mutagen>=1.48.1",
     "pathvalidate>=3.3.1",
-    "Pillow>=12.2.0",
-    "platformdirs>=4.9.6",
+    "pillow>=12.3.0",
+    "platformdirs>=4.11.7",
     "python-magic>=0.4.27",
-    "requests>=2.33.1",
-    "tqdm>=4.67.3",
+    "requests>=2.34.2",
+    "tqdm>=4.70.0",
     "unidecode>=1.4.0",
-    "web_cache>=1.1.0",
-    "yt-dlp>= 2026.03.17",
+    "web-cache>=1.1.0",
+    "yt-dlp[default,curl-cffi]>=2026.8.19",
 ]
 
 [project.scripts]
@@ -58,6 +58,37 @@ pattern = '__version__ = "(?P<version>[^"]+)"'
 
 [tool.ruff]
 line-length = 120
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "ANN401",  # dynamically typed expression
+    "BLE001",  # blind except
+    "C901",    # complex structure
+    "COM812",  # missing trailing comma
+    "CPY",     # copyright notice
+    "D203",    # incompatible with D211
+    "D212",    # incompatible with D213
+    "DTZ",     # naive datetime
+    "EM",      # exception message string literal
+    "FIX",     # line contains TODO
+    "G004",    # logging f-string
+    "N801",    # invalid class name
+    "N802",    # invalid function name
+    "N812",    # lowercase imported as non lowercase
+    "PLR09",   # too many branches/statements/arguments
+    "PT",      # pytest
+    "RUF001",  # ambiguous unicode character
+    "S101",    # assert
+    "S301",    # pickle
+    "S311",    # non cryptographic random
+    "S603",    # subprocess call
+    "T201",    # print, used for command line output
+    "TC",      # typing only import
+    "TD",      # TODO format
+    "TRY003",  # long exception message
+    "TRY400",  # error logging instead of exception logging
+]
 
 [dependency-groups]
 dev = ["pre-commit", "ruff", "ty"]

@@ -64,12 +64,11 @@ def normalize_tag_case(s: str) -> str:
     punct_followed_uppercase.remove("'")
     for i, old_word in enumerate(old_words):
         if (
-            (prev_word is not None) and ((prev_word[-1] in punct_followed_all_uppercase) and old_word[0].isupper())
-        ) or ("." in old_word):
-            new_word = old_word
-        elif old_word[0] in "[(-'":
-            new_word = old_word
-        elif "/" in old_word:
+            ((prev_word is not None) and ((prev_word[-1] in punct_followed_all_uppercase) and old_word[0].isupper()))
+            or ("." in old_word)
+            or old_word[0] in "[(-'"
+            or "/" in old_word
+        ):
             new_word = old_word
         elif old_word.find("'") == 1:
             if (i > 0) and (old_word[0] != "I"):

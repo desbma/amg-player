@@ -2,10 +2,16 @@
 
 import enum
 import webbrowser
+from collections.abc import Sequence
 
 import cursesmenu
+import web_cache
 
 import amg
+
+# menu items are numbered from 1, those below this threshold need an extra leading space to align
+SINGLE_DIGIT_INDEX_MAX = 9
+COLUMN_SEP = "\t"
 
 
 class AmgMenu(cursesmenu.CursesMenu):
@@ -13,7 +19,16 @@ class AmgMenu(cursesmenu.CursesMenu):
 
     UserAction = enum.Enum("UserAction", ("DEFAULT", "OPEN_REVIEW", "DOWNLOAD_AUDIO"))
 
-    def __init__(self, *, reviews, known_reviews, http_cache, mode, selected_idx):
+    def __init__(
+        self,
+        *,
+        reviews: Sequence[amg.ReviewMetadata],
+        known_reviews: amg.KnownReviews,
+        http_cache: web_cache.WebCache,
+        mode: amg.PlayerMode,
+        selected_idx: int | None,
+    ) -> None:
+        """Build a menu with one item per review."""
         menu_subtitle = {amg.PlayerMode.MANUAL: "Select a track", amg.PlayerMode.RADIO: "Select track to start from"}
         super().__init__(
             f"AMG Player v{amg.__version__}",
@@ -22,15 +37,16 @@ class AmgMenu(cursesmenu.CursesMenu):
             "D to download audio, "
             "R to open review, "
             "Q to exit)",
-            True,
+            show_exit_item=True,
         )
+        self.user_action = self.UserAction.DEFAULT
         if selected_idx is not None:
             self.current_option = selected_idx
         review_strings = self.reviewsToStrings(reviews, known_reviews, http_cache)
-        for index, (review, review_string) in enumerate(zip(reviews, review_strings)):
-            self.append_item(ReviewItem(review, review_string, index, self))
+        for review, review_string in zip(reviews, review_strings, strict=True):
+            self.items.append(ReviewItem(review, review_string, self))
 
-    def process_user_input(self):
+    def process_user_input(self) -> int:
         """
         Override key handling to add "open review" and "quick exit" features.
 
@@ -42,23 +58,27 @@ class AmgMenu(cursesmenu.CursesMenu):
             self.user_action = self.UserAction.OPEN_REVIEW
             self.select()
         elif c in frozenset(map(ord, "dD")):
-            # select last item (exit item)
             self.user_action = self.UserAction.DOWNLOAD_AUDIO
             self.select()
         elif c in frozenset(map(ord, "qQ")):
             # select last item (exit item)
-            self.current_option = len(self.items) - 1
+            self.current_option = self.last_item_index
             self.select()
+        return c
 
-    def get_last_user_action(self):
+    def get_last_user_action(self) -> AmgMenu.UserAction:
         """Return last user action when item was selected."""
         return self.user_action
 
     @staticmethod
-    def reviewsToStrings(reviews, known_reviews, http_cache):
+    def reviewsToStrings(
+        reviews: Sequence[amg.ReviewMetadata],
+        known_reviews: amg.KnownReviews,
+        http_cache: web_cache.WebCache,
+    ) -> list[str]:
         """Generate a list of string representations of reviews."""
         lines = []
-        for i, review in enumerate(reviews):
+        for review in reviews:
             try:
                 play_count = known_reviews.getPlayCount(review.url)
                 played = (
@@ -79,17 +99,25 @@ class AmgMenu(cursesmenu.CursesMenu):
         max_lens = [0] * len(lines[0])
         for line in lines:
             for i, s in enumerate(line):
-                if len(s) > max_lens[i]:
-                    max_lens[i] = len(s)
-        sep = "\t"
-        for i, line in enumerate(lines):
-            lines[i] = "".join(
-                (" " if i < 9 else "", sep.join(s.ljust(max_len + 1) for s, max_len in zip(line, max_lens)))
+                max_lens[i] = max(max_lens[i], len(s))
+        return [
+            "".join(
+                (
+                    " " if i < SINGLE_DIGIT_INDEX_MAX else "",
+                    COLUMN_SEP.join(s.ljust(max_len + 1) for s, max_len in zip(line, max_lens, strict=True)),
+                )
             )
-        return lines
+            for i, line in enumerate(lines)
+        ]
 
     @staticmethod
-    def setupAndShow(mode, reviews, known_reviews, http_cache, selected_idx=None):
+    def setupAndShow(
+        mode: amg.PlayerMode,
+        reviews: Sequence[amg.ReviewMetadata],
+        known_reviews: amg.KnownReviews,
+        http_cache: web_cache.WebCache,
+        selected_idx: int | None = None,
+    ) -> tuple[int, AmgMenu.UserAction] | None:
         """Set up and display interactive menu, return selected review index or None if exist requested."""
         menu = AmgMenu(
             reviews=reviews, known_reviews=known_reviews, http_cache=http_cache, mode=mode, selected_idx=selected_idx
@@ -99,16 +127,17 @@ class AmgMenu(cursesmenu.CursesMenu):
         return None if (idx == len(reviews)) else (idx, menu.get_last_user_action())
 
 
-class ReviewItem(cursesmenu.items.SelectionItem):
+class ReviewItem(cursesmenu.items.MenuItem):
     """Custom menu item (menu line), overriden to support several actions per item."""
 
-    def __init__(self, review, review_string, index, menu):
-        super().__init__(review_string, index, menu)
+    def __init__(self, review: amg.ReviewMetadata, review_string: str, menu: AmgMenu) -> None:
+        """Build a menu item for a review."""
+        super().__init__(review_string, menu)
         self.review = review
 
-    def action(self):
+    def action(self) -> None:
         """React to user action."""
-        assert self.menu is not None
+        assert isinstance(self.menu, AmgMenu)
         if self.menu.get_last_user_action() is AmgMenu.UserAction.OPEN_REVIEW:
             webbrowser.open_new_tab(self.review.url)
             self.should_exit = False

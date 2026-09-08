@@ -8,10 +8,10 @@ __license__ = "GPLv3"
 
 import argparse
 import codecs
-import collections
 import concurrent.futures
 import contextlib
 import datetime
+import dbm.sqlite3
 import enum
 import io
 import itertools
@@ -30,20 +30,20 @@ import tempfile
 import threading
 import urllib.parse
 import webbrowser
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
+from typing import NamedTuple
 
-from lxml import cssselect as lxml_cssselect
-from lxml import etree as lxml_etree  # ty: ignore[unresolved-import]
+import colorlog
+import pathvalidate
 import PIL.Image
 import PIL.ImageFilter
 import platformdirs
 import requests
 import web_cache
 import yt_dlp
-
-import colorlog
-import pathvalidate
+from lxml import cssselect as lxml_cssselect
+from lxml import etree as lxml_etree  # ty: ignore[unresolved-import]
 
 from amg import menu, tag, ytdl_tqdm
 
@@ -51,9 +51,6 @@ HAS_JPEGOPTIM = shutil.which("jpegoptim") is not None
 HAS_FFMPEG = shutil.which("ffmpeg") is not None
 
 PlayerMode = enum.Enum("PlayerMode", ("MANUAL", "RADIO", "DISCOVER", "DISCOVER_DOWNLOAD"))
-ReviewMetadata = collections.namedtuple(
-    "ReviewMetadata", ("url", "artist", "album", "cover_thumbnail_url", "cover_url", "tags")
-)
 
 ROOT_URL = "https://www.angrymetalguy.com/"
 REVIEW_URL = ROOT_URL  # f"{ROOT_URL}category/reviews/"
@@ -79,9 +76,24 @@ MAX_PARALLEL_DOWNLOADS = 4
 
 PROXY = {protocol: os.getenv(f"{protocol}_proxy", "").replace("socks5h", "socks5") for protocol in ("http", "https")}
 
+MAX_FILENAME_LEN = 128
+
+PLAYED_DB_OPEN_FLAG = "c"
+
+
+class ReviewMetadata(NamedTuple):
+    """Description of a review and of the album it covers."""
+
+    url: str
+    artist: str
+    album: str
+    cover_thumbnail_url: str
+    cover_url: str | None
+    tags: tuple[str, ...]
+
 
 @contextlib.contextmanager
-def date_locale_neutral():
+def date_locale_neutral() -> Iterator[None]:
     """Context manager to call with a neutral default locale."""
     loc = locale.getlocale(locale.LC_TIME)
     locale.setlocale(locale.LC_TIME, "C")
@@ -210,7 +222,7 @@ def get_embedded_track(page: lxml_etree.Element, http_cache: web_cache.WebCache)
                             break
                     url = js["PLAYLIST"][0]["url"]
                     url = urllib.parse.urlsplit(url)
-                    url = ("https",) + url[1:]
+                    url = ("https", *url[1:])
                     url = urllib.parse.urlunsplit(url)
                     urls = (url,)
                     audio_only = True
@@ -231,11 +243,12 @@ class KnownReviews:
         PLAY_COUNT = 1
         DATA_INDEX_COUNT = 2
 
-    def __init__(self):
-        data_dir = platformdirs.user_data_dir("amg-player")
-        os.makedirs(data_dir, exist_ok=True)
-        filepath = Path(data_dir) / "played.dat"
-        self.data = shelve.open(filepath, protocol=3)
+    def __init__(self) -> None:
+        """Open the persistent state, and purge its expired entries."""
+        data_dir = Path(platformdirs.user_data_dir("amg-player"))
+        data_dir.mkdir(parents=True, exist_ok=True)
+        filepath = data_dir / "played.dat"
+        self.data = shelve.Shelf(dbm.sqlite3.open(filepath, PLAYED_DB_OPEN_FLAG), protocol=3)  # noqa: SIM115
         # cleanup old entries
         now = datetime.datetime.now()
         to_del = []
@@ -259,7 +272,7 @@ class KnownReviews:
         if len(e) < self.DataIndex.DATA_INDEX_COUNT:
             e.extend(None for _ in range(self.DataIndex.DATA_INDEX_COUNT - len(e)))
         try:
-            e[self.DataIndex.PLAY_COUNT] += 1
+            e[self.DataIndex.PLAY_COUNT] += 1  # ty: ignore[unsupported-operator]
         except TypeError:
             # be compatible with when play count was not stored
             e[self.DataIndex.PLAY_COUNT] = 2 if e[self.DataIndex.LAST_PLAYED] is not None else 1
@@ -286,7 +299,7 @@ def get_cover_data(review: ReviewMetadata) -> bytes:
 
 
 def download_and_merge(
-    review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str
+    _review: ReviewMetadata, track_urls: Sequence[str], tmp_dir: str, cover_filepath: str
 ) -> str | None:
     """Download track, merge audio & album art, and return merged filepath."""
     # fetch audio
@@ -309,10 +322,8 @@ def download_and_merge(
                 ytdl_progress.tqdm.write(msg)  # ty: ignore[unresolved-attribute]
             else:
                 # already logged
-                # logging.getLogger().warning(msg)
                 pass
-    audio_filepaths = os.listdir(tmp_dir)
-    audio_filepaths.sort()
+    audio_filepaths = sorted(p.name for p in Path(tmp_dir).iterdir())
     if not audio_filepaths:
         logging.getLogger().error("Download failed")
         return None
@@ -376,7 +387,7 @@ def download_track(
     track_url: str,
     tmp_dir: str,
     tqdm_line_lock: threading.Lock,
-):
+) -> dict[str, str]:
     """Download a single track, and return its metadata."""
     with contextlib.ExitStack() as cm:
         filename_template = (
@@ -405,7 +416,9 @@ def download_track(
         else:
             ytdl_progress = None
 
-        for attempt in range(1, YDL_MAX_DOWNLOAD_ATTEMPTS + 1):
+        attempt = 0
+        while True:
+            attempt += 1
             msg = (
                 f"Downloading audio for track #{track_idx + 1} from {track_url!r} "
                 f"(attempt {attempt}/{YDL_MAX_DOWNLOAD_ATTEMPTS})"
@@ -419,14 +432,11 @@ def download_track(
                 with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                     metadata = ydl.extract_info(track_url)
             except yt_dlp.utils.DownloadError as e:
-                if e.exc_info is not None and isinstance(e.exc_info[1], (socket.gaierror, socket.timeout)):
+                network_error = e.exc_info is not None and isinstance(e.exc_info[1], (socket.gaierror, socket.timeout))
+                if network_error and (attempt < YDL_MAX_DOWNLOAD_ATTEMPTS):
                     continue
                 raise
-            return {
-                k: backslash_unescape(metadata[k])
-                for k in ("artist", "album", "title")
-                if ((k in metadata) and metadata[k])
-            }
+            return {k: backslash_unescape(metadata[k]) for k in ("artist", "album", "title") if (metadata.get(k))}
 
 
 def download_audio(
@@ -452,8 +462,7 @@ def download_audio(
                 )
 
             # raise exception if any
-            for future in futures:
-                tracks_metadata.append(future.result())
+            tracks_metadata.extend(future.result() for future in futures)
 
         track_filepaths = tuple(sorted(str(p) for p in Path(tmp_dir).iterdir()))
         if not track_filepaths:
@@ -494,7 +503,7 @@ def download_audio(
 
         # add tags & embed cover
         files_tags = {}
-        for track_filepath, track_metadata in zip(track_filepaths, tracks_metadata):
+        for track_filepath, track_metadata in zip(track_filepaths, tracks_metadata, strict=True):
             try:
                 files_tags[track_filepath] = tag.tag(track_filepath, review, track_metadata, cover_data, record_label)
             except Exception as e:
@@ -524,21 +533,21 @@ def download_audio(
                 p = Path(dest_filename)
                 filename, ext = p.stem, p.suffix
                 filename = ". ".join((filename, pathvalidate.sanitize_filename(file_tags["title"][-1])))
-                if len(filename) > 128:
+                if len(filename) > MAX_FILENAME_LEN:
                     # actual limit (PATH_MAX) is much higher on Linux
                     # but we keep a large margin for directory path, extension
                     # and potential lower limits due to filesystem
-                    filename = f"{filename[:128]}-"
-                dest_filename = "".join((filename, ext))
+                    filename = f"{filename[:MAX_FILENAME_LEN]}-"
+                dest_filename = f"{filename}{ext}"
             dest_dir = Path.cwd() / date_published.strftime("%Y-%m")
-            os.makedirs(dest_dir, exist_ok=True)
+            dest_dir.mkdir(parents=True, exist_ok=True)
             dest_filepath = dest_dir / dest_filename
-            logging.getLogger().debug(f"Moving {repr(track_filepath)} to {repr(dest_filepath)}")
+            logging.getLogger().debug(f"Moving {track_filepath!r} to {dest_filepath!r}")
             shutil.move(track_filepath, dest_filepath)
             # restore sane perms fucked up by yt-dlp
-            cur_mode = os.stat(dest_filepath).st_mode
+            cur_mode = dest_filepath.stat().st_mode
             new_mode = cur_mode & ~cur_umask & ~0o111
-            os.chmod(dest_filepath, new_mode)
+            dest_filepath.chmod(new_mode)
 
         return True
 
@@ -557,7 +566,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
             with tempfile.TemporaryDirectory(prefix="amg_") as tmp_dir:
                 merged_filepath = download_and_merge(review, track_urls, tmp_dir, cover_filepath)
                 if merged_filepath is None:
-                    return None
+                    return
                 cmd: tuple[str, ...] = ("mpv", merged_filepath)
                 logging.getLogger().debug(f"Playing with command: {shlex.join(cmd)}")
                 subprocess.run(cmd, check=True)
@@ -572,7 +581,7 @@ def play(review: ReviewMetadata, track_urls: Sequence[str], *, merge_with_pictur
             subprocess.run(cmd, check=True, stdin=dl_process.stdout)
 
 
-def cl_main():  # noqa: C901
+def cl_main() -> None:
     """Command line entry point."""
     # parse args
     arg_parser = argparse.ArgumentParser(
@@ -653,9 +662,9 @@ def cl_main():  # noqa: C901
     reviews = list(itertools.islice(get_reviews(), args.count))
 
     # http cache
-    cache_dir = platformdirs.user_cache_dir("amg-player")
-    os.makedirs(cache_dir, exist_ok=True)
-    cache_filepath = Path(cache_dir) / "http_cache.db"
+    cache_dir = Path(platformdirs.user_cache_dir("amg-player"))
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    cache_filepath = cache_dir / "http_cache.db"
     http_cache = web_cache.WebCache(
         cache_filepath,
         "reviews",
@@ -677,8 +686,7 @@ def cl_main():  # noqa: C901
         if args.mode in (PlayerMode.MANUAL, PlayerMode.RADIO):
             if menu_ret is None:
                 break
-            else:
-                selected_idx, action = menu_ret
+            selected_idx, action = menu_ret
 
         if args.mode is PlayerMode.MANUAL:
             # fully interactive mode
@@ -690,10 +698,9 @@ def cl_main():  # noqa: C901
                 to_play = reviews[0 : reviews.index(review) + 1]
                 to_play.reverse()
                 to_play = iter(to_play)
-        elif args.mode in (PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD):
+        elif args.mode in (PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD) and to_play is None:
             # auto play all non played tracks
-            if to_play is None:
-                to_play = filter(lambda x: not known_reviews.isKnownUrl(x.url), reversed(reviews))
+            to_play = filter(lambda x: not known_reviews.isKnownUrl(x.url), reversed(reviews))
         if args.mode in (PlayerMode.RADIO, PlayerMode.DISCOVER, PlayerMode.DISCOVER_DOWNLOAD):
             assert to_play is not None
             try:
@@ -717,10 +724,7 @@ def cl_main():  # noqa: C901
         else:
             footer_str = lxml_etree.tostring(footer_elem, encoding="unicode", method="text").strip()
             record_label_match = RECORD_LABEL_REGEX.search(footer_str)
-            if record_label_match is not None:
-                record_label = record_label_match.group(1)
-            else:
-                record_label = None
+            record_label = record_label_match.group(1) if record_label_match is not None else None
         track_urls, audio_only = get_embedded_track(review_page, http_cache)
         if track_urls is None:
             logging.getLogger().warning("Unable to extract embedded track")
@@ -772,11 +776,9 @@ def cl_main():  # noqa: C901
                             max_cover_size=args.max_embedded_cover_size,
                             record_label=record_label,
                         )
-                    except yt_dlp.DownloadError as e:
+                    except yt_dlp.DownloadError:
                         if args.mode is PlayerMode.DISCOVER_DOWNLOAD:
-                            logging.getLogger().exception(
-                                f"Failed download {track_urls!r}: {e.__class__.__qualname__} {e}"
-                            )
+                            logging.getLogger().exception(f"Failed download {track_urls!r}")
                         else:
                             raise
                 else:
