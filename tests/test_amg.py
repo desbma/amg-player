@@ -5,12 +5,14 @@ import dbm.dumb
 import dbm.sqlite3
 import inspect
 import itertools
+import logging
 import random
 import tempfile
 import unittest
 import unittest.mock
 from pathlib import Path
 
+import colorlog
 import platformdirs
 
 import amg
@@ -22,6 +24,28 @@ class TestAmg(unittest.TestCase):
     def setUp(self) -> None:
         """Set up test case stuff."""
         self.maxDiff = None
+
+    def test_log_colors(self) -> None:
+        """Test only records above the informational level are colored."""
+        formatter = colorlog.ColoredFormatter(
+            fmt="%(log_color)s%(message)s", log_colors=amg.LOG_COLORS, force_color=True
+        )
+        colored = {}
+        for level in (logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL):
+            record = logging.LogRecord(
+                name="test", level=level, pathname=__file__, lineno=0, msg="message", args=None, exc_info=None
+            )
+            colored[level] = not formatter.format(record).startswith("message")
+        self.assertEqual(
+            colored,
+            {
+                logging.DEBUG: False,
+                logging.INFO: False,
+                logging.WARNING: True,
+                logging.ERROR: True,
+                logging.CRITICAL: True,
+            },
+        )
 
     def test_get_reviews(self) -> None:
         """Test review fetching."""

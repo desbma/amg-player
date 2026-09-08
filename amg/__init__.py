@@ -80,6 +80,8 @@ MAX_FILENAME_LEN = 128
 
 PLAYED_DB_OPEN_FLAG = "c"
 
+LOG_COLORS = {"WARNING": "yellow", "ERROR": "red", "CRITICAL": "bold_red"}
+
 
 class ReviewMetadata(NamedTuple):
     """Description of a review and of the album it covers."""
@@ -643,9 +645,11 @@ def cl_main() -> None:
     logging.getLogger("urllib3").setLevel(logging.ERROR)
     logging.getLogger("PIL").setLevel(logging.ERROR)
     if logging.getLogger().isEnabledFor(logging.DEBUG):
-        logging_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s%(threadName)s: %(message)s")
+        logging_formatter = colorlog.ColoredFormatter(
+            fmt="%(log_color)s%(threadName)s: %(message)s", log_colors=LOG_COLORS
+        )
     else:
-        logging_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s%(message)s")
+        logging_formatter = colorlog.ColoredFormatter(fmt="%(log_color)s%(message)s", log_colors=LOG_COLORS)
     logging_handler = logging.StreamHandler()
     logging_handler.setFormatter(logging_formatter)
     logger.addHandler(logging_handler)
