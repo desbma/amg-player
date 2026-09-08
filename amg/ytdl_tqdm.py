@@ -62,7 +62,8 @@ class ytdl_tqdm:
 
         # get current state
         downloaded_bytes = int(ytdl_state["downloaded_bytes"])
-        total_bytes = int(ytdl_state.get("total_bytes", ytdl_state["total_bytes_estimate"]))
+        reported_total_bytes = ytdl_state.get("total_bytes") or ytdl_state.get("total_bytes_estimate")
+        total_bytes = int(reported_total_bytes) if reported_total_bytes is not None else None
 
         # update state
         if self.prev_downloaded_bytes > downloaded_bytes:
