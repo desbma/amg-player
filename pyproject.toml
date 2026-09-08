@@ -91,4 +91,4 @@ ignore = [
 ]
 
 [dependency-groups]
-dev = ["pre-commit", "ruff", "ty"]
+dev = ["ruff", "ty"]
