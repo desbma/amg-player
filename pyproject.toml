@@ -73,6 +73,7 @@ ignore = [
     "EM",      # exception message string literal
     "FIX",     # line contains TODO
     "G004",    # logging f-string
+    "ICN001",  # unconventional import alias
     "N801",    # invalid class name
     "N802",    # invalid function name
     "N812",    # lowercase imported as non lowercase
